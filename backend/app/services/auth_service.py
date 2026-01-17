@@ -47,13 +47,16 @@ def decode_access_token(token: str) -> Optional[TokenData]:
             settings.JWT_SECRET_KEY, 
             algorithms=[settings.JWT_ALGORITHM]
         )
-        user_id: int = payload.get("sub")
+        user_id = payload.get("sub")
         email: str = payload.get("email")
         role: str = payload.get("role")
         if user_id is None:
             return None
-        return TokenData(user_id=user_id, email=email, role=role)
+        # Convert user_id to int (JWT stores sub as string)
+        return TokenData(user_id=int(user_id), email=email, role=role)
     except JWTError:
+        return None
+    except Exception:
         return None
 
 
