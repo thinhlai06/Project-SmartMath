@@ -18,7 +18,7 @@ python-multipart==0.0.6
 email-validator==2.1.0
 
 # PDF & QR
-reportlab==4.0.8
+fpdf2>=2.7.0
 qrcode[pil]==7.4.2
 
 # Development

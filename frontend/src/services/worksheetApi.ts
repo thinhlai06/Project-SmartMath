@@ -71,6 +71,16 @@ export interface ExerciseUpdate {
     order_index?: number;
 }
 
+export interface PdfExportSettings {
+    paper_size: 'A4' | 'A5' | 'Letter';
+    orientation: 'P' | 'L';
+    with_answers: boolean;
+    font_size: 'small' | 'medium' | 'large';
+    spacing: 'compact' | 'normal' | 'spacious';
+    qr_code: boolean;
+    eco_layout: boolean;
+}
+
 // === Worksheet API ===
 
 export const worksheetApi = {
@@ -130,6 +140,45 @@ export const worksheetApi = {
         const params = newTitle ? `?new_title=${encodeURIComponent(newTitle)}` : '';
         const response = await api.post<Worksheet>(`/worksheets/${worksheetId}/duplicate${params}`);
         return response.data;
+    },
+
+    // Download PDF
+    downloadPdf: async (worksheetId: number, settings: PdfExportSettings): Promise<void> => {
+        const params = new URLSearchParams({
+            paper_size: settings.paper_size,
+            orientation: settings.orientation,
+            with_answers: settings.with_answers.toString(),
+            font_size: settings.font_size,
+            spacing: settings.spacing,
+        });
+
+        // Get token for auth
+        const token = localStorage.getItem('access_token');
+
+        // Fetch PDF as blob
+        const response = await fetch(
+            `http://localhost:8000/api/worksheets/${worksheetId}/pdf?${params.toString()}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error('Không thể tải PDF');
+        }
+
+        // Create download
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `worksheet_${worksheetId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
     },
 };
 

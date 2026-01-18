@@ -1,6 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { LoginPage, RegisterPage, HomePage, ClassesPage, ClassDetailPage, WorksheetsPage, WorksheetEditorPage } from './pages';
+import { Navigation } from './components/Navigation';
+import ParentDashboardPage from './pages/ParentDashboardPage';
+import ParentSolutionsPage from './pages/ParentSolutionsPage';
+import StudentExperiencePage from './pages/StudentExperiencePage';
 import './index.css';
 
 // Protected route wrapper
@@ -19,7 +23,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  return <>{children}</>;
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <div className="pt-4">
+        {children}
+      </div>
+    </div>
+  );
 }
 
 // Guest route wrapper (redirect if already logged in)
@@ -91,6 +102,39 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <WorksheetEditorPage />
+          </ProtectedRoute>
+        }
+      />
+      {/* Parent routes */}
+      <Route
+        path="/parent"
+        element={
+          <ProtectedRoute>
+            <ParentDashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/parent/class/:classId"
+        element={
+          <ProtectedRoute>
+            <ParentDashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/parent/solutions/:worksheetId"
+        element={
+          <ProtectedRoute>
+            <ParentSolutionsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/parent/student"
+        element={
+          <ProtectedRoute>
+            <StudentExperiencePage />
           </ProtectedRoute>
         }
       />

@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Save, GripVertical } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Download } from 'lucide-react';
 import { worksheetApi, exerciseApi } from '../services/worksheetApi';
-import type { WorksheetDetail, Exercise, ExerciseCreate, ExerciseType, DifficultyTier } from '../services/worksheetApi';
+import type { WorksheetDetail, Exercise, ExerciseCreate, ExerciseType, DifficultyTier, PdfExportSettings } from '../services/worksheetApi';
 import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { PdfExportModal } from '../components/PdfExportModal';
 
 // CPA section labels
 const CPA_SECTIONS: { type: ExerciseType; label: string; color: string; description: string }[] = [
@@ -39,6 +40,8 @@ export function WorksheetEditorPage() {
         hint: '',
     });
     const [activeSection, setActiveSection] = useState<ExerciseType | DifficultyTier | null>(null);
+    const [showPdfModal, setShowPdfModal] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
 
     const id = parseInt(worksheetId || '0', 10);
 
@@ -111,6 +114,18 @@ export function WorksheetEditorPage() {
         }
     };
 
+    const handleExportPdf = async (settings: PdfExportSettings) => {
+        try {
+            setIsExporting(true);
+            await worksheetApi.downloadPdf(id, settings);
+            setShowPdfModal(false);
+        } catch (err) {
+            setError('Không thể xuất PDF');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
@@ -152,6 +167,14 @@ export function WorksheetEditorPage() {
                             <span className="text-sm text-gray-500">Lớp {worksheet.grade}</span>
                         </div>
                     </div>
+                    <Button
+                        variant="outline"
+                        className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                        onClick={() => setShowPdfModal(true)}
+                    >
+                        <Download className="w-4 h-4" />
+                        Xuất PDF
+                    </Button>
                 </div>
 
                 {/* Error */}
@@ -287,6 +310,17 @@ export function WorksheetEditorPage() {
                         Tổng cộng: <strong>{worksheet.exercises.length}</strong> câu hỏi
                     </p>
                 </div>
+
+                {/* PDF Export Modal */}
+                <PdfExportModal
+                    isOpen={showPdfModal}
+                    onClose={() => setShowPdfModal(false)}
+                    onExport={handleExportPdf}
+                    worksheetTitle={worksheet.title}
+                    worksheetType={worksheet.worksheet_type}
+                    exerciseCount={worksheet.exercises.length}
+                    isExporting={isExporting}
+                />
             </div>
         </div>
     );

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
-from app.routers import auth, topics, classes, students, worksheets, exercises
+from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, parent
 
 
 # Create all tables
@@ -22,7 +22,7 @@ app = FastAPI(
     * **Students** - Quản lý học sinh
     * **Worksheets** - Tạo và quản lý bài tập CPA/Differentiation
     * **Exercises** - Quản lý câu hỏi trong bài tập
-    * **PDF Export** - Xuất PDF với QR code (Coming soon)
+    * **PDF Export** - Xuất bài tập dưới dạng PDF
     
     ## Vai trò người dùng
     
@@ -55,6 +55,8 @@ app.include_router(students.router, prefix="/api", tags=["Students"])
 app.include_router(worksheets.router, prefix="/api", tags=["Worksheets"])
 app.include_router(worksheets.class_router, prefix="/api", tags=["Worksheets"])
 app.include_router(exercises.router, prefix="/api", tags=["Exercises"])
+app.include_router(pdf.router, prefix="/api", tags=["PDF Export"])
+app.include_router(parent.router, prefix="/api/parent", tags=["Parent"])
 
 
 @app.get("/", tags=["Root"])

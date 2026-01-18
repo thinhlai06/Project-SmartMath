@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, FileText, Copy, Trash2, Send, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Plus, FileText, Copy, Trash2, Send, EyeOff, ArrowLeft, Download } from 'lucide-react';
 import { worksheetApi } from '../services/worksheetApi';
 import { classApi } from '../services/classApi';
-import type { Worksheet, WorksheetType, WorksheetCreate } from '../services/worksheetApi';
+import type { Worksheet, WorksheetType, WorksheetCreate, PdfExportSettings } from '../services/worksheetApi';
 import type { MathClass } from '../services/classApi';
 import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { PdfExportModal } from '../components/PdfExportModal';
 
 export function WorksheetsPage() {
     const { classId } = useParams<{ classId: string }>();
@@ -20,6 +21,9 @@ export function WorksheetsPage() {
     const [error, setError] = useState<string | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [filterType, setFilterType] = useState<WorksheetType | ''>('');
+    const [showPdfModal, setShowPdfModal] = useState(false);
+    const [selectedWorksheetForPdf, setSelectedWorksheetForPdf] = useState<Worksheet | null>(null);
+    const [isExporting, setIsExporting] = useState(false);
 
     // Form state
     const [newWorksheet, setNewWorksheet] = useState<WorksheetCreate>({
@@ -107,6 +111,24 @@ export function WorksheetsPage() {
             fetchData();
         } catch (err) {
             setError('Không thể xóa bài tập');
+        }
+    };
+
+    const handleOpenPdfModal = (ws: Worksheet) => {
+        setSelectedWorksheetForPdf(ws);
+        setShowPdfModal(true);
+    };
+
+    const handleExportPdf = async (settings: PdfExportSettings) => {
+        if (!selectedWorksheetForPdf) return;
+        try {
+            setIsExporting(true);
+            await worksheetApi.downloadPdf(selectedWorksheetForPdf.id, settings);
+            setShowPdfModal(false);
+        } catch (err) {
+            setError('Không thể xuất PDF');
+        } finally {
+            setIsExporting(false);
         }
     };
 
@@ -258,6 +280,14 @@ export function WorksheetsPage() {
                                         <Button
                                             size="sm"
                                             variant="ghost"
+                                            className="text-orange-500 hover:text-orange-700"
+                                            onClick={() => handleOpenPdfModal(ws)}
+                                        >
+                                            <Download className="w-3 h-3" />
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
                                             className="text-red-500 hover:text-red-700"
                                             onClick={() => handleDelete(ws.id)}
                                         >
@@ -294,8 +324,8 @@ export function WorksheetsPage() {
                                                 type="button"
                                                 onClick={() => setNewWorksheet({ ...newWorksheet, worksheet_type: 'cpa' })}
                                                 className={`flex-1 py-3 px-4 rounded-lg border-2 transition-colors ${newWorksheet.worksheet_type === 'cpa'
-                                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                        : 'border-gray-200 hover:border-gray-300'
+                                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                                    : 'border-gray-200 hover:border-gray-300'
                                                     }`}
                                             >
                                                 <div className="font-medium">CPA</div>
@@ -305,8 +335,8 @@ export function WorksheetsPage() {
                                                 type="button"
                                                 onClick={() => setNewWorksheet({ ...newWorksheet, worksheet_type: 'differentiation' })}
                                                 className={`flex-1 py-3 px-4 rounded-lg border-2 transition-colors ${newWorksheet.worksheet_type === 'differentiation'
-                                                        ? 'border-purple-500 bg-purple-50 text-purple-700'
-                                                        : 'border-gray-200 hover:border-gray-300'
+                                                    ? 'border-purple-500 bg-purple-50 text-purple-700'
+                                                    : 'border-gray-200 hover:border-gray-300'
                                                     }`}
                                             >
                                                 <div className="font-medium">Phân hóa</div>
@@ -340,6 +370,22 @@ export function WorksheetsPage() {
                             </form>
                         </div>
                     </div>
+                )}
+
+                {/* PDF Export Modal */}
+                {selectedWorksheetForPdf && (
+                    <PdfExportModal
+                        isOpen={showPdfModal}
+                        onClose={() => {
+                            setShowPdfModal(false);
+                            setSelectedWorksheetForPdf(null);
+                        }}
+                        onExport={handleExportPdf}
+                        worksheetTitle={selectedWorksheetForPdf.title}
+                        worksheetType={selectedWorksheetForPdf.worksheet_type}
+                        exerciseCount={selectedWorksheetForPdf.exercise_count}
+                        isExporting={isExporting}
+                    />
                 )}
             </div>
         </div>
