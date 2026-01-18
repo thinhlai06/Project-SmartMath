@@ -4,8 +4,10 @@ import { useAuth } from '../hooks/useAuth';
 import { classApi } from '../services/classApi';
 import { worksheetApi } from '../services/worksheetApi';
 import type { MathClass } from '../services/classApi';
-import { AnnouncementList } from '../components/AnnouncementList';
 import { GraduationCap, BookOpen, BarChart3, FileDown, Camera, Users, ChevronRight } from 'lucide-react';
+import { QuickActionCard } from '../components/dashboard/QuickActionCard';
+import { RecentActivityList } from '../components/dashboard/RecentActivityList';
+import { mockErrorStats } from '../mockData/mockErrorData';
 
 export function HomePage() {
     const { user, isAuthenticated } = useAuth();
@@ -242,89 +244,80 @@ function TeacherHome() {
                 <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
                     <h2 className="text-lg font-semibold text-gray-900 mb-4">Thao tác nhanh</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <button
+                        <QuickActionCard
+                            title="Tạo CPA"
+                            icon="📖"
+                            color="blue"
                             onClick={() => navigate('/cpa-wizard')}
-                            className="flex flex-col items-center gap-2 p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors group"
-                        >
-                            <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                                <span className="text-2xl">📖</span>
-                            </div>
-                            <span className="font-medium text-gray-700">Tạo CPA</span>
-                        </button>
-                        <button
+                        />
+                        <QuickActionCard
+                            title="Phân hóa"
+                            icon="🎯"
+                            color="purple"
                             onClick={() => navigate('/differentiation-wizard')}
-                            className="flex flex-col items-center gap-2 p-4 bg-purple-50 hover:bg-purple-100 rounded-xl transition-colors group"
-                        >
-                            <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                                <span className="text-2xl">🎯</span>
-                            </div>
-                            <span className="font-medium text-gray-700">Phân hóa</span>
-                        </button>
-                        <button
+                        />
+                        <QuickActionCard
+                            title="Xuất PDF"
+                            icon="📥"
+                            color="orange"
                             onClick={() => classes.length > 0 ? navigate(`/classes/${classes[0].id}/worksheets`) : navigate('/classes')}
-                            className="flex flex-col items-center gap-2 p-4 bg-orange-50 hover:bg-orange-100 rounded-xl transition-colors group"
-                        >
-                            <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                                <span className="text-2xl">📥</span>
-                            </div>
-                            <span className="font-medium text-gray-700">Xuất PDF</span>
-                        </button>
-                        <button
-                            className="flex flex-col items-center gap-2 p-4 bg-gray-50 rounded-xl opacity-60 cursor-not-allowed"
-                        >
-                            <div className="w-12 h-12 bg-gray-400 rounded-xl flex items-center justify-center">
-                                <span className="text-2xl">📷</span>
-                            </div>
-                            <span className="font-medium text-gray-500">Chấm bài AI</span>
-                            <span className="text-xs text-gray-400">Coming soon</span>
-                        </button>
+                        />
+                        <QuickActionCard
+                            title="Chấm bài AI"
+                            icon="📷"
+                            color="teal"
+                            badge="Beta"
+                            onClick={() => navigate('/ai-grading')}
+                        />
+                        <QuickActionCard
+                            title="Phân tích lỗi"
+                            icon="📊"
+                            color="red"
+                            onClick={() => navigate('/error-analytics')}
+                        />
                     </div>
                 </div>
 
                 {/* Two Column Layout: Error Analysis & Recent Activities */}
-                <div className="grid md:grid-cols-2 gap-6">
-                    {/* Error Analysis */}
-                    <div className="bg-white rounded-2xl p-6 shadow-sm">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">📊 Phân tích lỗi phổ biến</h2>
-                        <div className="space-y-4">
-                            <div className="p-3 bg-red-50 rounded-lg border border-red-100">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium text-gray-700">Phép chia có dư</span>
-                                    <span className="text-sm text-red-600">68% ↓</span>
-                                </div>
-                                <div className="w-full bg-red-100 rounded-full h-2">
-                                    <div className="bg-red-500 h-2 rounded-full" style={{ width: '68%' }}></div>
-                                </div>
+                <div className="grid md:grid-cols-3 gap-6">
+                    {/* Error Analysis (Left 2 cols) */}
+                    <div className="md:col-span-2 bg-white rounded-2xl p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-semibold text-gray-900">📊 Phân tích lỗi phổ biến</h2>
+                            <button onClick={() => navigate('/error-analytics')} className="text-sm text-blue-600 hover:underline">Chi tiết</button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+                                <p className="text-gray-500 text-sm">Tổng số lỗi tuần này</p>
+                                <p className="text-2xl font-bold text-red-600">{mockErrorStats.totalErrors.toLocaleString()}</p>
                             </div>
-                            <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium text-gray-700">Bài toán nhiều bước</span>
-                                    <span className="text-sm text-orange-600">52% ↓</span>
-                                </div>
-                                <div className="w-full bg-orange-100 rounded-full h-2">
-                                    <div className="bg-orange-500 h-2 rounded-full" style={{ width: '52%' }}></div>
-                                </div>
-                            </div>
-                            <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-100">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium text-gray-700">Đổi đơn vị</span>
-                                    <span className="text-sm text-yellow-600">45% ↑</span>
-                                </div>
-                                <div className="w-full bg-yellow-100 rounded-full h-2">
-                                    <div className="bg-yellow-500 h-2 rounded-full" style={{ width: '45%' }}></div>
-                                </div>
+                            <div className="p-4 bg-orange-50 rounded-xl border border-orange-100">
+                                <p className="text-gray-500 text-sm">Lỗi phổ biến nhất</p>
+                                <p className="text-2xl font-bold text-orange-600">{mockErrorStats.mostCommonType}</p>
                             </div>
                         </div>
-                        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                            <p className="text-sm text-blue-700">
-                                💡 <strong>Gợi ý:</strong> Lớp 3A cần ôn phép chia có dư. Tạo bài tập bổ trợ.
-                            </p>
+
+                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                            <div className="flex gap-3">
+                                <div className="p-2 bg-white rounded-full h-fit shadow-sm">💡</div>
+                                <div>
+                                    <p className="font-semibold text-blue-900">Gợi ý giảng dạy</p>
+                                    <p className="text-sm text-blue-700 mt-1">
+                                        Có {mockErrorStats.criticalStudents} học sinh đang gặp khó khăn nghiêm trọng.
+                                        Hãy xem chi tiết đề xuất bài tập bổ trợ.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Announcements */}
-                    <div className="bg-white rounded-2xl p-6 shadow-sm">
-                        <AnnouncementList isTeacher={true} />
+                    {/* Recent Activities (Right 1 col) */}
+                    <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Hoạt động gần đây</h2>
+                        <div className="flex-1">
+                            <RecentActivityList />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -445,13 +438,22 @@ function ParentHome() {
             <div className="max-w-4xl mx-auto px-4 py-8">
                 <div className="flex items-center justify-between mb-6">
                     <h1 className="text-2xl font-bold text-gray-900">👨‍👩‍👧 Quản lý con</h1>
-                    <button
-                        onClick={() => setShowJoinModal(true)}
-                        className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
-                    >
-                        <Users className="w-4 h-4" />
-                        Thêm con vào lớp
-                    </button>
+                    <div>
+                        <button
+                            onClick={() => navigate('/ai-grading')}
+                            className="mr-3 px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl font-medium transition-colors inline-flex items-center gap-2"
+                        >
+                            <Camera className="w-4 h-4" />
+                            Chấm điểm AI
+                        </button>
+                        <button
+                            onClick={() => setShowJoinModal(true)}
+                            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition-colors inline-flex items-center gap-2"
+                        >
+                            <Users className="w-4 h-4" />
+                            Thêm con vào lớp
+                        </button>
+                    </div>
                 </div>
 
                 {isLoading ? (

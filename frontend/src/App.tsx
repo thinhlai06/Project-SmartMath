@@ -7,6 +7,8 @@ import { Navigation } from './components/Navigation';
 import ParentDashboardPage from './pages/ParentDashboardPage';
 import ParentSolutionsPage from './pages/ParentSolutionsPage';
 import StudentExperiencePage from './pages/StudentExperiencePage';
+import AIGradingPage from './pages/AIGradingPage';
+import ErrorAnalyticsPage from './pages/ErrorAnalyticsPage';
 import './index.css';
 
 // Protected route wrapper
@@ -153,6 +155,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <StudentExperiencePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ai-grading"
+        element={
+          <ProtectedRoute>
+            <AIGradingPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/error-analytics"
+        element={
+          <ProtectedRoute>
+            <ErrorAnalyticsPage />
           </ProtectedRoute>
         }
       />
