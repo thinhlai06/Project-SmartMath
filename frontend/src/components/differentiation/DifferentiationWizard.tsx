@@ -232,6 +232,7 @@ export function DifferentiationWizard() {
                 {currentStep === 3 && (
                     <DiffStep3Content
                         assignments={wizardData.assignments}
+                        data={wizardData}
                         onBack={() => setCurrentStep(2)}
                         onSave={handleSave}
                         isSaving={isSaving}

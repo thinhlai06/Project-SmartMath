@@ -1,39 +1,88 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, RefreshCw, AlertCircle } from 'lucide-react';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
+import { Alert, AlertDescription } from '../ui/alert';
 
 interface Step2CPAGeneratorProps {
-    data: { topicId: string, standard: string };
+    data: {
+        topicId: string,
+        standard: string,
+        grade: number // Added grade to props if available, otherwise defaulting to 1
+    };
     onNext: (data: any) => void;
     onBack: () => void;
+}
+
+interface QuestionItem {
+    question: string;
+    answer: string;
+    hint?: string;
+}
+
+interface CPAGenerationResponse {
+    concrete: QuestionItem[];
+    pictorial: QuestionItem[];
+    abstract: QuestionItem[];
+    rag_sources?: string[];
 }
 
 export function Step2CPAGenerator({ data, onNext, onBack }: Step2CPAGeneratorProps) {
     const [isGenerating, setIsGenerating] = useState(true);
     const [generatedContent, setGeneratedContent] = useState<any>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const formatQuestions = (items: QuestionItem[]) => {
+        return items.map((item, i) =>
+            `Câu ${i + 1}: ${item.question}\n(Đáp án: ${item.answer})`
+        ).join('\n\n');
+    };
+
+    const generateAI = async () => {
+        setIsGenerating(true);
+        setError(null);
+        try {
+            const response = await fetch('http://localhost:8000/api/ai/generate-cpa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    topic_id: parseInt(data.topicId),
+                    grade: data.grade || 1, // Default to grade 1 if not provided
+                    objective: data.standard,
+                    counts: { concrete: 2, pictorial: 2, abstract: 2 }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to generate content');
+            }
+
+            const result: CPAGenerationResponse = await response.json();
+
+            setGeneratedContent({
+                concrete: formatQuestions(result.concrete),
+                pictorial: formatQuestions(result.pictorial),
+                abstract: formatQuestions(result.abstract),
+                practice: formatQuestions([...result.abstract]), // Use abstract for practice for now
+                full_json: result // Keep raw data
+            });
+
+        } catch (err: any) {
+            setError(err.message || 'Có lỗi xảy ra khi kết nối AI');
+        } finally {
+            setIsGenerating(false);
+        }
+    };
 
     useEffect(() => {
-        // Simulate AI generation
-        const timer = setTimeout(() => {
-            setGeneratedContent({
-                concrete: "Sử dụng 5 que tính màu đỏ và 3 que tính màu xanh để minh họa phép cộng 5 + 3.",
-                pictorial: "Vẽ 5 quả táo đỏ và 3 quả táo xanh vào hai rổ khác nhau.",
-                abstract: "Viết phép tính: 5 + 3 = 8",
-                practice: "Bài tập 1: Tính nhẩm 5 + 3\nBài tập 2: Điền số thích hợp vào ô trống: 5 + ... = 8"
-            });
-            setIsGenerating(false);
-        }, 2000);
-        return () => clearTimeout(timer);
+        generateAI();
     }, []);
 
     const handleRegenerate = () => {
-        setIsGenerating(true);
-        setTimeout(() => {
-            setIsGenerating(false);
-        }, 1500);
+        generateAI();
     };
 
     return (
@@ -45,11 +94,22 @@ export function Step2CPAGenerator({ data, onNext, onBack }: Step2CPAGeneratorPro
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-                {isGenerating ? (
+                {error ? (
+                    <div className="py-10 text-center space-y-4">
+                        <Alert variant="destructive" className="max-w-md mx-auto">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                        <Button onClick={handleRegenerate} variant="outline">
+                            <RefreshCw className="w-4 h-4 mr-2" /> Thử lại
+                        </Button>
+                    </div>
+                ) : isGenerating ? (
                     <div className="py-20 text-center">
                         <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
                         <h3 className="text-lg font-semibold text-gray-900">Đang tạo nội dung với AI...</h3>
-                        <p className="text-gray-500">Đang phân tích mục tiêu: "{data.standard}"</p>
+                        <p className="text-gray-500">Đang phân tích SGK và tạo câu hỏi cho: "{data.standard}"</p>
+                        <p className="text-xs text-gray-400 mt-2">(Mất khoảng 10-30 giây)</p>
                     </div>
                 ) : (
                     <div className="space-y-6">
@@ -59,8 +119,8 @@ export function Step2CPAGenerator({ data, onNext, onBack }: Step2CPAGeneratorPro
                                 <Label className="text-orange-700 font-bold flex items-center gap-2">
                                     🔶 Concrete (Cụ thể)
                                 </Label>
-                                <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 min-h-[150px]">
-                                    <p className="text-gray-700 text-sm leading-relaxed">{generatedContent.concrete}</p>
+                                <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 min-h-[150px] whitespace-pre-wrap text-sm">
+                                    {generatedContent?.concrete}
                                 </div>
                             </div>
 
@@ -69,8 +129,8 @@ export function Step2CPAGenerator({ data, onNext, onBack }: Step2CPAGeneratorPro
                                 <Label className="text-blue-700 font-bold flex items-center gap-2">
                                     🟦 Pictorial (Hình ảnh)
                                 </Label>
-                                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 min-h-[150px]">
-                                    <p className="text-gray-700 text-sm leading-relaxed">{generatedContent.pictorial}</p>
+                                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 min-h-[150px] whitespace-pre-wrap text-sm">
+                                    {generatedContent?.pictorial}
                                 </div>
                             </div>
 
@@ -79,8 +139,8 @@ export function Step2CPAGenerator({ data, onNext, onBack }: Step2CPAGeneratorPro
                                 <Label className="text-purple-700 font-bold flex items-center gap-2">
                                     🟣 Abstract (Trừu tượng)
                                 </Label>
-                                <div className="p-4 bg-purple-50 rounded-xl border border-purple-100 min-h-[150px]">
-                                    <p className="text-gray-700 text-sm leading-relaxed">{generatedContent.abstract}</p>
+                                <div className="p-4 bg-purple-50 rounded-xl border border-purple-100 min-h-[150px] whitespace-pre-wrap text-sm">
+                                    {generatedContent?.abstract}
                                 </div>
                             </div>
                         </div>
@@ -91,7 +151,7 @@ export function Step2CPAGenerator({ data, onNext, onBack }: Step2CPAGeneratorPro
                             </Label>
                             <Textarea
                                 className="min-h-[100px] border-gray-200 focus:ring-purple-500"
-                                value={generatedContent.practice}
+                                value={generatedContent?.practice}
                                 onChange={(e) => setGeneratedContent({ ...generatedContent, practice: e.target.value })}
                             />
                         </div>

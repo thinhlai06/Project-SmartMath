@@ -45,14 +45,51 @@ class QuestionGenerator:
 
         return result
 
+    def generate_differentiation_questions(
+        self,
+        topic: str,
+        grade: int,
+        objective: str,
+        tiers: List[str] = None
+    ) -> Dict:
+        """Generate differentiated questions with RAG context."""
+        if not tiers:
+            tiers = ["foundation", "standard", "extension", "advanced"]
+
+        # Retrieve SGK context
+        rag_results = self.rag.retrieve(f"{topic} {objective}", grade=grade, k=4)
+        rag_context = "\n".join([d.page_content[:500] for d in rag_results])
+        rag_sources = list(set([d.metadata.get('source_file', '') for d in rag_results]))
+
+        result = {"content": {}, "rag_sources": rag_sources}
+
+        for tier in tiers:
+            # Generate 2 questions per tier for now
+            count = 2
+            prompt = self._build_prompt(tier, topic, grade, objective, count, rag_context)
+            system = "Bạn là AI giáo viên Toán tiểu học Việt Nam. Trả lời bằng JSON array hợp lệ."
+            
+            print(f"🤖 Generating {count} {tier} questions...")
+            response = OllamaService.generate(prompt, system=system, temperature=0.7)
+            questions = self._parse_json(response)
+            result["content"][tier] = questions
+
+        return result
+
     def _build_prompt(self, level: str, topic: str, grade: int, objective: str, count: int, context: str) -> str:
         level_desc = {
             "concrete": "CỤ THỂ - dùng đồ vật thực (kẹo, bi, táo)",
             "pictorial": "HÌNH ẢNH - dùng sơ đồ, hình vẽ",
-            "abstract": "TRỪU TƯỢNG - dùng số và phép tính"
+            "abstract": "TRỪU TƯỢNG - dùng số và phép tính",
+            "foundation": "NHẬN BIẾT - Bài tập cơ bản, dễ nhất, nhận diện kiến thức",
+            "standard": "THÔNG HIỂU - Bài tập trung bình, áp dụng công thức",
+            "extension": "VẬN DỤNG - Bài tập khó hơn, cần suy luận",
+            "advanced": "VẬN DỤNG CAO - Bài tập tư duy, rất khó, dành cho học sinh giỏi"
         }
-        return f"""Tạo {count} câu hỏi Toán lớp {grade} theo phương pháp CPA.
-Mức độ: {level.upper()} ({level_desc[level]})
+        desc = level_desc.get(level, level.upper())
+        
+        return f"""Tạo {count} câu hỏi Toán lớp {grade}.
+Mức độ: {desc}
 Chủ đề: {topic}
 Mục tiêu: {objective}
 

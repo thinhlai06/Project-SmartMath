@@ -32,6 +32,7 @@ export function Navigation() {
     const teacherLinks: NavLink[] = [
         { label: 'Trang chủ', href: '/', icon: LayoutDashboard },
         { label: 'Lớp học', href: '/classes', icon: GraduationCap },
+        { label: 'Chấm điểm AI', href: '/ai-grading', icon: FileText },
         { label: 'Export PDF', href: '/export', icon: FileText, disabled: true }, // Placeholder
     ];
 

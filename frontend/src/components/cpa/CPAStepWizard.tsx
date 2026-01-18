@@ -222,7 +222,7 @@ export function CPAStepWizard() {
                 )}
                 {currentStep === 2 && (
                     <Step2CPAGenerator
-                        data={{ topicId: wizardData.topicId, standard: wizardData.standard }}
+                        data={{ topicId: wizardData.topicId, standard: wizardData.standard, grade: wizardData.grade }}
                         onNext={handleStep2Submit}
                         onBack={() => setCurrentStep(1)}
                     />
