@@ -13,6 +13,7 @@ class Student(Base):
     id = Column(Integer, primary_key=True, index=True)
     full_name = Column(String(255), nullable=False)
     class_id = Column(Integer, ForeignKey("math_classes.id"), nullable=False)
+    tier = Column(String(20), default="standard")  # foundation, standard, extension, advanced
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -22,3 +23,4 @@ class Student(Base):
 
     def __repr__(self):
         return f"<Student(id={self.id}, name='{self.full_name}')>"
+

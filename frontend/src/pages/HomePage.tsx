@@ -1,5 +1,9 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { classApi } from '../services/classApi';
+import { worksheetApi } from '../services/worksheetApi';
+import type { MathClass } from '../services/classApi';
 import { GraduationCap, Users, ChevronRight, BookOpen, BarChart3, FileDown, Camera } from 'lucide-react';
 
 export function HomePage() {
@@ -129,10 +133,40 @@ export function HomePage() {
     );
 }
 
-// Placeholder for Teacher Home
+// Teacher Home with real data binding
 function TeacherHome() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const [classes, setClasses] = useState<MathClass[]>([]);
+    const [worksheetCount, setWorksheetCount] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Fetch classes and worksheets on mount
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const classesData = await classApi.getClasses();
+                setClasses(classesData);
+
+                // Fetch worksheet count for each class
+                let totalWorksheets = 0;
+                for (const cls of classesData) {
+                    const worksheets = await worksheetApi.getWorksheets(cls.id);
+                    totalWorksheets += worksheets.length;
+                }
+                setWorksheetCount(totalWorksheets);
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    // Calculate statistics
+    const classCount = classes.length;
+    const studentCount = classes.reduce((sum, cls) => sum + (cls.student_count || 0), 0);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
@@ -160,21 +194,46 @@ function TeacherHome() {
                 <h1 className="text-2xl font-bold text-gray-900 mb-6">Bảng điều khiển Giáo viên</h1>
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <div className="bg-white rounded-xl p-6 shadow-sm">
-                        <p className="text-3xl font-bold text-gray-900">0</p>
+                    <div
+                        className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+                        onClick={() => navigate('/classes')}
+                    >
+                        {isLoading ? (
+                            <div className="h-9 w-12 bg-gray-200 rounded animate-pulse"></div>
+                        ) : (
+                            <p className="text-3xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{classCount}</p>
+                        )}
                         <p className="text-gray-600">Lớp học</p>
+                        <p className="text-xs text-blue-500 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Xem chi tiết →</p>
                     </div>
-                    <div className="bg-white rounded-xl p-6 shadow-sm">
-                        <p className="text-3xl font-bold text-gray-900">0</p>
+                    <div
+                        className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+                        onClick={() => navigate('/classes')}
+                    >
+                        {isLoading ? (
+                            <div className="h-9 w-12 bg-gray-200 rounded animate-pulse"></div>
+                        ) : (
+                            <p className="text-3xl font-bold text-gray-900 group-hover:text-teal-600 transition-colors">{studentCount}</p>
+                        )}
                         <p className="text-gray-600">Học sinh</p>
+                        <p className="text-xs text-teal-500 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Xem chi tiết →</p>
                     </div>
-                    <div className="bg-white rounded-xl p-6 shadow-sm">
-                        <p className="text-3xl font-bold text-gray-900">0</p>
+                    <div
+                        className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+                        onClick={() => classes.length > 0 ? navigate(`/classes/${classes[0].id}/worksheets`) : null}
+                    >
+                        {isLoading ? (
+                            <div className="h-9 w-12 bg-gray-200 rounded animate-pulse"></div>
+                        ) : (
+                            <p className="text-3xl font-bold text-gray-900 group-hover:text-orange-600 transition-colors">{worksheetCount}</p>
+                        )}
                         <p className="text-gray-600">Bài tập</p>
+                        <p className="text-xs text-orange-500 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Xem chi tiết →</p>
                     </div>
-                    <div className="bg-white rounded-xl p-6 shadow-sm">
+                    <div className="bg-white rounded-xl p-6 shadow-sm opacity-60">
                         <p className="text-3xl font-bold text-gray-900">-</p>
                         <p className="text-gray-600">Điểm TB</p>
+                        <p className="text-xs text-gray-400 mt-2">Coming soon</p>
                     </div>
                 </div>
 

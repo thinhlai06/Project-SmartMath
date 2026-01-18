@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
-import { LoginPage, RegisterPage, HomePage } from './pages';
+import { LoginPage, RegisterPage, HomePage, ClassesPage, ClassDetailPage, WorksheetsPage, WorksheetEditorPage } from './pages';
 import './index.css';
 
 // Protected route wrapper
@@ -59,6 +59,39 @@ function AppRoutes() {
           <GuestRoute>
             <RegisterPage />
           </GuestRoute>
+        }
+      />
+      {/* Teacher routes */}
+      <Route
+        path="/classes"
+        element={
+          <ProtectedRoute>
+            <ClassesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/classes/:classId"
+        element={
+          <ProtectedRoute>
+            <ClassDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/classes/:classId/worksheets"
+        element={
+          <ProtectedRoute>
+            <WorksheetsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/worksheets/:worksheetId/edit"
+        element={
+          <ProtectedRoute>
+            <WorksheetEditorPage />
+          </ProtectedRoute>
         }
       />
       {/* Catch all - redirect to home */}

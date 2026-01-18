@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
-from app.routers import auth
+from app.routers import auth, topics, classes, students, worksheets, exercises
 
 
 # Create all tables
@@ -17,8 +17,11 @@ app = FastAPI(
     ## Tính năng
     
     * **Authentication** - Đăng ký và đăng nhập cho Giáo viên/Phụ huynh
-    * **Classes** - Quản lý lớp học (Coming soon)
-    * **Worksheets** - Tạo và quản lý bài tập CPA (Coming soon)
+    * **Topics** - Danh sách chủ đề toán theo SGK
+    * **Classes** - Quản lý lớp học
+    * **Students** - Quản lý học sinh
+    * **Worksheets** - Tạo và quản lý bài tập CPA/Differentiation
+    * **Exercises** - Quản lý câu hỏi trong bài tập
     * **PDF Export** - Xuất PDF với QR code (Coming soon)
     
     ## Vai trò người dùng
@@ -46,6 +49,12 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(topics.router, prefix="/api/topics", tags=["Math Topics"])
+app.include_router(classes.router, prefix="/api/classes", tags=["Classes"])
+app.include_router(students.router, prefix="/api", tags=["Students"])
+app.include_router(worksheets.router, prefix="/api", tags=["Worksheets"])
+app.include_router(worksheets.class_router, prefix="/api", tags=["Worksheets"])
+app.include_router(exercises.router, prefix="/api", tags=["Exercises"])
 
 
 @app.get("/", tags=["Root"])
