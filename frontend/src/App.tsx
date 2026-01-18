@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { CPAStepWizard } from './components/cpa/CPAStepWizard';
+import { DifferentiationWizard } from './components/differentiation/DifferentiationWizard';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { LoginPage, RegisterPage, HomePage, ClassesPage, ClassDetailPage, WorksheetsPage, WorksheetEditorPage } from './pages';
 import { Navigation } from './components/Navigation';
@@ -102,6 +104,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <WorksheetEditorPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/differentiation-wizard"
+        element={
+          <ProtectedRoute>
+            <DifferentiationWizard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cpa-wizard"
+        element={
+          <ProtectedRoute>
+            <CPAStepWizard />
           </ProtectedRoute>
         }
       />

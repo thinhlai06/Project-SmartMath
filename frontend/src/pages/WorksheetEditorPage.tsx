@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Download } from 'lucide-react';
 import { worksheetApi, exerciseApi } from '../services/worksheetApi';
-import type { WorksheetDetail, Exercise, ExerciseCreate, ExerciseType, DifficultyTier, PdfExportSettings } from '../services/worksheetApi';
+import type { WorksheetDetail, Exercise, ExerciseCreate, ExerciseType, DifficultyTier } from '../services/worksheetApi';
 import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -41,7 +41,6 @@ export function WorksheetEditorPage() {
     });
     const [activeSection, setActiveSection] = useState<ExerciseType | DifficultyTier | null>(null);
     const [showPdfModal, setShowPdfModal] = useState(false);
-    const [isExporting, setIsExporting] = useState(false);
 
     const id = parseInt(worksheetId || '0', 10);
 
@@ -114,17 +113,6 @@ export function WorksheetEditorPage() {
         }
     };
 
-    const handleExportPdf = async (settings: PdfExportSettings) => {
-        try {
-            setIsExporting(true);
-            await worksheetApi.downloadPdf(id, settings);
-            setShowPdfModal(false);
-        } catch (err) {
-            setError('Không thể xuất PDF');
-        } finally {
-            setIsExporting(false);
-        }
-    };
 
     if (isLoading) {
         return (
@@ -313,13 +301,9 @@ export function WorksheetEditorPage() {
 
                 {/* PDF Export Modal */}
                 <PdfExportModal
-                    isOpen={showPdfModal}
-                    onClose={() => setShowPdfModal(false)}
-                    onExport={handleExportPdf}
+                    open={showPdfModal}
+                    onOpenChange={setShowPdfModal}
                     worksheetTitle={worksheet.title}
-                    worksheetType={worksheet.worksheet_type}
-                    exerciseCount={worksheet.exercises.length}
-                    isExporting={isExporting}
                 />
             </div>
         </div>

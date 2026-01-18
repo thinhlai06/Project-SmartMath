@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, FileText, Copy, Trash2, Send, EyeOff, ArrowLeft, Download } from 'lucide-react';
 import { worksheetApi } from '../services/worksheetApi';
 import { classApi } from '../services/classApi';
-import type { Worksheet, WorksheetType, WorksheetCreate, PdfExportSettings } from '../services/worksheetApi';
+import type { Worksheet, WorksheetType, WorksheetCreate } from '../services/worksheetApi';
 import type { MathClass } from '../services/classApi';
 import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
@@ -23,7 +23,6 @@ export function WorksheetsPage() {
     const [filterType, setFilterType] = useState<WorksheetType | ''>('');
     const [showPdfModal, setShowPdfModal] = useState(false);
     const [selectedWorksheetForPdf, setSelectedWorksheetForPdf] = useState<Worksheet | null>(null);
-    const [isExporting, setIsExporting] = useState(false);
 
     // Form state
     const [newWorksheet, setNewWorksheet] = useState<WorksheetCreate>({
@@ -119,18 +118,6 @@ export function WorksheetsPage() {
         setShowPdfModal(true);
     };
 
-    const handleExportPdf = async (settings: PdfExportSettings) => {
-        if (!selectedWorksheetForPdf) return;
-        try {
-            setIsExporting(true);
-            await worksheetApi.downloadPdf(selectedWorksheetForPdf.id, settings);
-            setShowPdfModal(false);
-        } catch (err) {
-            setError('Không thể xuất PDF');
-        } finally {
-            setIsExporting(false);
-        }
-    };
 
     const getStatusBadge = (status: string) => {
         if (status === 'published') {
@@ -375,16 +362,9 @@ export function WorksheetsPage() {
                 {/* PDF Export Modal */}
                 {selectedWorksheetForPdf && (
                     <PdfExportModal
-                        isOpen={showPdfModal}
-                        onClose={() => {
-                            setShowPdfModal(false);
-                            setSelectedWorksheetForPdf(null);
-                        }}
-                        onExport={handleExportPdf}
+                        open={showPdfModal}
+                        onOpenChange={setShowPdfModal}
                         worksheetTitle={selectedWorksheetForPdf.title}
-                        worksheetType={selectedWorksheetForPdf.worksheet_type}
-                        exerciseCount={selectedWorksheetForPdf.exercise_count}
-                        isExporting={isExporting}
                     />
                 )}
             </div>

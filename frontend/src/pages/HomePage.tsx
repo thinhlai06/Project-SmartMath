@@ -243,7 +243,7 @@ function TeacherHome() {
                     <h2 className="text-lg font-semibold text-gray-900 mb-4">Thao tác nhanh</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <button
-                            onClick={() => classes.length > 0 ? navigate(`/classes/${classes[0].id}/worksheets`) : navigate('/classes')}
+                            onClick={() => navigate('/cpa-wizard')}
                             className="flex flex-col items-center gap-2 p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors group"
                         >
                             <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -252,7 +252,7 @@ function TeacherHome() {
                             <span className="font-medium text-gray-700">Tạo CPA</span>
                         </button>
                         <button
-                            onClick={() => classes.length > 0 ? navigate(`/classes/${classes[0].id}/worksheets`) : navigate('/classes')}
+                            onClick={() => navigate('/differentiation-wizard')}
                             className="flex flex-col items-center gap-2 p-4 bg-purple-50 hover:bg-purple-100 rounded-xl transition-colors group"
                         >
                             <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
