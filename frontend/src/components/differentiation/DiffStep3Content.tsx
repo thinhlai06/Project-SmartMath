@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { ArrowLeft, Save, FileText } from 'lucide-react';
+import { ArrowLeft, Save, FileText, Loader2 } from 'lucide-react';
 import { MOCK_TIERS } from '../../mockData/differentiationData';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
@@ -8,9 +8,10 @@ interface DiffStep3ContentProps {
     assignments: Record<string, string[]>;
     onBack: () => void;
     onSave: () => void;
+    isSaving?: boolean;
 }
 
-export function DiffStep3Content({ assignments, onBack, onSave }: DiffStep3ContentProps) {
+export function DiffStep3Content({ assignments, onBack, onSave, isSaving = false }: DiffStep3ContentProps) {
     return (
         <Card className="max-w-4xl mx-auto shadow-lg border-indigo-100">
             <CardHeader className="bg-gradient-to-r from-indigo-50 to-white border-b border-indigo-50">
@@ -63,14 +64,27 @@ export function DiffStep3Content({ assignments, onBack, onSave }: DiffStep3Conte
                 </Tabs>
 
                 <div className="pt-6 flex justify-between items-center border-t border-gray-100 mt-6">
-                    <Button variant="outline" onClick={onBack} className="gap-2">
+                    <Button variant="outline" onClick={onBack} className="gap-2" disabled={isSaving}>
                         <ArrowLeft className="w-4 h-4" /> Quay lại
                     </Button>
-                    <Button onClick={onSave} className="bg-green-600 hover:bg-green-700 text-white gap-2 shadow-md hover:shadow-lg">
-                        <Save className="w-4 h-4" /> Hoàn tất & Lưu
+                    <Button
+                        onClick={onSave}
+                        disabled={isSaving}
+                        className="bg-green-600 hover:bg-green-700 text-white gap-2 shadow-md hover:shadow-lg"
+                    >
+                        {isSaving ? (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin" /> Đang lưu...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="w-4 h-4" /> Hoàn tất & Lưu
+                            </>
+                        )}
                     </Button>
                 </div>
             </CardContent>
         </Card>
     );
 }
+

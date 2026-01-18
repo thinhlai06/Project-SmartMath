@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { classApi } from '../services/classApi';
-import { worksheetApi } from '../services/worksheetApi';
 import type { MathClass } from '../services/classApi';
 import { GraduationCap, BookOpen, BarChart3, FileDown, Camera, Users, ChevronRight } from 'lucide-react';
 import { QuickActionCard } from '../components/dashboard/QuickActionCard';
@@ -141,23 +140,32 @@ function TeacherHome() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [classes, setClasses] = useState<MathClass[]>([]);
-    const [worksheetCount, setWorksheetCount] = useState(0);
+    const [stats, setStats] = useState<{
+        total_classes: number;
+        total_students: number;
+        total_worksheets: number;
+        avg_score: number | null;
+    } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Fetch classes and worksheets on mount
+    // Fetch dashboard stats and classes on mount
     useEffect(() => {
         const fetchData = async () => {
             try {
+                const token = localStorage.getItem('access_token');
+
+                // Fetch stats from new API
+                const statsResponse = await fetch('http://localhost:8000/api/dashboard/stats', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (statsResponse.ok) {
+                    const statsData = await statsResponse.json();
+                    setStats(statsData);
+                }
+
+                // Still need classes for navigation
                 const classesData = await classApi.getClasses();
                 setClasses(classesData);
-
-                // Fetch worksheet count for each class
-                let totalWorksheets = 0;
-                for (const cls of classesData) {
-                    const worksheets = await worksheetApi.getWorksheets(cls.id);
-                    totalWorksheets += worksheets.length;
-                }
-                setWorksheetCount(totalWorksheets);
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
             } finally {
@@ -167,9 +175,10 @@ function TeacherHome() {
         fetchData();
     }, []);
 
-    // Calculate statistics
-    const classCount = classes.length;
-    const studentCount = classes.reduce((sum, cls) => sum + (cls.student_count || 0), 0);
+    // Get stats values
+    const classCount = stats?.total_classes ?? 0;
+    const studentCount = stats?.total_students ?? 0;
+    const worksheetCount = stats?.total_worksheets ?? 0;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">

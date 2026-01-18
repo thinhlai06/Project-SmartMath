@@ -1,15 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { ArrowLeft, Check, Save } from 'lucide-react';
+import { ArrowLeft, Check, Save, Loader2 } from 'lucide-react';
 import { Label } from '../ui/label';
 
 interface Step3ReviewProps {
     data: any;
     onBack: () => void;
     onSave: () => void;
+    isSaving?: boolean;
 }
 
-export function Step3Review({ data, onBack, onSave }: Step3ReviewProps) {
+export function Step3Review({ data, onBack, onSave, isSaving = false }: Step3ReviewProps) {
     return (
         <Card className="max-w-4xl mx-auto shadow-lg border-green-100">
             <CardHeader className="bg-gradient-to-r from-green-50 to-white border-b border-green-50">
@@ -59,14 +60,27 @@ export function Step3Review({ data, onBack, onSave }: Step3ReviewProps) {
                 </div>
 
                 <div className="pt-4 flex justify-between items-center">
-                    <Button variant="outline" onClick={onBack} className="gap-2">
+                    <Button variant="outline" onClick={onBack} className="gap-2" disabled={isSaving}>
                         <ArrowLeft className="w-4 h-4" /> Quay lại
                     </Button>
-                    <Button onClick={onSave} className="bg-green-600 hover:bg-green-700 text-white gap-2 shadow-md hover:shadow-lg">
-                        <Save className="w-4 h-4" /> Lưu học liệu
+                    <Button
+                        onClick={onSave}
+                        disabled={isSaving}
+                        className="bg-green-600 hover:bg-green-700 text-white gap-2 shadow-md hover:shadow-lg"
+                    >
+                        {isSaving ? (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin" /> Đang lưu...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="w-4 h-4" /> Lưu học liệu
+                            </>
+                        )}
                     </Button>
                 </div>
             </CardContent>
         </Card>
     );
 }
+

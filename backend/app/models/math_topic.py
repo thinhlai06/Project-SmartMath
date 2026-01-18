@@ -12,6 +12,7 @@ class MathTopic(Base):
     topic_name = Column(String(255), nullable=False)
     category = Column(String(100), nullable=False)  # Số học, Hình học, Đo lường, etc.
     grade = Column(Integer, nullable=False)  # 1, 2, or 3
+    # Note: learning_standards could be added via migration in future
 
     def __repr__(self):
         return f"<MathTopic(id={self.id}, name='{self.topic_name}', grade={self.grade})>"

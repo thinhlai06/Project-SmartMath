@@ -1,230 +1,275 @@
-GLOBAL CONTEXT FOR AI CODING
+AI IMPLEMENTATION CONTEXT
 Project: Smart-MathAI
-1. General Context
+1. Overall AI Context
 
-You are working on a software project named Smart-MathAI.
+You are integrating AI features into an existing educational system named Smart-MathAI.
 
-Smart-MathAI is an educational application for Vietnamese primary school mathematics, targeting Grades 1 to 3 only.
+All non-AI core features are already completed (authentication, class management, worksheet management, PDF export, parent interaction).
 
-This project is designed as an MVP-first system:
+Your task is to safely and modularly integrate AI features using exactly three predefined AI models, while respecting educational constraints and role-based control.
 
-Core functionality is implemented without AI
+AI in this project is assistive, not autonomous.
 
-AI features are added later in a controlled phase
+2. AI Integration Goals
 
-Your task as an AI developer assistant is to write code that strictly follows the educational, functional, and architectural constraints described below.
+AI is used to:
 
-2. Domain Constraints (VERY IMPORTANT)
+Support teachers in creating math content faster
 
-Subject: Mathematics only
+Assist in explaining solutions in an age-appropriate way
 
-Education level: Vietnamese primary school (Grade 1–3)
+Help grading math worksheets via images, under supervision
 
-Curriculum: Vietnamese Ministry of Education (SGK / SGV)
+AI must never replace teacher authority and never directly solve homework for parents.
 
-Language: Vietnamese
+3. Target AI Models (STRICT)
 
-No content beyond Grade 3 is allowed
+You must use only the following models:
 
-No cross-subject logic (no Science, no Vietnamese, no English)
+3.1 Qwen2.5-1.5B-Instruct
 
-If you are unsure whether a feature belongs to Grade 1–3 Math, do NOT implement it.
+Purpose:
 
-3. User Roles & Permissions
+Generate math questions
 
-There are exactly two user roles:
+Generate step-by-step math explanations
 
-3.1 Teacher
+Usage Scope:
 
-Creates and manages math classes
+Grade 1–3 mathematics only
 
-Selects math topics according to SGK
+Content aligned with Vietnamese SGK
 
-Creates, edits, duplicates worksheets
-
-Publishes worksheets to parents
-
-Exports worksheets as PDF
-
-Controls visibility of content
-
-Teachers are the only role allowed to create or modify worksheets.
-
-3.2 Parent
-
-Registers and logs in
-
-Joins a class via class code
-
-Views math topics currently being taught
-
-Downloads worksheets as PDF
-
-Manually tracks child’s completion
-
-Parents:
-
-Cannot create content
-
-Cannot edit worksheets
-
-Cannot see other classes
-
-Cannot access teacher-only features
-
-4. MVP Functional Scope (NO AI)
-
-At the current stage, you must ONLY implement non-AI functionality.
-
-Allowed features:
-
-Authentication (Teacher / Parent)
-
-Role-based authorization
-
-Class creation and management
-
-Worksheet CRUD (draft, edit, duplicate, publish)
-
-PDF generation
-
-Announcements
-
-Manual progress tracking
-
-Forbidden features:
-
-Automatic math question generation
-
-AI-based solution generation
-
-OCR-based grading
-
-Personalization by AI
-
-If a feature depends on AI → DO NOT IMPLEMENT IT in this phase.
-
-5. Business Logic Rules
-
-A worksheet belongs to one math class
-
-A worksheet has exactly one:
+Input Context:
 
 Grade
 
 Math topic
 
-Difficulty configuration
+Difficulty level
 
-Worksheets can be:
+Question format (MCQ / short answer)
 
-Draft
+Output Constraints:
 
-Published
+Simple Vietnamese
 
-Only published worksheets are visible to parents
+Clear steps
 
-Parents only see worksheets from their linked class
+No advanced concepts
 
-Never violate these rules in your code.
+No shortcuts
 
-6. Data & Architecture Expectations
+IMPORTANT:
 
-Your code should assume the following core entities:
+Qwen output is always a draft
 
-User (Teacher, Parent)
+Teachers must review before publishing
 
-MathClass
+3.2 keepitreal/vietnamese-sbert
 
-Student
+Purpose:
 
-MathTopic
+Generate embeddings for RAG (Retrieval-Augmented Generation)
 
-Worksheet
+Retrieve relevant SGK/SGV content
 
-Announcement
+Usage Scope:
 
-ParentProgress
+Curriculum grounding only
 
-Relationships:
+No free-form content generation
 
-Teacher → MathClass (1–n)
+Pipeline Role:
 
-MathClass → Worksheet (1–n)
+Query → embedding
 
-Parent ↔ MathClass (n–n via class code)
+Vector search over SGK/SGV
 
-Use clean separation of concerns:
+Retrieved context → passed to Qwen
 
-Auth logic ≠ business logic
+IMPORTANT:
 
-Business logic ≠ AI logic (future)
+This model does NOT generate text
 
-Presentation ≠ domain rules
+It only supports relevance & accuracy
 
-7. AI Integration Awareness (Future-Proofing)
+3.3 PaddlePaddle/PaddleOCR-VL
 
-Even if AI is not implemented now, your code should:
+Purpose:
 
-Be modular
+Recognize handwritten math answers from images
 
-Allow future AI services to plug in
+Usage Scope:
 
-Avoid hard-coding logic that blocks AI integration
+OCR only
 
-Planned AI models (DO NOT IMPLEMENT NOW):
+No grading logic inside OCR
 
-Qwen2.5-1.5B-Instruct
+Pipeline Role:
 
-vietnamese-sbert (RAG)
+Image input
 
-PaddleOCR-VL
+OCR extraction
 
-8. Safety & Educational Principles
+Structured text output
 
-Your code must respect:
+Pass to grading logic (rule-based or AI-assisted)
 
-Child-friendly design
+IMPORTANT:
 
-Simple workflows
+OCR errors must be expected
 
-Predictable behavior
+Teacher confirmation is mandatory
 
-Teacher control over content
+4. AI Feature Modules
+4.1 AI Worksheet Generation (Teacher Only)
 
-Never assume AI autonomy.
-Never auto-solve homework.
-Never bypass teacher supervision.
+Trigger:
 
-9. Coding Mindset Required
+Teacher clicks “Generate with AI”
 
-When coding for this project:
+Pipeline:
 
-Think like an education platform engineer
+Retrieve SGK context using RAG (SBERT)
 
-Prioritize clarity over cleverness
+Inject context into Qwen prompt
 
-Prefer explicit logic over magic
+Qwen generates draft questions
 
-Respect educational boundaries
+Teacher reviews, edits, approves
 
-If something is unclear:
+Rules:
 
-Choose the safer, simpler option
+AI output is never auto-published
 
-Or leave a clear TODO comment
+Teacher has full edit control
+
+4.2 AI Solution Explanation
+
+Trigger:
+
+Teacher requests solution explanation
+
+Rules:
+
+Step-by-step
+
+No answer-only output
+
+Must explain reasoning
+
+Forbidden:
+
+Showing full solution to parents by default
+
+4.3 AI-assisted Grading via Image (Teacher-Controlled)
+
+Trigger:
+
+Teacher uploads student worksheet images
+
+Pipeline:
+
+PaddleOCR extracts answers
+
+Answers normalized
+
+Comparison with expected answers
+
+Teacher reviews grading result
+
+Rules:
+
+OCR confidence threshold required
+
+Teacher can override results
+
+5. Role-Based AI Access Control
+Role	AI Generation	AI Explanation	AI Grading
+Teacher	✅ Allowed	✅ Allowed	✅ Allowed
+Parent	❌ Forbidden	❌ Forbidden	❌ Forbidden
+
+Parents may only see:
+
+Teacher-approved worksheets
+
+Teacher-approved feedback
+
+6. AI Safety Rules (CRITICAL)
+
+AI must NOT:
+
+Solve homework directly for parents
+
+Generate content beyond Grade 3
+
+Provide shortcuts without explanation
+
+Act without teacher supervision
+
+If unsure → deny AI action.
+
+7. Prompt Engineering Principles
+
+All AI prompts must include:
+
+Grade level
+
+Math topic
+
+Difficulty
+
+Educational tone
+
+Vietnamese language constraint
+
+Example (abstract):
+
+“You are generating math questions for Vietnamese Grade 2 students. Use simple language…”
+
+8. System Architecture Expectations
+
+AI logic must be:
+
+Isolated in a dedicated AI service/module
+
+Stateless where possible
+
+Replaceable without touching core logic
+
+Do NOT:
+
+Mix AI logic into controllers
+
+Hardcode prompts inside UI
+
+9. Logging & Monitoring
+
+Log:
+
+Prompt input
+
+Model used
+
+Teacher approval status
+
+OCR confidence
+
+Never log:
+
+Student personal data
+
+Raw images without consent
 
 10. Final Instruction to AI
 
-You are not building a generic app.
-You are building Smart-MathAI – a controlled educational system for Vietnamese primary mathematics.
+You are implementing AI inside an educational system, not a chatbot.
 
-All code you write must:
+Your priorities:
 
-Stay within Grade 1–3 Math
+Accuracy over creativity
 
-Respect user roles
+Teacher control over automation
 
-Avoid AI logic in MVP
-
-Be ready for future AI extension
+Educational safety over convenience

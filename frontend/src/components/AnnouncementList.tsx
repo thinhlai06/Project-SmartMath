@@ -1,65 +1,109 @@
-import { useState } from 'react';
-import { mockAnnouncements } from '../mockData/announcements';
-import type { Announcement } from '../mockData/announcements';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { Bell, Plus, Trash2, Edit2, X, Save, MessageSquare } from 'lucide-react';
+import { Bell, Plus, Trash2, X, Save, MessageSquare, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { Badge } from './ui/badge';
-import { useAuth } from '../hooks/useAuth';
+
+interface Announcement {
+    id: number;
+    class_id: number;
+    title: string;
+    content: string;
+    created_at: string;
+}
 
 interface AnnouncementListProps {
     classId?: number;
     isTeacher?: boolean;
 }
 
+const API_BASE = 'http://localhost:8000/api';
+
 export function AnnouncementList({ classId = 1, isTeacher = false }: AnnouncementListProps) {
-    const { user } = useAuth();
-    const [announcements, setAnnouncements] = useState<Announcement[]>(mockAnnouncements);
+    const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
-    const [editingId, setEditingId] = useState<number | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({ title: '', content: '' });
+    const [error, setError] = useState<string | null>(null);
 
-    const handleCreate = () => {
+    const fetchAnnouncements = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`${API_BASE}/classes/${classId}/announcements`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setAnnouncements(data);
+            } else {
+                setError('Không thể tải thông báo');
+            }
+        } catch (err) {
+            setError('Lỗi kết nối');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [classId]);
+
+    useEffect(() => {
+        fetchAnnouncements();
+    }, [fetchAnnouncements]);
+
+    const handleCreate = async () => {
         if (!formData.title.trim() || !formData.content.trim()) return;
-
-        const newAnnouncement: Announcement = {
-            id: Date.now(),
-            class_id: classId,
-            title: formData.title,
-            content: formData.content,
-            created_at: new Date().toISOString(),
-            author_name: user?.full_name || 'Giáo viên'
-        };
-
-        setAnnouncements([newAnnouncement, ...announcements]);
-        setIsCreating(false);
-        setFormData({ title: '', content: '' });
-    };
-
-    const handleUpdate = (id: number) => {
-        if (!formData.title.trim() || !formData.content.trim()) return;
-
-        setAnnouncements(announcements.map(a =>
-            a.id === id ? { ...a, title: formData.title, content: formData.content } : a
-        ));
-        setEditingId(null);
-        setFormData({ title: '', content: '' });
-    };
-
-    const handleDelete = (id: number) => {
-        if (confirm('Bạn có chắc chắn muốn xóa thông báo này?')) {
-            setAnnouncements(announcements.filter(a => a.id !== id));
+        setIsSubmitting(true);
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`${API_BASE}/announcements`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    class_id: classId,
+                    title: formData.title,
+                    content: formData.content
+                })
+            });
+            if (response.ok) {
+                setFormData({ title: '', content: '' });
+                setIsCreating(false);
+                fetchAnnouncements();
+            } else {
+                const err = await response.json();
+                alert(err.detail || 'Không thể tạo thông báo');
+            }
+        } catch (err) {
+            alert('Lỗi kết nối');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
-    const startEdit = (announcement: Announcement) => {
-        setEditingId(announcement.id);
-        setFormData({ title: announcement.title, content: announcement.content });
-        setIsCreating(false);
+    const handleDelete = async (id: number) => {
+        if (!confirm('Bạn có chắc chắn muốn xóa thông báo này?')) return;
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`${API_BASE}/announcements/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                fetchAnnouncements();
+            } else {
+                alert('Không thể xóa thông báo');
+            }
+        } catch (err) {
+            alert('Lỗi kết nối');
+        }
     };
 
     const formatDate = (dateString: string) => {
@@ -82,7 +126,7 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
                         {announcements.length}
                     </Badge>
                 </div>
-                {isTeacher && !isCreating && !editingId && (
+                {isTeacher && !isCreating && (
                     <Button size="sm" onClick={() => setIsCreating(true)} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
                         <Plus className="w-4 h-4 mr-1" /> Tạo mới
                     </Button>
@@ -118,8 +162,9 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
                                 <Button variant="outline" size="sm" onClick={() => setIsCreating(false)} className="border-gray-200">
                                     Hủy
                                 </Button>
-                                <Button size="sm" onClick={handleCreate} disabled={!formData.title || !formData.content} className="bg-blue-600 hover:bg-blue-700">
-                                    <Save className="w-4 h-4 mr-1" /> Đăng thông báo
+                                <Button size="sm" onClick={handleCreate} disabled={!formData.title || !formData.content || isSubmitting} className="bg-blue-600 hover:bg-blue-700">
+                                    {isSubmitting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+                                    Đăng thông báo
                                 </Button>
                             </div>
                         </div>
@@ -128,7 +173,13 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
 
                 {/* List */}
                 <div className="space-y-4">
-                    {announcements.length === 0 ? (
+                    {isLoading ? (
+                        <div className="flex justify-center py-10">
+                            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                        </div>
+                    ) : error ? (
+                        <div className="text-center py-10 text-red-500">{error}</div>
+                    ) : announcements.length === 0 ? (
                         <div className="text-center py-10 text-gray-500">
                             <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-20" />
                             <p>Chưa có thông báo nào</p>
@@ -137,74 +188,32 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
                         announcements.map((announcement) => (
                             <div
                                 key={announcement.id}
-                                className={`group relative p-4 rounded-xl border transition-all duration-200 ${editingId === announcement.id
-                                    ? 'bg-blue-50/50 border-blue-300 ring-1 ring-blue-300'
-                                    : 'bg-white border-gray-100 hover:shadow-md hover:border-blue-200'
-                                    }`}
+                                className="group relative p-4 rounded-xl border bg-white border-gray-100 hover:shadow-md hover:border-blue-200 transition-all duration-200"
                             >
-                                {editingId === announcement.id ? (
-                                    // Edit Mode
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Chỉnh sửa</span>
-                                            <Button size="icon" variant="ghost" onClick={() => setEditingId(null)} className="h-6 w-7 p-0 text-gray-400">
-                                                <X className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                        <Input
-                                            value={formData.title}
-                                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                            className="font-bold text-gray-800 bg-white"
-                                            autoFocus
-                                        />
-                                        <Textarea
-                                            value={formData.content}
-                                            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                                            className="text-gray-600 bg-white"
-                                            rows={4}
-                                        />
-                                        <div className="flex justify-end gap-2">
-                                            <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Hủy</Button>
-                                            <Button size="sm" onClick={() => handleUpdate(announcement.id)} className="bg-blue-600">
-                                                <Save className="w-4 h-4 mr-1" /> Lưu thay đổi
-                                            </Button>
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex-1">
+                                        <h4 className="font-bold text-gray-800 group-hover:text-blue-700 transition-colors">
+                                            {announcement.title}
+                                        </h4>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-xs text-gray-400">
+                                                {formatDate(announcement.created_at)}
+                                            </span>
                                         </div>
                                     </div>
-                                ) : (
-                                    // View Mode
-                                    <>
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex-1">
-                                                <h4 className="font-bold text-gray-800 group-hover:text-blue-700 transition-colors">
-                                                    {announcement.title}
-                                                </h4>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-full">
-                                                        {announcement.author_name}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400">
-                                                        {formatDate(announcement.created_at)}
-                                                    </span>
-                                                </div>
-                                            </div>
 
-                                            {isTeacher && (
-                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-400 hover:text-blue-600" onClick={() => startEdit(announcement)}>
-                                                        <Edit2 className="w-4 h-4" />
-                                                    </Button>
-                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(announcement.id)}>
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
-                                            )}
+                                    {isTeacher && (
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(announcement.id)}>
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
                                         </div>
+                                    )}
+                                </div>
 
-                                        <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">
-                                            {announcement.content}
-                                        </p>
-                                    </>
-                                )}
+                                <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">
+                                    {announcement.content}
+                                </p>
                             </div>
                         ))
                     )}

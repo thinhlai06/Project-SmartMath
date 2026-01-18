@@ -1,13 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { ArrowRight, Layers } from 'lucide-react';
-import { MOCK_CPA_TOPICS } from '../../mockData/cpaTopics';
+import { ArrowRight, Layers, Loader2 } from 'lucide-react';
+
+interface Topic {
+    id: number;
+    topic_name: string;
+    category: string;
+    grade: number;
+}
 
 interface DiffStep1ConfigProps {
-    onNext: (data: { topicId: string, strategy: string }) => void;
+    onNext: (data: { topicId: string, strategy: string, grade: number }) => void;
     initialData?: { topicId: string, strategy: string };
 }
 
@@ -15,12 +21,42 @@ export function DiffStep1Config({ onNext, initialData }: DiffStep1ConfigProps) {
     const [selectedGrade, setSelectedGrade] = useState<string>('1');
     const [selectedTopicId, setSelectedTopicId] = useState<string>(initialData?.topicId || '');
     const [selectedStrategy, setSelectedStrategy] = useState<string>(initialData?.strategy || 'tiered');
+    const [topics, setTopics] = useState<Topic[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const filteredTopics = MOCK_CPA_TOPICS.filter(t => t.grade.toString() === selectedGrade);
+    const fetchTopics = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`http://localhost:8000/api/topics?grade=${selectedGrade}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setTopics(data);
+            } else {
+                setError('Không thể tải danh sách chủ đề');
+            }
+        } catch {
+            setError('Lỗi kết nối');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [selectedGrade]);
+
+    useEffect(() => {
+        fetchTopics();
+    }, [fetchTopics]);
 
     const handleNext = () => {
         if (selectedTopicId && selectedStrategy) {
-            onNext({ topicId: selectedTopicId, strategy: selectedStrategy });
+            onNext({
+                topicId: selectedTopicId,
+                strategy: selectedStrategy,
+                grade: parseInt(selectedGrade)
+            });
         }
     };
 
@@ -57,18 +93,32 @@ export function DiffStep1Config({ onNext, initialData }: DiffStep1ConfigProps) {
                 {/* Topic Selection */}
                 <div className="space-y-4">
                     <Label className="text-base font-semibold">Chủ đề Toán học</Label>
-                    <Select value={selectedTopicId} onValueChange={setSelectedTopicId}>
-                        <SelectTrigger className="h-12 border-gray-200 bg-white">
-                            <SelectValue placeholder="Chọn chủ đề bài học..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {filteredTopics.map((topic) => (
-                                <SelectItem key={topic.id} value={topic.id}>
-                                    {topic.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    {isLoading ? (
+                        <div className="flex items-center gap-2 text-gray-500">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Đang tải chủ đề...
+                        </div>
+                    ) : error ? (
+                        <div className="text-red-500 text-sm">
+                            {error}
+                            <button onClick={fetchTopics} className="ml-2 text-indigo-600 underline">Thử lại</button>
+                        </div>
+                    ) : topics.length === 0 ? (
+                        <div className="text-gray-500 text-sm">Chưa có chủ đề nào cho lớp {selectedGrade}</div>
+                    ) : (
+                        <Select value={selectedTopicId} onValueChange={setSelectedTopicId}>
+                            <SelectTrigger className="h-12 border-gray-200 bg-white">
+                                <SelectValue placeholder="Chọn chủ đề bài học..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {topics.map((topic) => (
+                                    <SelectItem key={topic.id} value={topic.id.toString()}>
+                                        {topic.topic_name} ({topic.category})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
 
                 {/* Strategy Selection */}

@@ -11,6 +11,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { AnnouncementList } from '../components/AnnouncementList';
 
 const TIER_CONFIG = {
     foundation: { label: 'Nền tảng', color: 'bg-green-100 text-green-700', icon: '🌱' },
@@ -315,6 +316,11 @@ export function ClassDetailPage() {
                         )}
                     </CardContent>
                 </Card>
+
+                {/* Announcements Section */}
+                <div className="mt-6">
+                    <AnnouncementList classId={Number(classId)} isTeacher={true} />
+                </div>
 
                 {/* Add Student Modal */}
                 {showAddStudent && (

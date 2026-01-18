@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
-from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, parent
+from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, parent, announcements, dashboard, activities
 
 
 # Create all tables
@@ -57,6 +57,9 @@ app.include_router(worksheets.class_router, prefix="/api", tags=["Worksheets"])
 app.include_router(exercises.router, prefix="/api", tags=["Exercises"])
 app.include_router(pdf.router, prefix="/api", tags=["PDF Export"])
 app.include_router(parent.router, prefix="/api/parent", tags=["Parent"])
+app.include_router(announcements.router, prefix="/api", tags=["Announcements"])
+app.include_router(dashboard.router, prefix="/api", tags=["Dashboard"])
+app.include_router(activities.router, prefix="/api", tags=["Activities"])
 
 
 @app.get("/", tags=["Root"])

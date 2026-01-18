@@ -6,6 +6,7 @@ import {
     FileText, Users, BookMarked,
     ChevronRight, MessageSquare
 } from 'lucide-react';
+import { AnnouncementList } from '../components/AnnouncementList';
 
 interface TopicProgress {
     topic: string;
@@ -258,6 +259,11 @@ export default function ParentDashboardPage() {
                             <p className="text-gray-700 italic">&quot;{data.teacher_comment}&quot;</p>
                             <p className="text-sm text-gray-500 mt-2">- {data.teacher_name}, GV {data.class_name}</p>
                         </div>
+
+                        {/* Class Announcements */}
+                        {classId && (
+                            <AnnouncementList classId={Number(classId)} isTeacher={false} />
+                        )}
                     </div>
 
                     {/* Right Column */}

@@ -1,11 +1,42 @@
-import { useState } from 'react';
-import { MOCK_CPA_TOPICS } from '../../mockData/cpaTopics';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { ArrowRight, BookOpen } from 'lucide-react';
+import { ArrowRight, BookOpen, Loader2 } from 'lucide-react';
+
+interface Topic {
+    id: number;
+    topic_name: string;
+    category: string;
+    grade: number;
+    learning_standards?: string[];
+}
+
+// Default standards for when API doesn't provide them
+const DEFAULT_STANDARDS: Record<string, string[]> = {
+    'Số học': [
+        'Thực hiện được các phép tính cơ bản',
+        'Vận dụng kiến thức để giải quyết bài toán có lời văn',
+        'Nhận biết và sử dụng các quan hệ số học'
+    ],
+    'Hình học': [
+        'Nhận biết và mô tả các hình học cơ bản',
+        'Tính được chu vi và diện tích các hình',
+        'Vận dụng kiến thức hình học vào thực tế'
+    ],
+    'Đo lường': [
+        'Sử dụng đúng các đơn vị đo',
+        'Thực hiện được việc đổi đơn vị',
+        'Ước lượng được độ dài, khối lượng phù hợp'
+    ],
+    'Giải toán': [
+        'Phân tích được đề bài',
+        'Lập được kế hoạch giải',
+        'Trình bày được lời giải rõ ràng'
+    ]
+};
 
 interface Step1InputProps {
     onNext: (data: { topicId: string, standard: string }) => void;
@@ -13,12 +44,51 @@ interface Step1InputProps {
 }
 
 export function Step1Input({ onNext, initialData }: Step1InputProps) {
-    const [selectedGrade, setSelectedGrade] = useState<string>(initialData?.topicId ? MOCK_CPA_TOPICS.find(t => t.id === initialData.topicId)?.grade.toString() || '1' : '1');
+    const [selectedGrade, setSelectedGrade] = useState<string>('1');
     const [selectedTopicId, setSelectedTopicId] = useState<string>(initialData?.topicId || '');
     const [selectedStandard, setSelectedStandard] = useState<string>(initialData?.standard || '');
+    const [topics, setTopics] = useState<Topic[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const filteredTopics = MOCK_CPA_TOPICS.filter(t => t.grade.toString() === selectedGrade);
-    const selectedTopic = MOCK_CPA_TOPICS.find(t => t.id === selectedTopicId);
+    const fetchTopics = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`http://localhost:8000/api/topics?grade=${selectedGrade}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setTopics(data);
+            } else {
+                setError('Không thể tải danh sách chủ đề');
+            }
+        } catch {
+            setError('Lỗi kết nối');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [selectedGrade]);
+
+    useEffect(() => {
+        fetchTopics();
+    }, [fetchTopics]);
+
+    const selectedTopic = topics.find(t => t.id.toString() === selectedTopicId);
+
+    // Get standards from topic or use defaults based on category
+    const getStandardsForTopic = (topic: Topic | undefined): string[] => {
+        if (!topic) return [];
+        if (topic.learning_standards && topic.learning_standards.length > 0) {
+            return topic.learning_standards;
+        }
+        // Fall back to category-based defaults
+        return DEFAULT_STANDARDS[topic.category] || DEFAULT_STANDARDS['Số học'];
+    };
+
+    const standards = getStandardsForTopic(selectedTopic);
 
     const handleNext = () => {
         if (selectedTopicId && selectedStandard) {
@@ -60,32 +130,46 @@ export function Step1Input({ onNext, initialData }: Step1InputProps) {
                 {/* Topic Selection */}
                 <div className="space-y-4">
                     <Label className="text-base font-semibold">Chủ đề Toán học</Label>
-                    <Select value={selectedTopicId} onValueChange={(val) => {
-                        setSelectedTopicId(val);
-                        setSelectedStandard('');
-                    }}>
-                        <SelectTrigger className="h-12 border-gray-200 bg-white">
-                            <SelectValue placeholder="Chọn chủ đề bài học..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {filteredTopics.map((topic) => (
-                                <SelectItem key={topic.id} value={topic.id}>
-                                    {topic.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    {isLoading ? (
+                        <div className="flex items-center gap-2 text-gray-500">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Đang tải chủ đề...
+                        </div>
+                    ) : error ? (
+                        <div className="text-red-500 text-sm">
+                            {error}
+                            <button onClick={fetchTopics} className="ml-2 text-blue-600 underline">Thử lại</button>
+                        </div>
+                    ) : topics.length === 0 ? (
+                        <div className="text-gray-500 text-sm">Chưa có chủ đề nào cho lớp {selectedGrade}</div>
+                    ) : (
+                        <Select value={selectedTopicId} onValueChange={(val) => {
+                            setSelectedTopicId(val);
+                            setSelectedStandard('');
+                        }}>
+                            <SelectTrigger className="h-12 border-gray-200 bg-white">
+                                <SelectValue placeholder="Chọn chủ đề bài học..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {topics.map((topic) => (
+                                    <SelectItem key={topic.id} value={topic.id.toString()}>
+                                        {topic.topic_name} ({topic.category})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
 
                 {/* Standard Selection */}
-                {selectedTopic && (
+                {selectedTopic && standards.length > 0 && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-top-4">
                         <Label className="text-base font-semibold flex items-center gap-2">
                             <BookOpen className="w-4 h-4 text-blue-600" />
                             Mục tiêu cần đạt (YCCĐ)
                         </Label>
                         <RadioGroup value={selectedStandard} onValueChange={setSelectedStandard} className="gap-3">
-                            {selectedTopic.standards.map((std, idx) => (
+                            {standards.map((std, idx) => (
                                 <div key={idx} className={`flex items-start space-x-3 p-4 rounded-xl border cursor-pointer transition-all ${selectedStandard === std ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'}`}>
                                     <RadioGroupItem value={std} id={`std-${idx}`} className="mt-1" />
                                     <Label htmlFor={`std-${idx}`} className="text-gray-700 font-normal cursor-pointer leading-relaxed">
