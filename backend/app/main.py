@@ -2,7 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
+from app.models.student_progress import StudentProgress
+from app.models.grading_report import GradingReport
 from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, parent, announcements, dashboard, activities, ai
+from app.core.exceptions import SmartMathException, smartmath_exception_handler
 
 
 # Create all tables
@@ -47,6 +50,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register custom exception handler
+app.add_exception_handler(SmartMathException, smartmath_exception_handler)
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])

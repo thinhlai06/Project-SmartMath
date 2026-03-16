@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, DateTime, ForeignKey, Enum as SQLEnum, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -24,6 +24,7 @@ class StudentProgress(Base):
     status = Column(SQLEnum(ProgressStatus), default=ProgressStatus.NOT_STARTED)
     correct_count = Column(Integer, default=0)
     total_count = Column(Integer, default=0)
+    details = Column(JSON, nullable=True)  # Store full AI grading results
     completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

@@ -1,33 +1,25 @@
-// User types
-export type UserRole = 'teacher' | 'parent';
-
-export interface User {
-    id: number;
-    email: string;
-    full_name: string;
-    role: UserRole;
-    created_at: string;
-}
+// Centralized type exports for Smart-MathAI
 
 // Auth types
-export interface LoginRequest {
-    username: string; // email
-    password: string;
-}
+export type { User, UserRole, LoginRequest, RegisterRequest, AuthResponse, Token, ApiError } from './auth';
 
-export interface RegisterRequest {
-    email: string;
-    password: string;
-    full_name: string;
-    role: UserRole;
-}
+// Domain types
+export type {
+    Worksheet, WorksheetDetail, Exercise,
+    WorksheetCreate, WorksheetUpdate,
+    ExerciseCreate, ExerciseUpdate,
+    WorksheetStatus, WorksheetType, ExerciseType, DifficultyTier
+} from './worksheet';
 
-export interface Token {
-    access_token: string;
-    token_type: string;
-}
+export type { MathClass, Student, MathTopic } from './class';
 
-// API Response types
-export interface ApiError {
-    detail: string;
-}
+export type {
+    GradeResult, GradingResponse,
+    WeakTopic, StudentPerformance, MistakePattern,
+    AnalyticsResponse, AIStatusResponse, GradingReport
+} from './ai';
+
+export type {
+    ParentClassInfo, TopicProgress, TodayAssignment,
+    ParentDashboardData, WorksheetForParent
+} from './parent';

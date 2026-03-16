@@ -7,13 +7,13 @@ from sqlalchemy import desc, union_all
 from typing import List
 from datetime import datetime
 
-from ..database import get_db
-from ..models.user import User
-from ..models.math_class import MathClass
-from ..models.worksheet import Worksheet
-from ..models.student import Student
-from ..models.announcement import Announcement
-from ..routers.auth import get_current_user
+from app.database import get_db
+from app.models.user import User, UserRole
+from app.models.math_class import MathClass
+from app.models.worksheet import Worksheet
+from app.models.student import Student
+from app.models.announcement import Announcement
+from app.utils.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -28,7 +28,7 @@ async def get_recent_activities(
     Get recent activities for the teacher dashboard.
     Aggregates activities from worksheets, students, and announcements.
     """
-    if current_user.role != 'teacher':
+    if current_user.role != UserRole.TEACHER:
         raise HTTPException(status_code=403, detail="Only teachers can view activities")
     
     activities = []
@@ -55,7 +55,7 @@ async def get_recent_activities(
                 "id": f"ws_{ws.id}",
                 "type": "worksheet_published",
                 "description": f"Xuất bản bài tập \"{ws.title}\"",
-                "timestamp": ws.updated_at.isoformat() if ws.updated_at else ws.created_at.isoformat(),
+                "timestamp": ws.published_at.isoformat() if ws.published_at else ws.created_at.isoformat(),
                 "icon": "📝",
                 "color": "green",
                 "metadata": {"class_name": class_name}

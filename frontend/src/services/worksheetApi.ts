@@ -155,9 +155,9 @@ export const worksheetApi = {
         // Get token for auth
         const token = localStorage.getItem('access_token');
 
-        // Fetch PDF as blob
+        // Fetch PDF as blob (use relative URL for Vite proxy)
         const response = await fetch(
-            `http://localhost:8000/api/worksheets/${worksheetId}/pdf?${params.toString()}`,
+            `/api/worksheets/${worksheetId}/pdf?${params.toString()}`,
             {
                 headers: {
                     'Authorization': `Bearer ${token}`,

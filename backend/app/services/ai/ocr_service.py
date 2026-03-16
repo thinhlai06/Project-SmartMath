@@ -1,63 +1,38 @@
 """
-OCR Service using PaddleOCR
+OCR Service using LMStudio Vision API (PaddleOCR-VL model).
+Replaces direct PaddleOCR Python library usage.
 """
 import logging
-import numpy as np
-import cv2
-try:
-    from paddleocr import PaddleOCR
-except ImportError:
-    PaddleOCR = None
+from .lmstudio_service import LMStudioService
 
 logger = logging.getLogger(__name__)
 
-class OCRService:
-    _instance = None
-    
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(OCRService, cls).__new__(cls)
-            cls._instance.ocr = None
-        return cls._instance
 
-    def initialize(self):
-        if self.ocr is None:
-            if PaddleOCR:
-                logger.info("Initializing PaddleOCR (lang=vi)...")
-                # use_gpu=False for safety on typical verified envs unless specified
-                # Removed show_log=False as it caused errors in newer versions
-                # enable_mkldnn=False to fix "OneDnnContext" error on Windows CPU
-                self.ocr = PaddleOCR(use_angle_cls=True, lang='vi', use_gpu=False, enable_mkldnn=False)
-            else:
-                logger.error("PaddleOCR package not installed.")
-                raise ImportError("PaddleOCR not installed")
+class OCRService:
+    """OCR service that uses LMStudio Vision model for text recognition."""
 
     def recognize(self, image_content: bytes) -> str:
-        self.initialize()
-        
-        try:
-            # Convert bytes to numpy
-            nparr = np.frombuffer(image_content, np.uint8)
-            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            
-            if img is None:
-                raise ValueError("Invalid image data")
+        """
+        Recognize text from an image using LMStudio Vision API.
+        Sends the image to PaddleOCR-VL model running in LMStudio.
+        """
+        if not image_content:
+            raise ValueError("Empty image data")
 
-            # OCR
-            result = self.ocr.ocr(img, cls=True)
-            
-            # PaddleOCR returns list of lines [ [line1], [line2] ]
-            # result[0] is the list of lines for the first image
-            full_text = []
-            if result and result[0]:
-                for line in result[0]:
-                    # line format: [ [[x,y]..], ('text', conf) ]
-                    if line and len(line) > 1:
-                        text = line[1][0]
-                        full_text.append(text)
-            
-            return "\n".join(full_text)
-            
+        prompt = (
+            "Bạn là hệ thống OCR chuyên đọc chữ viết tay tiếng Việt trong bài làm Toán tiểu học.\n"
+            "Hãy đọc và trích xuất TOÀN BỘ nội dung chữ viết trong ảnh này.\n"
+            "Bao gồm: số thứ tự câu hỏi, nội dung đề bài, phép tính, và câu trả lời/lời giải của học sinh.\n"
+            "Trả về text thuần túy, giữ nguyên bố cục từng dòng.\n"
+            "CHỈ TRẢ VỀ NỘI DUNG ĐỌC ĐƯỢC, KHÔNG THÊM GIẢI THÍCH."
+        )
+
+        try:
+            result = LMStudioService.vision_recognize(
+                image_content=image_content,
+                prompt=prompt
+            )
+            return result.strip()
         except Exception as e:
             logger.error(f"OCR Error: {e}")
-            raise e
+            raise

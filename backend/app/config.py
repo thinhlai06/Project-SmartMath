@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
+    # LMStudio AI Configuration
+    LMSTUDIO_API_BASE: str = "http://localhost:1234/v1"
+    LMSTUDIO_TEXT_MODEL: str = "qwen2.5-1.5b-instruct"
+    LMSTUDIO_VISION_MODEL: str = "PaddleOCR-VL-1.5-GGUF"
+    LMSTUDIO_TIMEOUT: int = 120
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

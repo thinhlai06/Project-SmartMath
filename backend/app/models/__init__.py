@@ -7,6 +7,7 @@ from app.models.worksheet import Worksheet
 from app.models.worksheet_exercise import WorksheetExercise
 from app.models.announcement import Announcement
 from app.models.student_progress import StudentProgress
+from app.models.grading_report import GradingReport
 
 __all__ = [
     "User",
@@ -18,4 +19,6 @@ __all__ = [
     "WorksheetExercise",
     "Announcement",
     "StudentProgress",
+    "GradingReport",
 ]
+

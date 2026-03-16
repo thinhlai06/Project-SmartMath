@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LogOut, GraduationCap, LayoutDashboard, Menu, X, BookOpen, FileText } from 'lucide-react';
+import { LogOut, GraduationCap, LayoutDashboard, Menu, X, BookOpen, FileText, BarChart3 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback } from './ui/avatar';
@@ -33,6 +33,7 @@ export function Navigation() {
         { label: 'Trang chủ', href: '/', icon: LayoutDashboard },
         { label: 'Lớp học', href: '/classes', icon: GraduationCap },
         { label: 'Chấm điểm AI', href: '/ai-grading', icon: FileText },
+        { label: 'Phân tích lỗi', href: '/error-analytics', icon: BarChart3 },
         { label: 'Export PDF', href: '/export', icon: FileText, disabled: true }, // Placeholder
     ];
 

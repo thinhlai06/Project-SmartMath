@@ -1,38 +1,40 @@
 """
 AI Router - API endpoints for AI-powered features.
+All endpoints require Teacher authentication.
 """
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, Body
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import Dict, Optional
 
 from app.database import get_db
+from app.core.dependencies import get_current_teacher
+from app.models.user import User
 from app.models.math_topic import MathTopic
-from app.services.ai.ollama_service import OllamaService
+from app.services.ai.lmstudio_service import LMStudioService
 from app.services.ai.question_generator import QuestionGenerator
 from app.schemas.ai import (
     AIStatusResponse,
     CPAGenerationRequest,
-    CPAGenerationResponse,
-    DifferentiationRequest,
     DifferentiationRequest,
     DifferentiationResponse,
-    GradeImageResponse
+    GradeImageResponse,
+    ClassAnalyticsResponse
 )
+from app.services.ai.analytics_service import AnalyticsService
 import json
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
 
 @router.get("/status", response_model=AIStatusResponse)
-async def get_ai_status():
-    """Check AI services status."""
-    ollama_status = "running" if OllamaService.is_running() else "stopped"
+async def get_ai_status(teacher: User = Depends(get_current_teacher)):
+    """Check AI services status (Teacher only)."""
+    lmstudio_status = "running" if LMStudioService.is_running() else "stopped"
+    loaded_models = LMStudioService.get_loaded_models() if lmstudio_status == "running" else []
     
     # Check vector DB
     try:
         import os
-        # Assuming DB is at project_root/vector_db/chroma.sqlite3
-        # Current file: backend/app/routers/ai.py
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
         db_path = os.path.join(project_root, "vector_db", "chroma.sqlite3")
@@ -45,8 +47,8 @@ async def get_ai_status():
         db_status = f"error: {str(e)[:50]}"
     
     return {
-        "ollama": ollama_status,
-        "model": "qwen2.5:1.5b",
+        "lmstudio": lmstudio_status,
+        "model": ", ".join(loaded_models) if loaded_models else "no models loaded",
         "vector_db": db_status
     }
 
@@ -54,25 +56,21 @@ async def get_ai_status():
 @router.post("/generate-cpa")
 async def generate_cpa_worksheet(
     request: CPAGenerationRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    teacher: User = Depends(get_current_teacher)
 ) -> Dict:
-    """Generate CPA worksheet questions using AI."""
+    """Generate CPA worksheet questions using AI (Teacher only)."""
     
-    # Validate Ollama is available
-    if not OllamaService.is_running():
-        # Try to start it
-        if not OllamaService.start_server():
-            raise HTTPException(
-                status_code=503,
-                detail="Ollama service not available. Please start Ollama."
-            )
+    if not LMStudioService.is_running():
+        raise HTTPException(
+            status_code=503,
+            detail="LMStudio không khả dụng. Vui lòng kiểm tra LMStudio đang chạy ở cổng 1234."
+        )
     
-    # Get topic from DB
     topic = db.query(MathTopic).filter(MathTopic.id == request.topic_id).first()
     if not topic:
         raise HTTPException(status_code=404, detail="Topic not found")
     
-    # Generate questions
     generator = QuestionGenerator()
     
     try:
@@ -87,32 +85,17 @@ async def generate_cpa_worksheet(
         raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
 
 
-@router.post("/start-ollama")
-async def start_ollama():
-    """Manually start Ollama server."""
-    if OllamaService.is_running():
-        return {"status": "already_running"}
-    
-    success = OllamaService.start_server()
-    if success:
-        return {"status": "started"}
-    else:
-        raise HTTPException(status_code=500, detail="Failed to start Ollama")
-
-
 @router.post("/generate-differentiation", response_model=DifferentiationResponse)
 async def generate_differentiation_worksheet(
     request: DifferentiationRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    teacher: User = Depends(get_current_teacher)
 ) -> Dict:
-    """Generate differentiated worksheet content."""
+    """Generate differentiated worksheet content (Teacher only)."""
     
-    # Validate Ollama
-    if not OllamaService.is_running():
-        if not OllamaService.start_server():
-            raise HTTPException(status_code=503, detail="Ollama service not available")
+    if not LMStudioService.is_running():
+        raise HTTPException(status_code=503, detail="LMStudio không khả dụng")
 
-    # Get topic
     topic = db.query(MathTopic).filter(MathTopic.id == request.topic_id).first()
     if not topic:
         raise HTTPException(status_code=404, detail="Topic not found")
@@ -129,18 +112,19 @@ async def generate_differentiation_worksheet(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
 
+
 @router.post("/grade-image", response_model=GradeImageResponse)
 async def grade_image_endpoint(
     file: UploadFile = File(...),
-    correct_answers_json: Optional[str] = Form(None)
+    correct_answers_json: Optional[str] = Form(None),
+    teacher: User = Depends(get_current_teacher)
 ):
     """
-    Grade an uploaded image.
+    Grade an uploaded image (Teacher only).
     If correct_answers_json is provided, compares against it.
     If not, uses AI to self-solve.
     """
     try:
-        # Parse answers if provided
         correct_answers = None
         if correct_answers_json:
             try:
@@ -148,23 +132,119 @@ async def grade_image_endpoint(
             except json.JSONDecodeError:
                 raise HTTPException(status_code=400, detail="Invalid JSON for correct_answers")
 
-        # Read file
         image_content = await file.read()
         
-        # Grading Service
         from app.services.ai.grading_service import GradingService
         grader = GradingService()
         
         result = grader.grade_submission(image_content, correct_answers)
         
         if "error" in result:
-             raise HTTPException(status_code=400, detail=result["error"])
+            raise HTTPException(status_code=400, detail=result["error"])
              
-        # Map extracted_json to correct key if needed or rely on schema
         return GradeImageResponse(**result)
 
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Grading Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/analytics/{class_id}", response_model=ClassAnalyticsResponse)
+async def get_class_analytics(
+    class_id: int,
+    db: Session = Depends(get_db),
+    teacher: User = Depends(get_current_teacher)
+):
+    """Get error analytics for a specific class (Teacher only)."""
+    service = AnalyticsService(db)
+    return service.analyze_class_errors(class_id)
+
+
+# === Grading Report Endpoints ===
+
+@router.post("/grading-report/export")
+async def export_grading_report(
+    request: dict,
+    db: Session = Depends(get_db),
+    teacher: User = Depends(get_current_teacher)
+):
+    """
+    Export a grading report as a text file (Teacher only).
+    After AI grading, teacher can generate a report to send to parents.
+    """
+    from app.services.report_service import ReportService
+    
+    try:
+        service = ReportService(db)
+        report = service.generate_report(
+            teacher_id=teacher.id,
+            class_id=request.get("class_id", 0),
+            student_name=request.get("student_name", "Học sinh"),
+            worksheet_title=request.get("worksheet_title", "Bài kiểm tra"),
+            total_score=request.get("total_score", 0),
+            max_score=request.get("max_score", 0),
+            results=request.get("results", []),
+            raw_text=request.get("raw_text", "")
+        )
+        
+        return {
+            "report_id": report.id,
+            "file_url": f"/api/ai/grading-report/{report.id}/download",
+            "message": "Báo cáo đã được tạo thành công!"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Tạo báo cáo thất bại: {str(e)}")
+
+
+@router.get("/grading-report/{report_id}/download")
+async def download_grading_report(
+    report_id: int,
+    db: Session = Depends(get_db)
+):
+    """Download a generated grading report file."""
+    from app.services.report_service import ReportService
+    from fastapi.responses import FileResponse
+    
+    service = ReportService(db)
+    report = service.get_report_by_id(report_id)
+    
+    if not report:
+        raise HTTPException(status_code=404, detail="Báo cáo không tồn tại")
+    
+    import os
+    if not os.path.exists(report.file_path):
+        raise HTTPException(status_code=404, detail="File báo cáo không tìm thấy")
+    
+    return FileResponse(
+        path=report.file_path,
+        filename=f"bao_cao_{report.student_name}.txt",
+        media_type="text/plain"
+    )
+
+
+@router.get("/grading-reports/{class_id}")
+async def list_class_reports(
+    class_id: int,
+    db: Session = Depends(get_db),
+    teacher: User = Depends(get_current_teacher)
+):
+    """List all grading reports for a class (Teacher only)."""
+    from app.services.report_service import ReportService
+    
+    service = ReportService(db)
+    reports = service.get_reports_for_class(class_id)
+    
+    return [
+        {
+            "id": r.id,
+            "student_name": r.student_name,
+            "worksheet_title": r.worksheet_title,
+            "total_score": r.total_score,
+            "max_score": r.max_score,
+            "created_at": r.created_at.isoformat(),
+            "file_url": f"/api/ai/grading-report/{r.id}/download"
+        }
+        for r in reports
+    ]

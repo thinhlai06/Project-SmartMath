@@ -5,8 +5,8 @@ from app.database import get_db
 from app.models.math_class import MathClass
 from app.models.student import Student
 from app.models.worksheet import Worksheet
-from app.models.user import User
-from app.routers.auth import get_current_user
+from app.models.user import User, UserRole
+from app.utils.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -17,7 +17,7 @@ async def get_dashboard_stats(
     current_user: User = Depends(get_current_user)
 ):
     """Get dashboard statistics for the current teacher."""
-    if current_user.role != "teacher":
+    if current_user.role != UserRole.TEACHER:
         return {
             "total_classes": 0,
             "total_students": 0,
