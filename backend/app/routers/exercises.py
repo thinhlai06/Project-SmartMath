@@ -15,6 +15,7 @@ from app.schemas.worksheet import (
     ExerciseResponse,
     ExerciseReorderRequest
 )
+from app.services import exercise_service
 
 router = APIRouter(tags=["Exercises"])
 
@@ -57,11 +58,7 @@ async def list_exercises(
 ):
     """Lấy danh sách câu hỏi trong bài tập."""
     worksheet = verify_worksheet_ownership(db, worksheet_id, teacher)
-    exercises = db.query(WorksheetExercise).filter(
-        WorksheetExercise.worksheet_id == worksheet_id
-    ).order_by(WorksheetExercise.order_index).all()
-    
-    return exercises
+    return exercise_service.get_exercises_by_worksheet(db, worksheet_id)
 
 
 @router.post("/worksheets/{worksheet_id}/exercises", response_model=ExerciseResponse, status_code=201)
@@ -80,25 +77,16 @@ async def create_exercise(
             detail="Không thể thêm câu hỏi vào bài tập đã xuất bản. Hãy hủy xuất bản trước."
         )
     
-    # Get max order_index
-    max_order = db.query(WorksheetExercise).filter(
-        WorksheetExercise.worksheet_id == worksheet_id
-    ).count()
-    
-    exercise = WorksheetExercise(
-        worksheet_id=worksheet_id,
+    exercise = exercise_service.create_exercise(
+        db,
+        worksheet_id,
         question=data.question,
         answer=data.answer,
         hint=data.hint,
-        exercise_type=data.exercise_type,
-        difficulty_tier=data.difficulty_tier,
-        order_index=data.order_index if data.order_index > 0 else max_order
+        exercise_type=data.exercise_type.value if hasattr(data.exercise_type, 'value') else data.exercise_type,
+        difficulty_tier=data.difficulty_tier.value if hasattr(data.difficulty_tier, 'value') else data.difficulty_tier,
+        order_index=data.order_index
     )
-    
-    db.add(exercise)
-    db.commit()
-    db.refresh(exercise)
-    
     return exercise
 
 
@@ -134,13 +122,13 @@ async def update_exercise(
         )
     
     update_data = data.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(exercise, key, value)
-    
-    db.commit()
-    db.refresh(exercise)
-    
-    return exercise
+    # Ensure nested enums are converted
+    if "exercise_type" in update_data and hasattr(update_data["exercise_type"], "value"):
+        update_data["exercise_type"] = update_data["exercise_type"].value
+    if "difficulty_tier" in update_data and hasattr(update_data["difficulty_tier"], "value"):
+        update_data["difficulty_tier"] = update_data["difficulty_tier"].value
+        
+    return exercise_service.update_exercise(db, exercise, update_data)
 
 
 @router.delete("/exercises/{exercise_id}", status_code=204)
@@ -160,9 +148,7 @@ async def delete_exercise(
             detail="Không thể xóa câu hỏi trong bài tập đã xuất bản."
         )
     
-    db.delete(exercise)
-    db.commit()
-    
+    exercise_service.delete_exercise(db, exercise)
     return None
 
 
@@ -182,20 +168,5 @@ async def reorder_exercises(
             detail="Không thể sắp xếp lại câu hỏi trong bài tập đã xuất bản."
         )
     
-    # Update order_index for each exercise
-    for index, exercise_id in enumerate(data.exercise_ids):
-        exercise = db.query(WorksheetExercise).filter(
-            WorksheetExercise.id == exercise_id,
-            WorksheetExercise.worksheet_id == worksheet_id
-        ).first()
-        if exercise:
-            exercise.order_index = index
-    
-    db.commit()
-    
-    # Return updated list
-    exercises = db.query(WorksheetExercise).filter(
-        WorksheetExercise.worksheet_id == worksheet_id
-    ).order_by(WorksheetExercise.order_index).all()
-    
+    exercises = exercise_service.reorder_exercises(db, worksheet_id, data.exercise_ids)
     return exercises

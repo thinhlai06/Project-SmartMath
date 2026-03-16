@@ -26,7 +26,7 @@ class CPAGenerationResponse(BaseModel):
 
 
 class AIStatusResponse(BaseModel):
-    ollama: str
+    lmstudio: str
     model: str
     vector_db: str
 
@@ -61,3 +61,23 @@ class GradeImageResponse(BaseModel):
     results: List[QuestionGradeResult]
     raw_text: str
     extracted_json: Optional[Dict[str, str]] = None
+
+
+class WeakTopic(BaseModel):
+    topic: str
+    accuracy: float
+    total_questions: int
+
+class StudentPerformance(BaseModel):
+    student: str
+    average_score: float
+    assignment_count: int
+
+class MistakePattern(BaseModel):
+    type: str
+    count: int
+
+class ClassAnalyticsResponse(BaseModel):
+    weak_topics: List[WeakTopic]
+    student_performance: List[StudentPerformance]
+    common_mistakes: List[MistakePattern]

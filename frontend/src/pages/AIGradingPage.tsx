@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Camera, AlertCircle, RefreshCw, FileText } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Upload, AlertCircle, RefreshCw, FileText } from 'lucide-react';
+
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface GradeResult {
@@ -31,7 +31,7 @@ interface GradingResponse {
 
 export default function AIGradingPage() {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const navigate = useNavigate();
+    // const navigate = useNavigate();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // State
@@ -78,8 +78,12 @@ export default function AIGradingPage() {
         }
 
         try {
+            const token = localStorage.getItem('access_token');
             const response = await fetch('/api/ai/grade-image', {
                 method: 'POST',
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                },
                 body: formData,
             });
 

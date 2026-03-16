@@ -4,7 +4,7 @@ Question Generator - Generates CPA-style math questions using RAG + Qwen2.5.
 import json
 import re
 from typing import Dict, List
-from .ollama_service import OllamaService
+from .lmstudio_service import LMStudioService
 from .rag_service import RAGService
 
 
@@ -39,7 +39,7 @@ class QuestionGenerator:
             system = "Bạn là AI giáo viên Toán tiểu học Việt Nam. Trả lời bằng JSON array hợp lệ."
 
             print(f"🤖 Generating {count} {level} questions...")
-            response = OllamaService.generate(prompt, system=system, temperature=0.7)
+            response = LMStudioService.generate(prompt, system=system, temperature=0.7)
             questions = self._parse_json(response)
             result[level] = questions
 
@@ -70,7 +70,7 @@ class QuestionGenerator:
             system = "Bạn là AI giáo viên Toán tiểu học Việt Nam. Trả lời bằng JSON array hợp lệ."
             
             print(f"🤖 Generating {count} {tier} questions...")
-            response = OllamaService.generate(prompt, system=system, temperature=0.7)
+            response = LMStudioService.generate(prompt, system=system, temperature=0.7)
             questions = self._parse_json(response)
             result["content"][tier] = questions
 

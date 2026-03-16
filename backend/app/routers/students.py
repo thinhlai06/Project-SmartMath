@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.database import get_db
 from app.schemas.student import StudentCreate, StudentUpdate, StudentResponse
-from app.models.student import Student
 from app.models.math_class import MathClass
 from app.utils.dependencies import get_current_teacher
 from app.models.user import User
+from app.services import student_service
 
 
 router = APIRouter()
@@ -32,7 +32,7 @@ def verify_class_ownership(db: Session, class_id: int, teacher_id: int) -> MathC
 @router.get("/classes/{class_id}/students", response_model=List[StudentResponse])
 async def list_students(
     class_id: int,
-    tier: str = None,
+    tier: Optional[str] = None,
     current_user: User = Depends(get_current_teacher),
     db: Session = Depends(get_db)
 ):
@@ -42,13 +42,7 @@ async def list_students(
     - **tier**: Lọc theo nhóm (foundation, standard, extension, advanced)
     """
     verify_class_ownership(db, class_id, current_user.id)
-    
-    query = db.query(Student).filter(Student.class_id == class_id)
-    if tier:
-        query = query.filter(Student.tier == tier)
-    
-    students = query.order_by(Student.full_name).all()
-    return students
+    return student_service.get_students_by_class(db, class_id, tier)
 
 
 @router.post("/classes/{class_id}/students", response_model=StudentResponse, status_code=status.HTTP_201_CREATED)
@@ -66,15 +60,8 @@ async def create_student(
     """
     verify_class_ownership(db, class_id, current_user.id)
     
-    student = Student(
-        full_name=student_data.full_name,
-        class_id=class_id,
-        tier=student_data.tier.value if student_data.tier else "standard"
-    )
-    db.add(student)
-    db.commit()
-    db.refresh(student)
-    return student
+    tier_val = student_data.tier.value if student_data.tier else "standard"
+    return student_service.create_student(db, student_data.full_name, class_id, tier_val)
 
 
 @router.get("/students/{student_id}", response_model=StudentResponse)
@@ -86,7 +73,7 @@ async def get_student(
     """
     Lấy thông tin học sinh.
     """
-    student = db.query(Student).filter(Student.id == student_id).first()
+    student = student_service.get_student_by_id(db, student_id)
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -107,7 +94,7 @@ async def update_student(
     """
     Cập nhật thông tin học sinh.
     """
-    student = db.query(Student).filter(Student.id == student_id).first()
+    student = student_service.get_student_by_id(db, student_id)
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -116,14 +103,8 @@ async def update_student(
     
     verify_class_ownership(db, student.class_id, current_user.id)
     
-    if student_data.full_name is not None:
-        student.full_name = student_data.full_name
-    if student_data.tier is not None:
-        student.tier = student_data.tier.value
-    
-    db.commit()
-    db.refresh(student)
-    return student
+    tier_val = student_data.tier.value if student_data.tier else None
+    return student_service.update_student(db, student, student_data.full_name, tier_val)
 
 
 @router.delete("/students/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -135,7 +116,7 @@ async def delete_student(
     """
     Xóa học sinh khỏi lớp.
     """
-    student = db.query(Student).filter(Student.id == student_id).first()
+    student = student_service.get_student_by_id(db, student_id)
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -143,7 +124,5 @@ async def delete_student(
         )
     
     verify_class_ownership(db, student.class_id, current_user.id)
-    
-    db.delete(student)
-    db.commit()
+    student_service.delete_student(db, student)
     return None

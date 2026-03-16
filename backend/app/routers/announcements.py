@@ -5,9 +5,10 @@ from typing import List
 from app.database import get_db
 from app.models.announcement import Announcement
 from app.models.math_class import MathClass
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.announcement import AnnouncementCreate, AnnouncementResponse
-from app.routers.auth import get_current_user
+from app.utils.dependencies import get_current_user
+from app.services import announcement_service
 
 router = APIRouter()
 
@@ -19,16 +20,7 @@ async def get_announcements(
     current_user: User = Depends(get_current_user)
 ):
     """Get all announcements for a class."""
-    # Verify class exists
-    math_class = db.query(MathClass).filter(MathClass.id == class_id).first()
-    if not math_class:
-        raise HTTPException(status_code=404, detail="Class not found")
-    
-    announcements = db.query(Announcement).filter(
-        Announcement.class_id == class_id
-    ).order_by(Announcement.created_at.desc()).all()
-    
-    return announcements
+    return announcement_service.get_announcements_by_class(db, class_id)
 
 
 @router.post("/announcements", response_model=AnnouncementResponse, status_code=status.HTTP_201_CREATED)
@@ -38,26 +30,12 @@ async def create_announcement(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new announcement (Teacher only)."""
-    if current_user.role != "teacher":
+    if current_user.role != UserRole.TEACHER:
         raise HTTPException(status_code=403, detail="Only teachers can create announcements")
     
-    # Verify class exists and belongs to teacher
-    math_class = db.query(MathClass).filter(
-        MathClass.id == announcement.class_id,
-        MathClass.teacher_id == current_user.id
-    ).first()
-    if not math_class:
-        raise HTTPException(status_code=404, detail="Class not found or not owned by you")
-    
-    db_announcement = Announcement(
-        class_id=announcement.class_id,
-        title=announcement.title,
-        content=announcement.content
+    db_announcement = announcement_service.create_announcement(
+        db, current_user.id, announcement.class_id, announcement.title, announcement.content
     )
-    db.add(db_announcement)
-    db.commit()
-    db.refresh(db_announcement)
-    
     return db_announcement
 
 
@@ -68,22 +46,8 @@ async def delete_announcement(
     current_user: User = Depends(get_current_user)
 ):
     """Delete an announcement (Teacher only)."""
-    if current_user.role != "teacher":
+    if current_user.role != UserRole.TEACHER:
         raise HTTPException(status_code=403, detail="Only teachers can delete announcements")
     
-    announcement = db.query(Announcement).filter(Announcement.id == announcement_id).first()
-    if not announcement:
-        raise HTTPException(status_code=404, detail="Announcement not found")
-    
-    # Verify the announcement's class belongs to the teacher
-    math_class = db.query(MathClass).filter(
-        MathClass.id == announcement.class_id,
-        MathClass.teacher_id == current_user.id
-    ).first()
-    if not math_class:
-        raise HTTPException(status_code=403, detail="You don't own this class")
-    
-    db.delete(announcement)
-    db.commit()
-    
+    announcement_service.delete_announcement(db, current_user.id, announcement_id)
     return None
