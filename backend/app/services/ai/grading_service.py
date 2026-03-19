@@ -1,7 +1,7 @@
 import logging
 import json
 import re
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from .ocr_service import OCRService
 from .lmstudio_service import LMStudioService
 
@@ -11,7 +11,7 @@ class GradingService:
     def __init__(self):
         self.ocr = OCRService()
 
-    def grade_submission(self, image_content: bytes, correct_answers: List[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def grade_submission(self, image_content: bytes, correct_answers: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         """
         Grade a student submission image.
         If correct_answers is provided, compares against it.

@@ -4,14 +4,20 @@ All endpoints require Teacher authentication.
 """
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Any, cast
 
+from app.application.use_cases.ai.generate_cpa_draft import GenerateCPADraftUseCase
+from app.application.use_cases.ai.generate_differentiation_draft import (
+    GenerateDifferentiationDraftUseCase,
+)
+from app.bootstrap.container import (
+    get_generate_cpa_draft_use_case,
+    get_generate_differentiation_draft_use_case,
+)
 from app.database import get_db
 from app.core.dependencies import get_current_teacher
 from app.models.user import User
-from app.models.math_topic import MathTopic
 from app.services.ai.lmstudio_service import LMStudioService
-from app.services.ai.question_generator import QuestionGenerator
 from app.schemas.ai import (
     AIStatusResponse,
     CPAGenerationRequest,
@@ -56,61 +62,35 @@ async def get_ai_status(teacher: User = Depends(get_current_teacher)):
 @router.post("/generate-cpa")
 async def generate_cpa_worksheet(
     request: CPAGenerationRequest,
-    db: Session = Depends(get_db),
+    use_case: GenerateCPADraftUseCase = Depends(get_generate_cpa_draft_use_case),
     teacher: User = Depends(get_current_teacher)
 ) -> Dict:
     """Generate CPA worksheet questions using AI (Teacher only)."""
-    
-    if not LMStudioService.is_running():
-        raise HTTPException(
-            status_code=503,
-            detail="LMStudio không khả dụng. Vui lòng kiểm tra LMStudio đang chạy ở cổng 1234."
-        )
-    
-    topic = db.query(MathTopic).filter(MathTopic.id == request.topic_id).first()
-    if not topic:
-        raise HTTPException(status_code=404, detail="Topic not found")
-    
-    generator = QuestionGenerator()
-    
-    try:
-        result = generator.generate_cpa_questions(
-            topic=topic.topic_name,
-            grade=request.grade,
-            objective=request.objective,
-            counts=request.counts
-        )
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
+
+    return use_case.execute(
+        topic_id=request.topic_id,
+        grade=request.grade,
+        objective=request.objective,
+        counts=request.counts,
+    )
 
 
 @router.post("/generate-differentiation", response_model=DifferentiationResponse)
 async def generate_differentiation_worksheet(
     request: DifferentiationRequest,
-    db: Session = Depends(get_db),
+    use_case: GenerateDifferentiationDraftUseCase = Depends(
+        get_generate_differentiation_draft_use_case
+    ),
     teacher: User = Depends(get_current_teacher)
 ) -> Dict:
     """Generate differentiated worksheet content (Teacher only)."""
-    
-    if not LMStudioService.is_running():
-        raise HTTPException(status_code=503, detail="LMStudio không khả dụng")
 
-    topic = db.query(MathTopic).filter(MathTopic.id == request.topic_id).first()
-    if not topic:
-        raise HTTPException(status_code=404, detail="Topic not found")
-        
-    generator = QuestionGenerator()
-    try:
-        result = generator.generate_differentiation_questions(
-            topic=topic.topic_name,
-            grade=request.grade,
-            objective=request.objective,
-            tiers=request.tiers
-        )
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
+    return use_case.execute(
+        topic_id=request.topic_id,
+        grade=request.grade,
+        objective=request.objective,
+        tiers=request.tiers,
+    )
 
 
 @router.post("/grade-image", response_model=GradeImageResponse)
@@ -125,10 +105,14 @@ async def grade_image_endpoint(
     If not, uses AI to self-solve.
     """
     try:
-        correct_answers = None
+        correct_answers: Optional[List[Dict[str, Any]]] = None
         if correct_answers_json:
             try:
-                correct_answers = json.loads(correct_answers_json)
+                parsed = json.loads(correct_answers_json)
+                if isinstance(parsed, list):
+                    correct_answers = parsed
+                else:
+                    raise HTTPException(status_code=400, detail="correct_answers must be a JSON array")
             except json.JSONDecodeError:
                 raise HTTPException(status_code=400, detail="Invalid JSON for correct_answers")
 
@@ -179,7 +163,7 @@ async def export_grading_report(
     try:
         service = ReportService(db)
         report = service.generate_report(
-            teacher_id=teacher.id,
+            teacher_id=cast(int, teacher.id),
             class_id=request.get("class_id", 0),
             student_name=request.get("student_name", "Học sinh"),
             worksheet_title=request.get("worksheet_title", "Bài kiểm tra"),
@@ -214,11 +198,11 @@ async def download_grading_report(
         raise HTTPException(status_code=404, detail="Báo cáo không tồn tại")
     
     import os
-    if not os.path.exists(report.file_path):
+    if not os.path.exists(str(report.file_path)):
         raise HTTPException(status_code=404, detail="File báo cáo không tìm thấy")
     
     return FileResponse(
-        path=report.file_path,
+        path=str(report.file_path),
         filename=f"bao_cao_{report.student_name}.txt",
         media_type="text/plain"
     )
