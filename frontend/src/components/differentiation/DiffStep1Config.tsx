@@ -29,9 +29,8 @@ export function DiffStep1Config({ onNext, initialData }: DiffStep1ConfigProps) {
         setIsLoading(true);
         setError(null);
         try {
-            const token = localStorage.getItem('access_token');
-            const response = await fetch(`http://localhost:8000/api/topics?grade=${selectedGrade}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const response = await fetch(`/api/topics?grade=${selectedGrade}`, {
+                credentials: 'include'
             });
             if (response.ok) {
                 const data = await response.json();

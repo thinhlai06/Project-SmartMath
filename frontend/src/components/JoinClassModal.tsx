@@ -32,13 +32,12 @@ export function JoinClassModal({ isOpen, onClose, onSuccess }: JoinClassModalPro
         setIsLoading(true);
 
         try {
-            const token = localStorage.getItem('access_token');
-            const response = await fetch('http://localhost:8000/api/parent/join-class', {
+            const response = await fetch('/api/parent/join-class', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     class_code: classCode.toUpperCase(),
                     student_name: studentName

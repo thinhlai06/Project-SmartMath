@@ -152,16 +152,11 @@ export const worksheetApi = {
             spacing: settings.spacing,
         });
 
-        // Get token for auth
-        const token = localStorage.getItem('access_token');
-
         // Fetch PDF as blob (use relative URL for Vite proxy)
         const response = await fetch(
             `/api/worksheets/${worksheetId}/pdf?${params.toString()}`,
             {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
+                credentials: 'include',
             }
         );
 

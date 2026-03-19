@@ -152,11 +152,9 @@ function TeacherHome() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const token = localStorage.getItem('access_token');
-
                 // Fetch stats from new API
-                const statsResponse = await fetch('http://localhost:8000/api/dashboard/stats', {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                const statsResponse = await fetch('/api/dashboard/stats', {
+                    credentials: 'include',
                 });
                 if (statsResponse.ok) {
                     const statsData = await statsResponse.json();
@@ -357,9 +355,8 @@ function ParentHome() {
     // Fetch parent's children/classes
     const fetchChildren = async () => {
         try {
-            const token = localStorage.getItem('access_token');
-            const response = await fetch('http://localhost:8000/api/parent/classes', {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const response = await fetch('/api/parent/classes', {
+                credentials: 'include',
             });
             if (response.ok) {
                 const data = await response.json();
@@ -389,12 +386,11 @@ function ParentHome() {
         setIsJoining(true);
 
         try {
-            const token = localStorage.getItem('access_token');
-            const response = await fetch('http://localhost:8000/api/parent/join-class', {
+            const response = await fetch('/api/parent/join-class', {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     class_code: joinForm.class_code.toUpperCase(),

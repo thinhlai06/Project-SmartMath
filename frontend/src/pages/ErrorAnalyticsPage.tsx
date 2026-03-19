@@ -59,11 +59,8 @@ export default function ErrorAnalyticsPage() {
         const fetchAnalytics = async () => {
             setLoading(true);
             try {
-                const token = localStorage.getItem('access_token');
                 const res = await fetch(`/api/ai/analytics/${selectedClassId}`, {
-                    headers: {
-                        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-                    },
+                    credentials: 'include',
                 });
                 if (!res.ok) throw new Error("Failed to fetch analytics");
                 const data = await res.json();

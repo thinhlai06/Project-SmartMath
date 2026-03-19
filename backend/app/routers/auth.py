@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
@@ -62,6 +62,7 @@ async def register(
 
 @router.post("/login", response_model=Token)
 async def login(
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
@@ -88,8 +89,30 @@ async def login(
         },
         expires_delta=access_token_expires
     )
+
+    response.set_cookie(
+        key=settings.AUTH_COOKIE_NAME,
+        value=f"Bearer {access_token}",
+        httponly=True,
+        secure=settings.AUTH_COOKIE_SECURE,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
+        domain=settings.AUTH_COOKIE_DOMAIN,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
     
     return Token(access_token=access_token, token_type="bearer")
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(response: Response):
+    """Dang xuat va xoa auth cookie."""
+    response.delete_cookie(
+        key=settings.AUTH_COOKIE_NAME,
+        domain=settings.AUTH_COOKIE_DOMAIN,
+        path="/",
+    )
+    return None
 
 
 @router.get("/me", response_model=UserResponse)

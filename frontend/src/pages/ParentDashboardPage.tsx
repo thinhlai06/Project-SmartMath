@@ -70,13 +70,9 @@ export default function ParentDashboardPage() {
     useEffect(() => {
         const fetchDashboard = async () => {
             try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch(
-                    `http://localhost:8000/api/parent/dashboard/${classId}`,
-                    {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    }
-                );
+                const response = await fetch(`/api/parent/dashboard/${classId}`, {
+                    credentials: 'include',
+                });
                 if (response.ok) {
                     const data = await response.json();
                     setDashboard(data);

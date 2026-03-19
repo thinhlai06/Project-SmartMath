@@ -2,21 +2,23 @@
 FastAPI dependency injection functions.
 Moved from app.utils.dependencies → app.core.dependencies
 """
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
 from app.services.auth_service import decode_access_token, get_user_by_id
 from app.models.user import User, UserRole
 
 
 # OAuth2 scheme for JWT token
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
+    token: str | None = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ) -> User:
     """Get current authenticated user from JWT token."""
@@ -26,7 +28,16 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    token_data = decode_access_token(token)
+    bearer_token = token
+    if not bearer_token:
+        cookie_token = request.cookies.get(settings.AUTH_COOKIE_NAME)
+        if cookie_token:
+            bearer_token = cookie_token.removeprefix("Bearer ").strip()
+
+    if not bearer_token:
+        raise credentials_exception
+
+    token_data = decode_access_token(bearer_token)
     if token_data is None:
         raise credentials_exception
     

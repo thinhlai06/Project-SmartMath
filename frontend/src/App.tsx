@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryProvider } from './app/providers/query-provider';
 import { CPAStepWizard } from './components/cpa/CPAStepWizard';
 import { DifferentiationWizard } from './components/differentiation/DifferentiationWizard';
 import { AuthProvider, useAuth } from './hooks/useAuth';
@@ -182,11 +183,13 @@ function AppRoutes() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
+    <QueryProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryProvider>
   );
 }
 

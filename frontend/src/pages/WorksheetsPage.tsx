@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, FileText, Copy, Trash2, Send, EyeOff, ArrowLeft, Download } from 'lucide-react';
 import { worksheetApi } from '../services/worksheetApi';
 import { classApi } from '../services/classApi';
@@ -15,9 +16,7 @@ import { PdfExportModal } from '../components/PdfExportModal';
 export function WorksheetsPage() {
     const { classId } = useParams<{ classId: string }>();
     const navigate = useNavigate();
-    const [worksheets, setWorksheets] = useState<Worksheet[]>([]);
-    const [mathClass, setMathClass] = useState<MathClass | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [error, setError] = useState<string | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [filterType, setFilterType] = useState<WorksheetType | ''>('');
@@ -35,29 +34,56 @@ export function WorksheetsPage() {
 
     const id = parseInt(classId || '0', 10);
 
-    useEffect(() => {
-        if (id) {
-            fetchData();
-        }
-    }, [id, filterType]);
+    const classQuery = useQuery<MathClass>({
+        queryKey: ['class-detail', id],
+        queryFn: () => classApi.getClass(id),
+        enabled: !!id,
+    });
 
-    const fetchData = async () => {
-        try {
-            setIsLoading(true);
-            const [classData, worksheetsData] = await Promise.all([
-                classApi.getClass(id),
-                worksheetApi.getWorksheets(id, undefined, filterType || undefined)
-            ]);
-            setMathClass(classData);
-            setWorksheets(worksheetsData);
-            setNewWorksheet(prev => ({ ...prev, grade: classData.grade }));
-        } catch (err) {
-            setError('Không thể tải dữ liệu');
-            console.error(err);
-        } finally {
-            setIsLoading(false);
+    const worksheetsQuery = useQuery<Worksheet[]>({
+        queryKey: ['class-worksheets', id, filterType],
+        queryFn: () => worksheetApi.getWorksheets(id, undefined, filterType || undefined),
+        enabled: !!id,
+    });
+
+    const publishMutation = useMutation({
+        mutationFn: (worksheetId: number) => worksheetApi.publishWorksheet(worksheetId),
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['class-worksheets', id] });
+        },
+    });
+
+    const unpublishMutation = useMutation({
+        mutationFn: (worksheetId: number) => worksheetApi.unpublishWorksheet(worksheetId),
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['class-worksheets', id] });
+        },
+    });
+
+    const duplicateMutation = useMutation({
+        mutationFn: (worksheetId: number) => worksheetApi.duplicateWorksheet(worksheetId),
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['class-worksheets', id] });
+        },
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: (worksheetId: number) => worksheetApi.deleteWorksheet(worksheetId),
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['class-worksheets', id] });
+        },
+    });
+
+    const mathClass = classQuery.data ?? null;
+    const worksheets = worksheetsQuery.data ?? [];
+    const isLoading = classQuery.isLoading || worksheetsQuery.isLoading;
+    const queryError = classQuery.error || worksheetsQuery.error;
+
+    useEffect(() => {
+        if (mathClass) {
+            setNewWorksheet(prev => ({ ...prev, grade: mathClass.grade }));
         }
-    };
+    }, [mathClass]);
 
     const handleCreateWorksheet = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -78,8 +104,7 @@ export function WorksheetsPage() {
 
     const handlePublish = async (worksheetId: number) => {
         try {
-            await worksheetApi.publishWorksheet(worksheetId);
-            fetchData();
+            await publishMutation.mutateAsync(worksheetId);
         } catch (err: any) {
             setError(err.response?.data?.detail || 'Không thể xuất bản');
         }
@@ -87,8 +112,7 @@ export function WorksheetsPage() {
 
     const handleUnpublish = async (worksheetId: number) => {
         try {
-            await worksheetApi.unpublishWorksheet(worksheetId);
-            fetchData();
+            await unpublishMutation.mutateAsync(worksheetId);
         } catch (err) {
             setError('Không thể hủy xuất bản');
         }
@@ -96,8 +120,7 @@ export function WorksheetsPage() {
 
     const handleDuplicate = async (worksheetId: number) => {
         try {
-            await worksheetApi.duplicateWorksheet(worksheetId);
-            fetchData();
+            await duplicateMutation.mutateAsync(worksheetId);
         } catch (err) {
             setError('Không thể nhân bản');
         }
@@ -106,8 +129,7 @@ export function WorksheetsPage() {
     const handleDelete = async (worksheetId: number) => {
         if (!confirm('Bạn có chắc muốn xóa bài tập này?')) return;
         try {
-            await worksheetApi.deleteWorksheet(worksheetId);
-            fetchData();
+            await deleteMutation.mutateAsync(worksheetId);
         } catch (err) {
             setError('Không thể xóa bài tập');
         }
@@ -188,9 +210,9 @@ export function WorksheetsPage() {
                 </div>
 
                 {/* Error */}
-                {error && (
+                {(error || queryError) && (
                     <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6">
-                        {error}
+                        {error || 'Không thể tải dữ liệu'}
                         <button onClick={() => setError(null)} className="ml-4 underline">Đóng</button>
                     </div>
                 )}

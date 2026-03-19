@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "your-jwt-secret-key"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    AUTH_COOKIE_NAME: str = "access_token"
+    AUTH_COOKIE_SECURE: bool = False
+    AUTH_COOKIE_SAMESITE: str = "lax"
+    AUTH_COOKIE_DOMAIN: str | None = None
     
     # LMStudio AI Configuration
     LMSTUDIO_API_BASE: str = "http://localhost:1234/v1"
