@@ -78,12 +78,9 @@ export default function AIGradingPage() {
         }
 
         try {
-            const token = localStorage.getItem('access_token');
             const response = await fetch('/api/ai/grade-image', {
                 method: 'POST',
-                headers: {
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-                },
+                credentials: 'include',
                 body: formData,
             });
 

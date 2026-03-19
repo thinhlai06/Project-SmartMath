@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
+from app.interfaces.api.v1.routers import ai_router as ai_router_v1
+from app.interfaces.api.v1.routers import worksheet_router as worksheet_router_v1
 from app.models.student_progress import StudentProgress
 from app.models.grading_report import GradingReport
 from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, parent, announcements, dashboard, activities, ai
@@ -68,6 +70,10 @@ app.include_router(announcements.router, prefix="/api", tags=["Announcements"])
 app.include_router(dashboard.router, prefix="/api", tags=["Dashboard"])
 app.include_router(activities.router, prefix="/api", tags=["Activities"])
 app.include_router(ai.router, prefix="/api", tags=["AI"])
+
+# Clean architecture rollout endpoints (v1)
+app.include_router(worksheet_router_v1.router, prefix="/api/v1", tags=["Worksheets v1"])
+app.include_router(ai_router_v1.router, prefix="/api/v1", tags=["AI v1"])
 
 
 @app.get("/", tags=["Root"])

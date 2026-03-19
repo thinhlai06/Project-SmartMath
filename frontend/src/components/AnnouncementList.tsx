@@ -21,7 +21,7 @@ interface AnnouncementListProps {
     isTeacher?: boolean;
 }
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = '/api';
 
 export function AnnouncementList({ classId = 1, isTeacher = false }: AnnouncementListProps) {
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -35,9 +35,8 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
         setIsLoading(true);
         setError(null);
         try {
-            const token = localStorage.getItem('access_token');
             const response = await fetch(`${API_BASE}/classes/${classId}/announcements`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                credentials: 'include'
             });
             if (response.ok) {
                 const data = await response.json();
@@ -60,13 +59,12 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
         if (!formData.title.trim() || !formData.content.trim()) return;
         setIsSubmitting(true);
         try {
-            const token = localStorage.getItem('access_token');
             const response = await fetch(`${API_BASE}/announcements`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     class_id: classId,
                     title: formData.title,
@@ -91,10 +89,9 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
     const handleDelete = async (id: number) => {
         if (!confirm('Bạn có chắc chắn muốn xóa thông báo này?')) return;
         try {
-            const token = localStorage.getItem('access_token');
             const response = await fetch(`${API_BASE}/announcements/${id}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
+                credentials: 'include'
             });
             if (response.ok) {
                 fetchAnnouncements();

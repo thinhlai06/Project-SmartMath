@@ -8,7 +8,7 @@ interface AuthContextType {
     isLoading: boolean;
     isAuthenticated: boolean;
     login: (email: string, password: string) => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;
     register: (email: string, password: string, fullName: string, role: 'teacher' | 'parent') => Promise<void>;
 }
 
@@ -19,29 +19,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Check if user is logged in on mount
-        const token = localStorage.getItem('access_token');
-        if (token) {
-            authApi.getMe()
-                .then(setUser)
-                .catch(() => {
-                    localStorage.removeItem('access_token');
-                })
-                .finally(() => setIsLoading(false));
-        } else {
-            setIsLoading(false);
-        }
+        // Cookie-session check on mount
+        authApi.getMe()
+            .then(setUser)
+            .catch(() => {
+                setUser(null);
+            })
+            .finally(() => setIsLoading(false));
     }, []);
 
     const login = async (email: string, password: string) => {
-        const token = await authApi.login(email, password);
-        localStorage.setItem('access_token', token.access_token);
+        await authApi.login(email, password);
         const userData = await authApi.getMe();
         setUser(userData);
     };
 
-    const logout = () => {
-        localStorage.removeItem('access_token');
+    const logout = async () => {
+        await authApi.logout();
         setUser(null);
     };
 

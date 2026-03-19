@@ -42,9 +42,8 @@ export function RecentActivityList() {
 
     const fetchActivities = useCallback(async () => {
         try {
-            const token = localStorage.getItem('access_token');
-            const response = await fetch('http://localhost:8000/api/activities', {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const response = await fetch('/api/activities', {
+                credentials: 'include'
             });
             if (response.ok) {
                 const data = await response.json();

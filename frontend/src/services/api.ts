@@ -4,18 +4,10 @@ import type { Token, User, RegisterRequest } from '../types';
 // Create axios instance
 const api = axios.create({
     baseURL: '/api',
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
     },
-});
-
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
 });
 
 // Auth API
@@ -39,6 +31,10 @@ export const authApi = {
     getMe: async (): Promise<User> => {
         const response = await api.get<User>('/auth/me');
         return response.data;
+    },
+
+    logout: async (): Promise<void> => {
+        await api.post('/auth/logout');
     },
 };
 

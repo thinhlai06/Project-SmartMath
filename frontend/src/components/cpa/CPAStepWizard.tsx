@@ -50,9 +50,8 @@ export function CPAStepWizard() {
     useEffect(() => {
         const fetchTopics = async () => {
             try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch('http://localhost:8000/api/topics', {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                const response = await fetch('/api/topics', {
+                    credentials: 'include'
                 });
                 if (response.ok) {
                     setTopics(await response.json());
@@ -89,18 +88,17 @@ export function CPAStepWizard() {
         setSaveError(null);
 
         try {
-            const token = localStorage.getItem('access_token');
             const topic = topics.find(t => t.id.toString() === wizardData.topicId);
 
             // Create worksheet
             const worksheetResponse = await fetch(
-                `http://localhost:8000/api/classes/${selectedClassId}/worksheets`,
+                `/api/classes/${selectedClassId}/worksheets`,
                 {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
+                    credentials: 'include',
                     body: JSON.stringify({
                         title: `CPA: ${topic?.topic_name || 'Bài tập mới'}`,
                         topic_id: parseInt(wizardData.topicId) || null,
@@ -128,13 +126,13 @@ export function CPAStepWizard() {
             for (const exercise of exercises) {
                 if (exercise.question) {
                     await fetch(
-                        `http://localhost:8000/api/worksheets/${worksheet.id}/exercises`,
+                        `/api/worksheets/${worksheet.id}/exercises`,
                         {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
+                                'Content-Type': 'application/json'
                             },
+                            credentials: 'include',
                             body: JSON.stringify(exercise)
                         }
                     );
