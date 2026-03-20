@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, Copy, Trash2, Send, EyeOff, ArrowLeft, Download } from 'lucide-react';
+import { Plus, FileText, Copy, Trash2, Send, EyeOff, Download } from 'lucide-react';
 import { worksheetApi } from '../services/worksheetApi';
 import { classApi } from '../services/classApi';
 import type { Worksheet, WorksheetType, WorksheetCreate } from '../services/worksheetApi';
 import type { MathClass } from '../services/classApi';
 import { Button } from '../components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { PdfExportModal } from '../components/PdfExportModal';
+import { PageHeader, WorksheetGridCard } from '@/components/redesign';
 
 export function WorksheetsPage() {
     const { classId } = useParams<{ classId: string }>();
@@ -166,23 +167,22 @@ export function WorksheetsPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 p-6">
             <div className="max-w-6xl mx-auto">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <button
-                            onClick={() => navigate(`/classes/${id}`)}
-                            className="text-sm text-gray-500 hover:text-gray-700 mb-2 flex items-center gap-1"
-                        >
-                            <ArrowLeft className="w-4 h-4" /> Quay lại lớp {mathClass?.class_name}
-                        </button>
-                        <h1 className="text-2xl font-bold text-gray-800">Bài tập - {mathClass?.class_name}</h1>
-                        <p className="text-gray-500">Quản lý bài tập CPA và phân hóa</p>
-                    </div>
-                    <Button onClick={() => setShowCreateModal(true)}>
-                        <Plus className="w-4 h-4" />
-                        Tạo bài tập mới
-                    </Button>
-                </div>
+                <PageHeader
+                    title={`Bài tập - ${mathClass?.class_name ?? ''}`}
+                    breadcrumbs={[
+                        { label: 'Classes', href: '/classes' },
+                        { label: mathClass?.class_name ?? `Lớp ${id}`, href: `/classes/${id}` },
+                        { label: 'Worksheets' },
+                    ]}
+                    actions={(
+                        <Button onClick={() => setShowCreateModal(true)}>
+                            <Plus className="w-4 h-4" />
+                            Tạo bài tập mới
+                        </Button>
+                    )}
+                    className="mb-3"
+                />
+                <p className="mb-6 text-sm text-slate-600">Quản lý bài tập CPA và phân hóa</p>
 
                 {/* Filters */}
                 <div className="flex gap-2 mb-6">
@@ -233,57 +233,32 @@ export function WorksheetsPage() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {worksheets.map((ws) => (
-                            <Card key={ws.id} className="hover:shadow-lg transition-shadow">
-                                <CardHeader className="pb-2">
-                                    <div className="flex items-start justify-between">
-                                        <CardTitle
-                                            className="text-lg cursor-pointer hover:text-teal-600"
-                                            onClick={() => navigate(`/worksheets/${ws.id}/edit`)}
-                                        >
-                                            {ws.title}
-                                        </CardTitle>
-                                        <div className="flex gap-1">
-                                            {getTypeBadge(ws.worksheet_type)}
-                                            {getStatusBadge(ws.status)}
-                                        </div>
+                            <div key={ws.id} className="space-y-2">
+                                <WorksheetGridCard
+                                    title={ws.title}
+                                    status={ws.status === 'published' ? 'published' : 'draft'}
+                                    onEdit={() => navigate(`/worksheets/${ws.id}/edit`)}
+                                    onPdfExport={() => handleOpenPdfModal(ws)}
+                                />
+                                <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2">
+                                    <div className="flex gap-1">
+                                        {getTypeBadge(ws.worksheet_type)}
+                                        {getStatusBadge(ws.status)}
+                                        <Badge className="bg-slate-100 text-slate-700">{ws.exercise_count} câu</Badge>
                                     </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-sm text-gray-500 mb-4">
-                                        {ws.exercise_count} câu hỏi
-                                    </p>
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => navigate(`/worksheets/${ws.id}/edit`)}
-                                        >
-                                            Chỉnh sửa
-                                        </Button>
+                                    <div className="flex items-center gap-1">
                                         {ws.status === 'draft' ? (
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => handlePublish(ws.id)}
-                                            >
+                                            <Button size="sm" variant="outline" onClick={() => handlePublish(ws.id)}>
                                                 <Send className="w-3 h-3" />
                                                 Xuất bản
                                             </Button>
                                         ) : (
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => handleUnpublish(ws.id)}
-                                            >
+                                            <Button size="sm" variant="outline" onClick={() => handleUnpublish(ws.id)}>
                                                 <EyeOff className="w-3 h-3" />
                                                 Hủy
                                             </Button>
                                         )}
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => handleDuplicate(ws.id)}
-                                        >
+                                        <Button size="sm" variant="ghost" onClick={() => handleDuplicate(ws.id)}>
                                             <Copy className="w-3 h-3" />
                                         </Button>
                                         <Button
@@ -303,8 +278,8 @@ export function WorksheetsPage() {
                                             <Trash2 className="w-3 h-3" />
                                         </Button>
                                     </div>
-                                </CardContent>
-                            </Card>
+                                </div>
+                            </div>
                         ))}
                     </div>
                 )}

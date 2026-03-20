@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Users, ChevronRight, Copy } from 'lucide-react';
+import { Plus, Copy } from 'lucide-react';
 import { classApi } from '../services/classApi';
 import type { MathClass, ClassCreate } from '../services/classApi';
 import { Button } from '../components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
+import { ClassCard, MainSidebar, PageHeader } from '@/components/redesign';
 
 export function ClassesPage() {
     const navigate = useNavigate();
@@ -67,15 +68,6 @@ export function ClassesPage() {
         setTimeout(() => setCopiedCode(null), 2000);
     };
 
-    const getGradeBadgeColor = (grade: number) => {
-        switch (grade) {
-            case 1: return 'bg-green-100 text-green-700';
-            case 2: return 'bg-blue-100 text-blue-700';
-            case 3: return 'bg-purple-100 text-purple-700';
-            default: return 'bg-gray-100 text-gray-700';
-        }
-    };
-
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
@@ -85,92 +77,82 @@ export function ClassesPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 p-6">
-            <div className="max-w-6xl mx-auto">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <button
-                            onClick={() => navigate('/')}
-                            className="text-sm text-gray-500 hover:text-gray-700 mb-2 flex items-center gap-1"
-                        >
-                            ← Quay lại
-                        </button>
-                        <h1 className="text-2xl font-bold text-gray-800">Quản lý lớp học</h1>
-                        <p className="text-gray-500">Tạo và quản lý các lớp học của bạn</p>
-                    </div>
-                    <Button onClick={() => setShowCreateModal(true)}>
-                        <Plus className="w-4 h-4" />
-                        Tạo lớp mới
-                    </Button>
-                </div>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
+            <div className="flex">
+                <MainSidebar
+                    isCollapsed={false}
+                    activeKey="classes"
+                    links={[
+                        { label: 'Home', icon: <span>🏠</span>, href: '/' },
+                        { label: 'Classes', icon: <span>🏫</span>, href: '/classes' },
+                        { label: 'Worksheets', icon: <span>📝</span>, href: '/classes' },
+                        { label: 'AI Tools', icon: <span>🤖</span>, href: '/ai-grading' },
+                        { label: 'Settings', icon: <span>⚙️</span>, href: '/' },
+                    ]}
+                />
 
-                {/* Error message */}
-                {error && (
-                    <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6">
-                        {error}
-                        <button onClick={fetchClasses} className="ml-4 underline">Thử lại</button>
-                    </div>
-                )}
+                <div className="flex-1 p-6">
+                    <div className="mx-auto max-w-6xl">
+                        <PageHeader
+                            title="Quản lý lớp học"
+                            breadcrumbs={[{ label: 'Teacher', href: '/' }, { label: 'Classes' }]}
+                            actions={(
+                                <Button onClick={() => setShowCreateModal(true)}>
+                                    <Plus className="w-4 h-4" />
+                                    Tạo lớp mới
+                                </Button>
+                            )}
+                        />
+                        <p className="mb-6 text-sm text-slate-600">Tạo và quản lý các lớp học của bạn</p>
 
-                {/* Classes grid */}
-                {classes.length === 0 ? (
-                    <Card className="p-12 text-center">
-                        <div className="text-gray-400 mb-4">
-                            <Users className="w-16 h-16 mx-auto" />
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-700 mb-2">Chưa có lớp học nào</h3>
-                        <p className="text-gray-500 mb-6">Bắt đầu bằng cách tạo lớp học đầu tiên của bạn</p>
-                        <Button onClick={() => setShowCreateModal(true)}>
-                            <Plus className="w-4 h-4" />
-                            Tạo lớp mới
-                        </Button>
-                    </Card>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {classes.map((cls) => (
-                            <Card
-                                key={cls.id}
-                                className="hover:shadow-lg transition-shadow cursor-pointer group"
-                                onClick={() => navigate(`/classes/${cls.id}`)}
-                            >
-                                <CardHeader className="pb-2">
-                                    <div className="flex items-start justify-between">
-                                        <CardTitle className="text-lg">{cls.class_name}</CardTitle>
-                                        <Badge className={getGradeBadgeColor(cls.grade)}>
-                                            Lớp {cls.grade}
-                                        </Badge>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2 text-gray-500">
-                                            <Users className="w-4 h-4" />
-                                            <span>{cls.student_count} học sinh</span>
-                                        </div>
-                                        <div
-                                            className="flex items-center gap-1 text-sm bg-gray-100 px-2 py-1 rounded"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                copyClassCode(cls.class_code);
-                                            }}
-                                        >
-                                            <span className="font-mono">{cls.class_code}</span>
-                                            <Copy className="w-3 h-3" />
-                                            {copiedCode === cls.class_code && (
-                                                <span className="text-green-600 text-xs">Đã sao chép!</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center justify-end mt-4 text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span className="text-sm">Xem chi tiết</span>
-                                        <ChevronRight className="w-4 h-4" />
-                                    </div>
-                                </CardContent>
+                        {/* Error message */}
+                        {error && (
+                            <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-600">
+                                {error}
+                                <button onClick={fetchClasses} className="ml-4 underline">Thử lại</button>
+                            </div>
+                        )}
+
+                        {/* Classes grid */}
+                        {classes.length === 0 ? (
+                            <Card className="p-12 text-center">
+                                <h3 className="mb-2 text-lg font-medium text-gray-700">Chưa có lớp học nào</h3>
+                                <p className="mb-6 text-gray-500">Bắt đầu bằng cách tạo lớp học đầu tiên của bạn</p>
+                                <Button onClick={() => setShowCreateModal(true)}>
+                                    <Plus className="w-4 h-4" />
+                                    Tạo lớp mới
+                                </Button>
                             </Card>
-                        ))}
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                {classes.map((cls) => (
+                                    <div key={cls.id} className="space-y-2">
+                                        <ClassCard
+                                            className={cls.class_name}
+                                            studentCount={cls.student_count}
+                                            onClick={() => navigate(`/classes/${cls.id}`)}
+                                        />
+                                        <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-2 text-sm">
+                                            <Badge className="bg-sky-100 text-sky-700">Lớp {cls.grade}</Badge>
+                                            <button
+                                                type="button"
+                                                className="flex items-center gap-1 rounded px-2 py-1 text-slate-600 hover:bg-slate-100"
+                                                onClick={() => copyClassCode(cls.class_code)}
+                                            >
+                                                <span className="font-mono">{cls.class_code}</span>
+                                                <Copy className="h-3 w-3" />
+                                                {copiedCode === cls.class_code && (
+                                                    <span className="text-xs text-green-600">Đã sao chép!</span>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
+            </div>
 
                 {/* Create Class Modal */}
                 {showCreateModal && (
@@ -225,7 +207,6 @@ export function ClassesPage() {
                         </div>
                     </div>
                 )}
-            </div>
         </div>
     );
 }

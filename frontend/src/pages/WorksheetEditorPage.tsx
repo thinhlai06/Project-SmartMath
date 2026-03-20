@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Download } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Plus, Trash2, Download } from 'lucide-react';
 import { worksheetApi, exerciseApi } from '../services/worksheetApi';
 import type { WorksheetDetail, Exercise, ExerciseCreate, ExerciseType, DifficultyTier } from '../services/worksheetApi';
 import { Button } from '../components/ui/button';
@@ -9,6 +9,13 @@ import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { PdfExportModal } from '../components/PdfExportModal';
+import {
+    AICreatorPanel,
+    AIReviewWidget,
+    DiffLevelBadge,
+    MathFormattedText,
+    PageHeader,
+} from '@/components/redesign';
 
 // CPA section labels
 const CPA_SECTIONS: { type: ExerciseType; label: string; color: string; description: string }[] = [
@@ -27,7 +34,6 @@ const DIFF_TIERS: { tier: DifficultyTier; label: string; color: string; icon: st
 
 export function WorksheetEditorPage() {
     const { worksheetId } = useParams<{ worksheetId: string }>();
-    const navigate = useNavigate();
     const [worksheet, setWorksheet] = useState<WorksheetDetail | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -39,6 +45,8 @@ export function WorksheetEditorPage() {
         answer: '',
         hint: '',
     });
+    const [aiDraft, setAiDraft] = useState('');
+    const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
     const [activeSection, setActiveSection] = useState<ExerciseType | DifficultyTier | null>(null);
     const [showPdfModal, setShowPdfModal] = useState(false);
 
@@ -113,6 +121,26 @@ export function WorksheetEditorPage() {
         }
     };
 
+    const handleGenerateDraft = async (params: { topic: string; diffLevel: number }) => {
+        setIsGeneratingDraft(true);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        const sampleQuestion =
+            params.diffLevel === 1
+                ? `Viết 1 phép tính ${params.topic.toLowerCase()} đơn giản cho học sinh lớp ${worksheet?.grade ?? 1}.`
+                : params.diffLevel === 2
+                    ? `Tạo bài toán lời văn ngắn về ${params.topic.toLowerCase()} phù hợp lớp ${worksheet?.grade ?? 1}.`
+                    : `Tạo câu hỏi vận dụng ${params.topic.toLowerCase()} có 2 bước giải cho lớp ${worksheet?.grade ?? 1}.`;
+
+        setAiDraft(sampleQuestion);
+        setIsGeneratingDraft(false);
+    };
+
+    const handleApproveDraft = (content: string) => {
+        setNewExercise((prev) => ({ ...prev, question: content }));
+        setAiDraft('');
+    };
+
 
     if (isLoading) {
         return (
@@ -135,35 +163,49 @@ export function WorksheetEditorPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 p-6">
             <div className="max-w-5xl mx-auto">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <button
-                            onClick={() => navigate(`/classes/${worksheet.class_id}/worksheets`)}
-                            className="text-sm text-gray-500 hover:text-gray-700 mb-2 flex items-center gap-1"
+                <PageHeader
+                    title={worksheet.title}
+                    breadcrumbs={[
+                        { label: 'Classes', href: '/classes' },
+                        { label: 'Worksheets', href: `/classes/${worksheet.class_id}/worksheets` },
+                        { label: 'Editor' },
+                    ]}
+                    actions={(
+                        <Button
+                            variant="outline"
+                            className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                            onClick={() => setShowPdfModal(true)}
                         >
-                            <ArrowLeft className="w-4 h-4" /> Quay lại danh sách bài tập
-                        </button>
-                        <h1 className="text-2xl font-bold text-gray-800">{worksheet.title}</h1>
-                        <div className="flex gap-2 mt-2">
-                            <Badge className={worksheet.worksheet_type === 'cpa' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}>
-                                {worksheet.worksheet_type === 'cpa' ? 'CPA' : 'Phân hóa'}
-                            </Badge>
-                            <Badge className={worksheet.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}>
-                                {worksheet.status === 'published' ? 'Đã xuất bản' : 'Nháp'}
-                            </Badge>
-                            <span className="text-sm text-gray-500">Lớp {worksheet.grade}</span>
-                        </div>
-                    </div>
-                    <Button
-                        variant="outline"
-                        className="text-orange-600 border-orange-300 hover:bg-orange-50"
-                        onClick={() => setShowPdfModal(true)}
-                    >
-                        <Download className="w-4 h-4" />
-                        Xuất PDF
-                    </Button>
+                            <Download className="w-4 h-4" />
+                            Xuất PDF
+                        </Button>
+                    )}
+                    className="mb-3"
+                />
+                <div className="mb-6 flex gap-2">
+                    <Badge className={worksheet.worksheet_type === 'cpa' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}>
+                        {worksheet.worksheet_type === 'cpa' ? 'CPA' : 'Phân hóa'}
+                    </Badge>
+                    <Badge className={worksheet.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}>
+                        {worksheet.status === 'published' ? 'Đã xuất bản' : 'Nháp'}
+                    </Badge>
+                    <span className="text-sm text-gray-500">Lớp {worksheet.grade}</span>
                 </div>
+
+                {worksheet.status !== 'published' && (
+                    <div className="mb-6 grid gap-4 lg:grid-cols-2">
+                        <AICreatorPanel
+                            topics={['Phép cộng', 'Phép trừ', 'So sánh số', 'Bài toán lời văn']}
+                            onGenerate={handleGenerateDraft}
+                            isLoading={isGeneratingDraft}
+                        />
+                        <AIReviewWidget
+                            draftContent={aiDraft}
+                            onApprove={handleApproveDraft}
+                            onReject={() => setAiDraft('')}
+                        />
+                    </div>
+                )}
 
                 {/* Error */}
                 {error && (
@@ -195,6 +237,9 @@ export function WorksheetEditorPage() {
                                             {'icon' in section && <span>{section.icon}</span>}
                                             <CardTitle className="text-lg">{section.label}</CardTitle>
                                             <span className="text-sm opacity-70">({exercises.length} câu)</span>
+                                            {'tier' in section && (
+                                                <DiffLevelBadge level={section.tier === 'foundation' ? 1 : section.tier === 'standard' ? 2 : 3} />
+                                            )}
                                         </div>
                                         {worksheet.status !== 'published' && (
                                             <Button
@@ -219,7 +264,7 @@ export function WorksheetEditorPage() {
                                                 <div key={ex.id} className="flex items-start gap-3 p-3 bg-white border rounded-lg">
                                                     <span className="text-gray-400 text-sm mt-1">{idx + 1}.</span>
                                                     <div className="flex-1">
-                                                        <p className="font-medium">{ex.question}</p>
+                                                        <MathFormattedText text={ex.question} />
                                                         {ex.answer && (
                                                             <p className="text-sm text-green-600 mt-1">Đáp án: {ex.answer}</p>
                                                         )}

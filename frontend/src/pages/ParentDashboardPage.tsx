@@ -7,6 +7,7 @@ import {
     ChevronRight, MessageSquare
 } from 'lucide-react';
 import { AnnouncementList } from '../components/AnnouncementList';
+import { HomeworkActionCard, ProgressChartWidget } from '@/components/redesign';
 
 interface TopicProgress {
     topic: string;
@@ -225,17 +226,21 @@ export default function ParentDashboardPage() {
                 <div className="grid md:grid-cols-2 gap-6">
                     {/* Left Column */}
                     <div className="space-y-6">
-                        {/* Topic Progress */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm">
-                            <h2 className="font-semibold text-gray-900 mb-4">📊 Tiến độ theo chủ đề</h2>
+                        <ProgressChartWidget
+                            title="📊 Tiến độ theo chủ đề"
+                            data={data.topic_progress.map((topic) => ({ topic: topic.topic, score: topic.percent }))}
+                        />
+
+                        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <h2 className="mb-4 font-semibold text-gray-900">Trạng thái học tập</h2>
                             <div className="space-y-4">
                                 {data.topic_progress.map((topic, index) => (
                                     <div key={index}>
-                                        <div className="flex items-center justify-between mb-1">
+                                        <div className="mb-1 flex items-center justify-between">
                                             <span className="text-sm font-medium text-gray-700">{topic.topic}</span>
                                             {getStatusBadge(topic.status)}
                                         </div>
-                                        <div className="w-full bg-gray-100 rounded-full h-2">
+                                        <div className="h-2 w-full rounded-full bg-gray-100">
                                             <div
                                                 className={`h-2 rounded-full ${getProgressColor(topic.status)}`}
                                                 style={{ width: `${topic.percent}%` }}
@@ -264,6 +269,14 @@ export default function ParentDashboardPage() {
 
                     {/* Right Column */}
                     <div className="space-y-6">
+                        <HomeworkActionCard
+                            title="Ôn tập tuần này"
+                            dueDate="2026-03-22"
+                            onDownload={() => {
+                                window.alert('Tính năng tải PDF sẽ được kết nối API trong bước tiếp theo.');
+                            }}
+                        />
+
                         {/* Quick Actions */}
                         <div className="bg-white rounded-2xl p-6 shadow-sm">
                             <h2 className="font-semibold text-gray-900 mb-4">📚 Cẩm nang đồng hành</h2>
