@@ -278,6 +278,7 @@ export function WorksheetEditorPage() {
                                                             variant="ghost"
                                                             className="text-red-500"
                                                             onClick={() => handleDeleteExercise(ex.id)}
+                                                            aria-label={`Xóa câu hỏi ${idx + 1}`}
                                                         >
                                                             <Trash2 className="w-4 h-4" />
                                                         </Button>

@@ -126,11 +126,12 @@ export default function ParentDashboardPage() {
     }
 
     const data = dashboard || MOCK_DASHBOARD;
+    const numberFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 });
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 via-teal-50 to-blue-50">
             {/* Navigation */}
-            <nav className="bg-white shadow-sm">
+            <nav className="bg-white shadow-sm pt-[env(safe-area-inset-top)] [touch-action:manipulation]">
                 <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-500 rounded-xl flex items-center justify-center">
@@ -142,7 +143,7 @@ export default function ParentDashboardPage() {
                         <span className="text-gray-600">Xin chào, {user?.full_name}</span>
                         <button
                             onClick={logout}
-                            className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                            className="px-4 py-2 text-gray-600 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
                         >
                             Đăng xuất
                         </button>
@@ -182,7 +183,7 @@ export default function ParentDashboardPage() {
                                 <BookOpen className="w-5 h-5 text-blue-600" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-gray-900">{data.stats.completed}</p>
+                                <p className="text-2xl font-bold text-gray-900 tabular-nums">{numberFormatter.format(data.stats.completed)}</p>
                                 <p className="text-xs text-gray-500">bài xong</p>
                             </div>
                         </div>
@@ -193,7 +194,7 @@ export default function ParentDashboardPage() {
                                 <Clock className="w-5 h-5 text-orange-600" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-gray-900">{data.stats.study_time}p</p>
+                                <p className="text-2xl font-bold text-gray-900 tabular-nums">{numberFormatter.format(data.stats.study_time)}p</p>
                                 <p className="text-xs text-gray-500">hôm nay</p>
                             </div>
                         </div>
@@ -204,7 +205,7 @@ export default function ParentDashboardPage() {
                                 <Star className="w-5 h-5 text-yellow-600" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-gray-900">{data.stats.avg_score}</p>
+                                <p className="text-2xl font-bold text-gray-900 tabular-nums">{numberFormatter.format(data.stats.avg_score)}</p>
                                 <p className="text-xs text-gray-500">điểm TB</p>
                             </div>
                         </div>
@@ -215,7 +216,7 @@ export default function ParentDashboardPage() {
                                 <Target className="w-5 h-5 text-green-600" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-gray-900">{data.stats.accuracy}%</p>
+                                <p className="text-2xl font-bold text-gray-900 tabular-nums">{numberFormatter.format(data.stats.accuracy)}%</p>
                                 <p className="text-xs text-gray-500">làm đúng</p>
                             </div>
                         </div>

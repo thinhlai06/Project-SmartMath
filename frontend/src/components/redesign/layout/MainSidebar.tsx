@@ -27,7 +27,7 @@ export function MainSidebar({
   return (
     <aside
       className={cn(
-        'sticky top-0 h-screen border-r border-slate-200 bg-white transition-all duration-200',
+        'sticky top-0 h-screen border-r border-slate-200 bg-white pt-[env(safe-area-inset-top)] [touch-action:manipulation] transition-all duration-200',
         isCollapsed ? 'w-20' : 'w-72',
         className,
       )}
@@ -41,7 +41,7 @@ export function MainSidebar({
           <button
             type="button"
             onClick={onToggle}
-            className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+            className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
             aria-label={isCollapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
           >
             {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -59,7 +59,7 @@ export function MainSidebar({
               key={link.href}
               to={link.href}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2',
                 isActive
                   ? 'bg-teal-50 text-teal-700'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',

@@ -20,6 +20,7 @@ export function GradingDiffViewer({
   onOverride,
 }: GradingDiffViewerProps) {
   const [correctedText, setCorrectedText] = useState(ocrText);
+  const scoreFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
 
   return (
     <Card className="border-slate-200 bg-white">
@@ -31,7 +32,8 @@ export function GradingDiffViewer({
           <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
             <AlertTriangle className="mt-0.5 h-4 w-4" />
             <p>
-              Độ tin cậy OCR {confidenceScore}% thấp hơn ngưỡng {LOW_CONFIDENCE_THRESHOLD}%. Giáo viên nên kiểm tra thủ công.
+              Độ tin cậy OCR <span className="tabular-nums">{scoreFormatter.format(confidenceScore)}%</span> thấp hơn ngưỡng{' '}
+              <span className="tabular-nums">{scoreFormatter.format(LOW_CONFIDENCE_THRESHOLD)}%</span>. Giáo viên nên kiểm tra thủ công.
             </p>
           </div>
         )}

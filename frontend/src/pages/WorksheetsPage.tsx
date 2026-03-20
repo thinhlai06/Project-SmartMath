@@ -231,13 +231,13 @@ export function WorksheetsPage() {
                         </Button>
                     </Card>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 [content-visibility:auto]">
                         {worksheets.map((ws) => (
                             <div key={ws.id} className="space-y-2">
                                 <WorksheetGridCard
                                     title={ws.title}
                                     status={ws.status === 'published' ? 'published' : 'draft'}
-                                    onEdit={() => navigate(`/worksheets/${ws.id}/edit`)}
+                                    editHref={`/worksheets/${ws.id}/edit`}
                                     onPdfExport={() => handleOpenPdfModal(ws)}
                                 />
                                 <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2">
@@ -258,7 +258,7 @@ export function WorksheetsPage() {
                                                 Hủy
                                             </Button>
                                         )}
-                                        <Button size="sm" variant="ghost" onClick={() => handleDuplicate(ws.id)}>
+                                        <Button size="sm" variant="ghost" onClick={() => handleDuplicate(ws.id)} aria-label={`Nhân bản bài tập ${ws.title}`}>
                                             <Copy className="w-3 h-3" />
                                         </Button>
                                         <Button
@@ -266,6 +266,7 @@ export function WorksheetsPage() {
                                             variant="ghost"
                                             className="text-orange-500 hover:text-orange-700"
                                             onClick={() => handleOpenPdfModal(ws)}
+                                            aria-label={`Xuất PDF cho ${ws.title}`}
                                         >
                                             <Download className="w-3 h-3" />
                                         </Button>
@@ -274,6 +275,7 @@ export function WorksheetsPage() {
                                             variant="ghost"
                                             className="text-red-500 hover:text-red-700"
                                             onClick={() => handleDelete(ws.id)}
+                                            aria-label={`Xóa bài tập ${ws.title}`}
                                         >
                                             <Trash2 className="w-3 h-3" />
                                         </Button>

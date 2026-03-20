@@ -28,7 +28,7 @@ export function MathFormattedText({ text, highlightKeywords = [] }: MathFormatte
   const parts = splitByKeywords(text, highlightKeywords);
 
   return (
-    <p className="text-sm leading-7 text-slate-800">
+    <p className="min-w-0 break-words text-sm leading-7 text-slate-800">
       {parts.map((part, index) => {
         const isHighlight = normalizedHighlights.includes(part.toLowerCase());
 

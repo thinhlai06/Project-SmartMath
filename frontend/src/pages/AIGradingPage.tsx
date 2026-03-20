@@ -49,6 +49,7 @@ export default function AIGradingPage() {
     const [gradingResult, setGradingResult] = useState<GradingResponse | null>(null);
     const [ocrDiff, setOcrDiff] = useState<OCRDiffState | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
 
     const handleUploadClick = () => {
         fileInputRef.current?.click();
@@ -57,6 +58,18 @@ export default function AIGradingPage() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const selectedFile = e.target.files[0];
+            setFile(selectedFile);
+            setPreviewUrl(URL.createObjectURL(selectedFile));
+            setError(null);
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        setIsDragging(false);
+
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const selectedFile = e.dataTransfer.files[0];
             setFile(selectedFile);
             setPreviewUrl(URL.createObjectURL(selectedFile));
             setError(null);
@@ -184,13 +197,23 @@ export default function AIGradingPage() {
                             <Label>1. Ảnh bài làm</Label>
 
                             {!previewUrl ? (
-                                <div
+                                <button
+                                    type="button"
                                     onClick={handleUploadClick}
-                                    className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        setIsDragging(true);
+                                    }}
+                                    onDragLeave={() => setIsDragging(false)}
+                                    onDrop={handleDrop}
+                                    className={`w-full rounded-lg border-2 border-dashed p-8 text-center transition-colors [touch-action:manipulation] select-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 ${
+                                        isDragging ? 'border-teal-400 bg-teal-50' : 'border-gray-300 hover:bg-gray-50'
+                                    }`}
+                                    aria-label="Tải ảnh bài làm"
                                 >
                                     <Upload className="mx-auto h-10 w-10 text-gray-400 mb-2" />
                                     <p className="text-sm text-gray-600">Click để chọn ảnh</p>
-                                </div>
+                                </button>
                             ) : (
                                 <div className="relative border rounded-lg overflow-hidden">
                                     <img src={previewUrl} alt="Preview" className="w-full h-auto object-contain max-h-[300px]" />

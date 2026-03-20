@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Plus, Copy } from 'lucide-react';
 import { classApi } from '../services/classApi';
 import type { MathClass, ClassCreate } from '../services/classApi';
@@ -8,10 +7,9 @@ import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
-import { ClassCard, MainSidebar, PageHeader } from '@/components/redesign';
+import { ClassCard, PageHeader } from '@/components/redesign';
 
 export function ClassesPage() {
-    const navigate = useNavigate();
     const [classes, setClasses] = useState<MathClass[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -78,32 +76,19 @@ export function ClassesPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
-            <div className="flex">
-                <MainSidebar
-                    isCollapsed={false}
-                    activeKey="classes"
-                    links={[
-                        { label: 'Home', icon: <span>🏠</span>, href: '/' },
-                        { label: 'Classes', icon: <span>🏫</span>, href: '/classes' },
-                        { label: 'Worksheets', icon: <span>📝</span>, href: '/classes' },
-                        { label: 'AI Tools', icon: <span>🤖</span>, href: '/ai-grading' },
-                        { label: 'Settings', icon: <span>⚙️</span>, href: '/' },
-                    ]}
-                />
-
-                <div className="flex-1 p-6">
-                    <div className="mx-auto max-w-6xl">
-                        <PageHeader
-                            title="Quản lý lớp học"
-                            breadcrumbs={[{ label: 'Teacher', href: '/' }, { label: 'Classes' }]}
-                            actions={(
-                                <Button onClick={() => setShowCreateModal(true)}>
-                                    <Plus className="w-4 h-4" />
-                                    Tạo lớp mới
-                                </Button>
-                            )}
-                        />
-                        <p className="mb-6 text-sm text-slate-600">Tạo và quản lý các lớp học của bạn</p>
+            <div className="p-6">
+                <div className="mx-auto max-w-6xl">
+                    <PageHeader
+                        title="Quản lý lớp học"
+                        breadcrumbs={[{ label: 'Teacher', href: '/' }, { label: 'Classes' }]}
+                        actions={(
+                            <Button onClick={() => setShowCreateModal(true)}>
+                                <Plus className="w-4 h-4" />
+                                Tạo lớp mới
+                            </Button>
+                        )}
+                    />
+                    <p className="mb-6 text-sm text-slate-600">Tạo và quản lý các lớp học của bạn</p>
 
                         {/* Error message */}
                         {error && (
@@ -124,20 +109,21 @@ export function ClassesPage() {
                                 </Button>
                             </Card>
                         ) : (
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 [content-visibility:auto]">
                                 {classes.map((cls) => (
                                     <div key={cls.id} className="space-y-2">
                                         <ClassCard
                                             className={cls.class_name}
                                             studentCount={cls.student_count}
-                                            onClick={() => navigate(`/classes/${cls.id}`)}
+                                            href={`/classes/${cls.id}`}
                                         />
                                         <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-2 text-sm">
                                             <Badge className="bg-sky-100 text-sky-700">Lớp {cls.grade}</Badge>
                                             <button
                                                 type="button"
-                                                className="flex items-center gap-1 rounded px-2 py-1 text-slate-600 hover:bg-slate-100"
+                                                className="flex items-center gap-1 rounded px-2 py-1 text-slate-600 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
                                                 onClick={() => copyClassCode(cls.class_code)}
+                                                aria-label={`Sao chép mã lớp ${cls.class_name}`}
                                             >
                                                 <span className="font-mono">{cls.class_code}</span>
                                                 <Copy className="h-3 w-3" />
@@ -150,7 +136,6 @@ export function ClassesPage() {
                                 ))}
                             </div>
                         )}
-                    </div>
                 </div>
             </div>
 

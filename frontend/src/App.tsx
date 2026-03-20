@@ -31,9 +31,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
-      <div className="pt-4">
-        {children}
-      </div>
+      <div className="pt-4">{children}</div>
     </div>
   );
 }

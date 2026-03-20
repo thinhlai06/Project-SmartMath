@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { WandSparkles } from 'lucide-react';
+import { Loader2, WandSparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -65,8 +65,15 @@ export function AICreatorPanel({ topics, onGenerate, isLoading }: AICreatorPanel
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={!topic || isLoading}>
-            {isLoading ? 'Đang tạo bản nháp...' : 'Tạo nội dung nháp'}
+          <Button type="submit" className="w-full focus-visible:ring-2 focus-visible:ring-teal-500" disabled={!topic || isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Đang tạo bản nháp…
+              </>
+            ) : (
+              'Tạo nội dung nháp'
+            )}
           </Button>
         </form>
       </CardContent>
