@@ -6,6 +6,8 @@ from app.models.math_class import MathClass
 from app.models.student import Student
 from app.models.worksheet import Worksheet
 from app.models.user import User, UserRole
+from app.schemas.ai import ClassAnalyticsResponse
+from app.services.ai.analytics_service import AnalyticsService
 from app.utils.dependencies import get_current_user
 
 router = APIRouter()
@@ -55,3 +57,21 @@ async def get_dashboard_stats(
         "total_worksheets": total_worksheets,
         "avg_score": None  # TODO: Calculate from StudentProgress when available
     }
+
+
+@router.get("/ai/analytics/{class_id}", response_model=ClassAnalyticsResponse)
+async def get_class_analytics_fallback(
+    class_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Fallback analytics endpoint available without loading the heavy AI router."""
+    if current_user.role != UserRole.TEACHER:
+        return {
+            "weak_topics": [],
+            "student_performance": [],
+            "common_mistakes": []
+        }
+
+    service = AnalyticsService(db)
+    return service.analyze_class_errors(class_id)

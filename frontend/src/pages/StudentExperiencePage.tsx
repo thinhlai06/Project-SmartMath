@@ -68,17 +68,14 @@ export default function StudentExperiencePage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
-            {/* Navigation */}
-            <nav className="bg-white/80 backdrop-blur-sm shadow-sm">
-                <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
-                    <Link to="/parent" className="p-2 hover:bg-gray-100 rounded-lg">
-                        <ArrowLeft className="w-5 h-5" />
-                    </Link>
-                    <span className="text-sm text-gray-500">← Quay lại trang phụ huynh</span>
-                </div>
-            </nav>
-
             <div className="max-w-lg mx-auto px-4 py-6">
+                <div className="mb-4">
+                    <Link to="/parent" className="inline-flex items-center gap-2 rounded-md bg-white/80 px-3 py-2 text-sm text-gray-600 shadow-sm hover:bg-white">
+                        <ArrowLeft className="h-4 w-4" />
+                        Quay lại trang phụ huynh
+                    </Link>
+                </div>
+
                 {/* Welcome Header */}
                 <div className="text-center mb-6">
                     <div className="text-5xl mb-2">👋</div>

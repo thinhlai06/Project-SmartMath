@@ -1,13 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import logging
 
 from app.database import engine, Base
-from app.interfaces.api.v1.routers import ai_router as ai_router_v1
-from app.interfaces.api.v1.routers import worksheet_router as worksheet_router_v1
 from app.models.student_progress import StudentProgress
 from app.models.grading_report import GradingReport
-from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, parent, announcements, dashboard, activities, ai
+from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, parent, announcements, dashboard, activities
 from app.core.exceptions import SmartMathException, smartmath_exception_handler
+
+
+logger = logging.getLogger(__name__)
 
 
 # Create all tables
@@ -69,11 +71,26 @@ app.include_router(parent.router, prefix="/api/parent", tags=["Parent"])
 app.include_router(announcements.router, prefix="/api", tags=["Announcements"])
 app.include_router(dashboard.router, prefix="/api", tags=["Dashboard"])
 app.include_router(activities.router, prefix="/api", tags=["Activities"])
-app.include_router(ai.router, prefix="/api", tags=["AI"])
+
+# AI routers are optional so core MVP (auth/classes/worksheets) still runs without AI dependencies.
+try:
+    from app.routers import ai
+    app.include_router(ai.router, prefix="/api", tags=["AI"])
+except ModuleNotFoundError as exc:
+    logger.warning("Skipping legacy AI router due to missing dependency: %s", exc)
 
 # Clean architecture rollout endpoints (v1)
-app.include_router(worksheet_router_v1.router, prefix="/api/v1", tags=["Worksheets v1"])
-app.include_router(ai_router_v1.router, prefix="/api/v1", tags=["AI v1"])
+try:
+    from app.interfaces.api.v1.routers import worksheet_router as worksheet_router_v1
+    app.include_router(worksheet_router_v1.router, prefix="/api/v1", tags=["Worksheets v1"])
+except ModuleNotFoundError as exc:
+    logger.warning("Skipping v1 worksheet router due to missing dependency: %s", exc)
+
+try:
+    from app.interfaces.api.v1.routers import ai_router as ai_router_v1
+    app.include_router(ai_router_v1.router, prefix="/api/v1", tags=["AI v1"])
+except ModuleNotFoundError as exc:
+    logger.warning("Skipping v1 AI router due to missing dependency: %s", exc)
 
 
 @app.get("/", tags=["Root"])

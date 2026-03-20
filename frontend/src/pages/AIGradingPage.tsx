@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Upload, AlertCircle, RefreshCw, FileText } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { GradingDiffViewer } from '@/components/redesign';
 
 interface GradeResult {
     question_id: string;
@@ -29,6 +30,12 @@ interface GradingResponse {
     extracted_json?: Record<string, string>;
 }
 
+interface OCRDiffState {
+    resultIndex: number;
+    ocrText: string;
+    expectedText: string;
+}
+
 export default function AIGradingPage() {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     // const navigate = useNavigate();
@@ -40,7 +47,9 @@ export default function AIGradingPage() {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [correctAnswersJson, setCorrectAnswersJson] = useState<string>("");
     const [gradingResult, setGradingResult] = useState<GradingResponse | null>(null);
+    const [ocrDiff, setOcrDiff] = useState<OCRDiffState | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
 
     const handleUploadClick = () => {
         fileInputRef.current?.click();
@@ -49,6 +58,18 @@ export default function AIGradingPage() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const selectedFile = e.target.files[0];
+            setFile(selectedFile);
+            setPreviewUrl(URL.createObjectURL(selectedFile));
+            setError(null);
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        setIsDragging(false);
+
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const selectedFile = e.dataTransfer.files[0];
             setFile(selectedFile);
             setPreviewUrl(URL.createObjectURL(selectedFile));
             setError(null);
@@ -91,6 +112,16 @@ export default function AIGradingPage() {
 
             const data: GradingResponse = await response.json();
             setGradingResult(data);
+            const firstIncorrectIndex = data.results.findIndex((item) => !item.is_correct);
+            if (firstIncorrectIndex >= 0) {
+                setOcrDiff({
+                    resultIndex: firstIncorrectIndex,
+                    ocrText: data.results[firstIncorrectIndex].student_answer,
+                    expectedText: data.results[firstIncorrectIndex].correct_answer,
+                });
+            } else {
+                setOcrDiff(null);
+            }
             setStep('result');
         } catch (err: any) {
             console.error(err);
@@ -104,7 +135,37 @@ export default function AIGradingPage() {
         setFile(null);
         setPreviewUrl(null);
         setGradingResult(null);
+        setOcrDiff(null);
         setError(null);
+    };
+
+    const handleOverride = (correctedText: string) => {
+        if (!gradingResult || !ocrDiff) {
+            return;
+        }
+
+        const updatedResults = gradingResult.results.map((item, index) => {
+            if (index !== ocrDiff.resultIndex) {
+                return item;
+            }
+
+            const isCorrect = correctedText.trim() === item.correct_answer.trim();
+            return {
+                ...item,
+                student_answer: correctedText,
+                is_correct: isCorrect,
+                score: isCorrect ? item.max_score : item.score,
+                feedback: isCorrect ? 'Giáo viên đã xác nhận kết quả OCR.' : item.feedback,
+            };
+        });
+
+        const recalculatedTotal = updatedResults.reduce((sum, item) => sum + item.score, 0);
+        setGradingResult({
+            ...gradingResult,
+            results: updatedResults,
+            total_score: recalculatedTotal,
+        });
+        setOcrDiff(null);
     };
 
     return (
@@ -136,13 +197,23 @@ export default function AIGradingPage() {
                             <Label>1. Ảnh bài làm</Label>
 
                             {!previewUrl ? (
-                                <div
+                                <button
+                                    type="button"
                                     onClick={handleUploadClick}
-                                    className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        setIsDragging(true);
+                                    }}
+                                    onDragLeave={() => setIsDragging(false)}
+                                    onDrop={handleDrop}
+                                    className={`w-full rounded-lg border-2 border-dashed p-8 text-center transition-colors [touch-action:manipulation] select-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 ${
+                                        isDragging ? 'border-teal-400 bg-teal-50' : 'border-gray-300 hover:bg-gray-50'
+                                    }`}
+                                    aria-label="Tải ảnh bài làm"
                                 >
                                     <Upload className="mx-auto h-10 w-10 text-gray-400 mb-2" />
                                     <p className="text-sm text-gray-600">Click để chọn ảnh</p>
-                                </div>
+                                </button>
                             ) : (
                                 <div className="relative border rounded-lg overflow-hidden">
                                     <img src={previewUrl} alt="Preview" className="w-full h-auto object-contain max-h-[300px]" />
@@ -269,6 +340,15 @@ export default function AIGradingPage() {
                                         </div>
                                     ))}
                                 </div>
+
+                                {ocrDiff && (
+                                    <GradingDiffViewer
+                                        ocrText={ocrDiff.ocrText}
+                                        expectedText={ocrDiff.expectedText}
+                                        confidenceScore={80}
+                                        onOverride={handleOverride}
+                                    />
+                                )}
 
                                 <div className="bg-gray-100 p-4 rounded-lg">
                                     <h4 className="font-medium text-sm mb-2 text-gray-700 flex items-center gap-2">

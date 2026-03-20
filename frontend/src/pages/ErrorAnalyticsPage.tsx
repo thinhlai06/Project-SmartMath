@@ -124,7 +124,7 @@ export default function ErrorAnalyticsPage() {
                                 </div>
                                 <CardDescription>Các chủ đề có tỉ lệ làm đúng thấp (dưới 70%)</CardDescription>
                             </CardHeader>
-                            <CardContent className="h-[300px]">
+                            <CardContent className="h-[300px] min-h-[300px] min-w-[320px]">
                                 {analytics.weak_topics.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={analytics.weak_topics} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>

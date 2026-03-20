@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
 import {
     BookOpen, Clock, Star, Target,
     FileText, Users, BookMarked,
     ChevronRight, MessageSquare
 } from 'lucide-react';
 import { AnnouncementList } from '../components/AnnouncementList';
+import { HomeworkActionCard, ProgressChartWidget } from '@/components/redesign';
 
 interface TopicProgress {
     topic: string;
@@ -62,7 +62,6 @@ const MOCK_DASHBOARD: DashboardData = {
 };
 
 export default function ParentDashboardPage() {
-    const { user, logout } = useAuth();
     const { classId } = useParams<{ classId: string }>();
     const [dashboard, setDashboard] = useState<DashboardData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -125,30 +124,10 @@ export default function ParentDashboardPage() {
     }
 
     const data = dashboard || MOCK_DASHBOARD;
+    const numberFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 });
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 via-teal-50 to-blue-50">
-            {/* Navigation */}
-            <nav className="bg-white shadow-sm">
-                <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-500 rounded-xl flex items-center justify-center">
-                            <span className="text-xl">📐</span>
-                        </div>
-                        <span className="font-bold text-gray-900">Smart-MathAI</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <span className="text-gray-600">Xin chào, {user?.full_name}</span>
-                        <button
-                            onClick={logout}
-                            className="px-4 py-2 text-gray-600 hover:text-gray-900"
-                        >
-                            Đăng xuất
-                        </button>
-                    </div>
-                </div>
-            </nav>
-
             <div className="max-w-6xl mx-auto px-4 py-8">
                 {/* Header */}
                 <div className="mb-6">
@@ -181,7 +160,7 @@ export default function ParentDashboardPage() {
                                 <BookOpen className="w-5 h-5 text-blue-600" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-gray-900">{data.stats.completed}</p>
+                                <p className="text-2xl font-bold text-gray-900 tabular-nums">{numberFormatter.format(data.stats.completed)}</p>
                                 <p className="text-xs text-gray-500">bài xong</p>
                             </div>
                         </div>
@@ -192,7 +171,7 @@ export default function ParentDashboardPage() {
                                 <Clock className="w-5 h-5 text-orange-600" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-gray-900">{data.stats.study_time}p</p>
+                                <p className="text-2xl font-bold text-gray-900 tabular-nums">{numberFormatter.format(data.stats.study_time)}p</p>
                                 <p className="text-xs text-gray-500">hôm nay</p>
                             </div>
                         </div>
@@ -203,7 +182,7 @@ export default function ParentDashboardPage() {
                                 <Star className="w-5 h-5 text-yellow-600" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-gray-900">{data.stats.avg_score}</p>
+                                <p className="text-2xl font-bold text-gray-900 tabular-nums">{numberFormatter.format(data.stats.avg_score)}</p>
                                 <p className="text-xs text-gray-500">điểm TB</p>
                             </div>
                         </div>
@@ -214,7 +193,7 @@ export default function ParentDashboardPage() {
                                 <Target className="w-5 h-5 text-green-600" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-gray-900">{data.stats.accuracy}%</p>
+                                <p className="text-2xl font-bold text-gray-900 tabular-nums">{numberFormatter.format(data.stats.accuracy)}%</p>
                                 <p className="text-xs text-gray-500">làm đúng</p>
                             </div>
                         </div>
@@ -225,17 +204,21 @@ export default function ParentDashboardPage() {
                 <div className="grid md:grid-cols-2 gap-6">
                     {/* Left Column */}
                     <div className="space-y-6">
-                        {/* Topic Progress */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm">
-                            <h2 className="font-semibold text-gray-900 mb-4">📊 Tiến độ theo chủ đề</h2>
+                        <ProgressChartWidget
+                            title="📊 Tiến độ theo chủ đề"
+                            data={data.topic_progress.map((topic) => ({ topic: topic.topic, score: topic.percent }))}
+                        />
+
+                        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <h2 className="mb-4 font-semibold text-gray-900">Trạng thái học tập</h2>
                             <div className="space-y-4">
                                 {data.topic_progress.map((topic, index) => (
                                     <div key={index}>
-                                        <div className="flex items-center justify-between mb-1">
+                                        <div className="mb-1 flex items-center justify-between">
                                             <span className="text-sm font-medium text-gray-700">{topic.topic}</span>
                                             {getStatusBadge(topic.status)}
                                         </div>
-                                        <div className="w-full bg-gray-100 rounded-full h-2">
+                                        <div className="h-2 w-full rounded-full bg-gray-100">
                                             <div
                                                 className={`h-2 rounded-full ${getProgressColor(topic.status)}`}
                                                 style={{ width: `${topic.percent}%` }}
@@ -264,6 +247,14 @@ export default function ParentDashboardPage() {
 
                     {/* Right Column */}
                     <div className="space-y-6">
+                        <HomeworkActionCard
+                            title="Ôn tập tuần này"
+                            dueDate="2026-03-22"
+                            onDownload={() => {
+                                window.alert('Tính năng tải PDF sẽ được kết nối API trong bước tiếp theo.');
+                            }}
+                        />
+
                         {/* Quick Actions */}
                         <div className="bg-white rounded-2xl p-6 shadow-sm">
                             <h2 className="font-semibold text-gray-900 mb-4">📚 Cẩm nang đồng hành</h2>

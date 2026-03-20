@@ -50,20 +50,14 @@ export default function ParentSolutionsPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 via-teal-50 to-blue-50">
-            {/* Navigation */}
-            <nav className="bg-white shadow-sm">
-                <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
-                    <Link to="/parent" className="p-2 hover:bg-gray-100 rounded-lg">
-                        <ArrowLeft className="w-5 h-5" />
-                    </Link>
-                    <div>
-                        <h1 className="font-bold text-gray-900">📝 Hướng dẫn giải bài cho phụ huynh</h1>
-                        <p className="text-sm text-gray-500">Giải thích đơn giản theo phương pháp dạy mới</p>
-                    </div>
-                </div>
-            </nav>
-
             <div className="max-w-4xl mx-auto px-4 py-6">
+                <div className="mb-4 flex items-center gap-3">
+                    <Link to="/parent" className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm text-gray-600 shadow-sm hover:bg-gray-50">
+                        <ArrowLeft className="h-4 w-4" />
+                        Quay lại trang phụ huynh
+                    </Link>
+                </div>
+
                 {/* Pedagogy Notice */}
                 <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
                     <div className="flex items-start gap-3">
