@@ -158,15 +158,18 @@ export function WorksheetsPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
-                <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin" />
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin drop-shadow-sm" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 p-6">
-            <div className="max-w-6xl mx-auto">
+        <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans p-6">
+            <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-indigo-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[40%] h-[40%] bg-emerald-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
+            
+            <div className="max-w-6xl mx-auto relative z-10">
                 <PageHeader
                     title={`Bài tập - ${mathClass?.class_name ?? ''}`}
                     breadcrumbs={[
@@ -219,28 +222,29 @@ export function WorksheetsPage() {
 
                 {/* Worksheets Grid */}
                 {worksheets.length === 0 ? (
-                    <Card className="p-12 text-center">
-                        <div className="text-gray-400 mb-4">
-                            <FileText className="w-16 h-16 mx-auto" />
+                    <Card className="glass-panel border-white/50 rounded-3xl p-16 text-center relative overflow-hidden shadow-soft">
+                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-transparent -z-10" />
+                        <div className="w-24 h-24 bg-indigo-100/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                            <FileText className="w-10 h-10 text-indigo-400" />
                         </div>
-                        <h3 className="text-lg font-medium text-gray-700 mb-2">Chưa có bài tập nào</h3>
-                        <p className="text-gray-500 mb-6">Tạo bài tập đầu tiên cho lớp học</p>
-                        <Button onClick={() => setShowCreateModal(true)}>
-                            <Plus className="w-4 h-4" />
+                        <h3 className="mb-3 text-xl font-bold text-slate-800">Chưa có bài tập nào</h3>
+                        <p className="mb-8 text-slate-500 font-medium">Tạo bài tập đầu tiên cho lớp học của bạn</p>
+                        <Button onClick={() => setShowCreateModal(true)} className="btn-bounce bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-soft px-8 h-12 text-base">
+                            <Plus className="w-5 h-5 mr-2" />
                             Tạo bài tập mới
                         </Button>
                     </Card>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 [content-visibility:auto]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 [content-visibility:auto]">
                         {worksheets.map((ws) => (
-                            <div key={ws.id} className="space-y-2">
+                            <div key={ws.id} className="space-y-3 group">
                                 <WorksheetGridCard
                                     title={ws.title}
                                     status={ws.status === 'published' ? 'published' : 'draft'}
                                     editHref={`/worksheets/${ws.id}/edit`}
                                     onPdfExport={() => handleOpenPdfModal(ws)}
                                 />
-                                <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2">
+                                <div className="flex items-center justify-between rounded-2xl border border-white/40 bg-white/60 backdrop-blur-md shadow-sm px-4 py-3">
                                     <div className="flex gap-1">
                                         {getTypeBadge(ws.worksheet_type)}
                                         {getStatusBadge(ws.status)}
@@ -288,9 +292,9 @@ export function WorksheetsPage() {
 
                 {/* Create Modal */}
                 {showCreateModal && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
-                            <h2 className="text-xl font-bold mb-4">Tạo bài tập mới</h2>
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <div className="glass-panel border-white/50 bg-white/90 rounded-3xl p-8 w-full max-w-md shadow-2xl">
+                            <h2 className="text-xl font-bold mb-6 text-slate-800">Tạo bài tập mới</h2>
                             <form onSubmit={handleCreateWorksheet}>
                                 <div className="space-y-4">
                                     <div>
@@ -304,29 +308,29 @@ export function WorksheetsPage() {
                                         />
                                     </div>
                                     <div>
-                                        <Label>Loại bài tập</Label>
-                                        <div className="flex gap-2 mt-1">
+                                        <Label className="text-slate-700 font-semibold mb-2 block">Loại bài tập</Label>
+                                        <div className="grid grid-cols-2 gap-3 mt-1">
                                             <button
                                                 type="button"
                                                 onClick={() => setNewWorksheet({ ...newWorksheet, worksheet_type: 'cpa' })}
-                                                className={`flex-1 py-3 px-4 rounded-lg border-2 transition-colors ${newWorksheet.worksheet_type === 'cpa'
-                                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                    : 'border-gray-200 hover:border-gray-300'
+                                                className={`py-3 px-4 rounded-xl border-2 transition-all duration-300 ${newWorksheet.worksheet_type === 'cpa'
+                                                    ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                                                    : 'border-slate-100 bg-white hover:border-indigo-200 hover:bg-indigo-50/30'
                                                     }`}
                                             >
-                                                <div className="font-medium">CPA</div>
-                                                <div className="text-xs text-gray-500">Concrete → Pictorial → Abstract</div>
+                                                <div className={`font-bold mb-1 ${newWorksheet.worksheet_type === 'cpa' ? 'text-indigo-700' : 'text-slate-700'}`}>CPA</div>
+                                                <div className="text-xs text-slate-500 font-medium">Concrete → Pictorial → Abstract</div>
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => setNewWorksheet({ ...newWorksheet, worksheet_type: 'differentiation' })}
-                                                className={`flex-1 py-3 px-4 rounded-lg border-2 transition-colors ${newWorksheet.worksheet_type === 'differentiation'
-                                                    ? 'border-purple-500 bg-purple-50 text-purple-700'
-                                                    : 'border-gray-200 hover:border-gray-300'
+                                                className={`py-3 px-4 rounded-xl border-2 transition-all duration-300 ${newWorksheet.worksheet_type === 'differentiation'
+                                                    ? 'border-purple-500 bg-purple-50 shadow-sm'
+                                                    : 'border-slate-100 bg-white hover:border-purple-200 hover:bg-purple-50/30'
                                                     }`}
                                             >
-                                                <div className="font-medium">Phân hóa</div>
-                                                <div className="text-xs text-gray-500">4 mức độ khó</div>
+                                                <div className={`font-bold mb-1 ${newWorksheet.worksheet_type === 'differentiation' ? 'text-purple-700' : 'text-slate-700'}`}>Phân hóa</div>
+                                                <div className="text-xs text-slate-500 font-medium">4 mức độ khó</div>
                                             </button>
                                         </div>
                                     </div>
@@ -340,16 +344,16 @@ export function WorksheetsPage() {
                                         />
                                     </div>
                                 </div>
-                                <div className="flex gap-3 mt-6">
+                                <div className="flex gap-3 mt-8">
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        className="flex-1"
+                                        className="flex-1 rounded-xl h-12 font-semibold hover:bg-slate-100"
                                         onClick={() => setShowCreateModal(false)}
                                     >
                                         Hủy
                                     </Button>
-                                    <Button type="submit" className="flex-1" disabled={isCreating}>
+                                    <Button type="submit" className="flex-1 rounded-xl h-12 font-bold bg-indigo-600 hover:bg-indigo-700 shadow-soft" disabled={isCreating}>
                                         {isCreating ? 'Đang tạo...' : 'Tạo và chỉnh sửa'}
                                     </Button>
                                 </div>

@@ -67,76 +67,83 @@ export default function StudentExperiencePage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
-            <div className="max-w-lg mx-auto px-4 py-6">
-                <div className="mb-4">
-                    <Link to="/parent" className="inline-flex items-center gap-2 rounded-md bg-white/80 px-3 py-2 text-sm text-gray-600 shadow-sm hover:bg-white">
+        <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans py-8">
+            <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-indigo-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[40%] h-[40%] bg-fuchsia-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
+            
+            <div className="max-w-lg mx-auto px-4 relative z-10">
+                <div className="mb-6 flex items-center gap-3">
+                    <Link to="/parent" className="inline-flex items-center gap-2 rounded-xl bg-white/60 px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:bg-white hover:text-indigo-600 transition-all">
                         <ArrowLeft className="h-4 w-4" />
                         Quay lại trang phụ huynh
                     </Link>
                 </div>
 
                 {/* Welcome Header */}
-                <div className="text-center mb-6">
-                    <div className="text-5xl mb-2">👋</div>
-                    <h1 className="text-2xl font-bold text-gray-900">Xin chào {MOCK_STUDENT.name}!</h1>
-                    <p className="text-gray-600">Hãy cùng học toán vui vẻ nhé</p>
+                <div className="text-center mb-8">
+                    <div className="text-6xl mb-4 drop-shadow-sm animate-bounce">👋</div>
+                    <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Xin chào {MOCK_STUDENT.name}!</h1>
+                    <p className="text-slate-500 font-medium mt-1">Hãy cùng học toán vui vẻ nhé</p>
                 </div>
 
                 {/* Achievement Banner */}
-                <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-4 mb-6 text-white text-center">
-                    <h3 className="font-bold text-lg">🏆 Làm tốt lắm!</h3>
-                    <p>Tuần này em hoàn thành {MOCK_STUDENT.weeklyCompleted} bài</p>
-                    <div className="flex justify-center gap-3 mt-2 text-2xl">
+                <div className="glass-panel bg-gradient-to-r from-amber-400 to-orange-500 rounded-3xl p-6 mb-8 text-white text-center shadow-soft transform hover:-translate-y-1 transition-transform">
+                    <h3 className="font-extrabold text-xl mb-1 drop-shadow-sm">🏆 Làm tốt lắm!</h3>
+                    <p className="font-medium text-white/90">Tuần này em hoàn thành {MOCK_STUDENT.weeklyCompleted} bài</p>
+                    <div className="flex justify-center gap-4 mt-4 text-3xl drop-shadow-sm">
                         ⭐ 🏆 🎯
                     </div>
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-3 gap-3 mb-6">
-                    <div className="bg-white rounded-xl p-4 shadow-sm text-center">
-                        <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                            <Star className="w-5 h-5 text-yellow-500" />
+                <div className="grid grid-cols-3 gap-4 mb-8">
+                    <div className="glass-panel border-white/50 rounded-2xl p-5 shadow-sm text-center">
+                        <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
                         </div>
-                        <p className="text-2xl font-bold text-gray-900">{MOCK_STUDENT.stats.stars}</p>
-                        <p className="text-xs text-gray-500">ngôi sao</p>
+                        <p className="text-3xl font-extrabold text-slate-800">{MOCK_STUDENT.stats.stars}</p>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">ngôi sao</p>
                     </div>
-                    <div className="bg-white rounded-xl p-4 shadow-sm text-center">
-                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                            <Zap className="w-5 h-5 text-orange-500" />
+                    <div className="glass-panel border-white/50 rounded-2xl p-5 shadow-sm text-center">
+                        <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <Zap className="w-6 h-6 text-orange-500 fill-orange-500" />
                         </div>
-                        <p className="text-2xl font-bold text-gray-900">{MOCK_STUDENT.stats.streak}</p>
-                        <p className="text-xs text-gray-500">ngày liên tiếp</p>
+                        <p className="text-3xl font-extrabold text-slate-800">{MOCK_STUDENT.stats.streak}</p>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">ngày liên tiếp</p>
                     </div>
-                    <div className="bg-white rounded-xl p-4 shadow-sm text-center">
-                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                            <Target className="w-5 h-5 text-green-500" />
+                    <div className="glass-panel border-white/50 rounded-2xl p-5 shadow-sm text-center">
+                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <Target className="w-6 h-6 text-emerald-500" />
                         </div>
-                        <p className="text-2xl font-bold text-gray-900">{MOCK_STUDENT.stats.accuracy}%</p>
-                        <p className="text-xs text-gray-500">làm đúng</p>
+                        <p className="text-3xl font-extrabold text-slate-800">{MOCK_STUDENT.stats.accuracy}%</p>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mt-1">làm đúng</p>
                     </div>
                 </div>
 
                 {/* Today's Tasks */}
-                <div className="bg-white rounded-2xl p-5 shadow-sm mb-6">
-                    <h2 className="font-bold text-gray-900 mb-4">📅 NHIỆM VỤ HÔM NAY</h2>
-                    <div className="space-y-3">
+                <div className="glass-panel border-white/50 rounded-3xl p-6 shadow-soft mb-8">
+                    <h2 className="font-bold text-slate-800 mb-5 flex items-center gap-2">
+                        <span className="text-xl drop-shadow-sm">📅</span> NHIỆM VỤ HÔM NAY
+                    </h2>
+                    <div className="space-y-4">
                         {MOCK_STUDENT.todayTasks.map((task) => (
                             <div
                                 key={task.id}
-                                className={`p-4 rounded-xl border-2 ${task.status === 'completed'
-                                        ? 'bg-green-50 border-green-200'
+                                className={`p-5 rounded-2xl transition-all ${task.status === 'completed'
+                                        ? 'bg-emerald-50/80 border border-emerald-100'
                                         : task.status === 'in_progress'
-                                            ? 'bg-blue-50 border-blue-200'
-                                            : 'bg-gray-50 border-gray-200 opacity-60'
+                                            ? 'bg-indigo-50/80 border border-indigo-100 shadow-sm'
+                                            : 'bg-white/40 border border-slate-100 opacity-60'
                                     }`}
                             >
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        {getTaskStatusIcon(task.status)}
+                                    <div className="flex items-center gap-4">
+                                        <div className="bg-white rounded-full p-2 shadow-sm">
+                                            {getTaskStatusIcon(task.status)}
+                                        </div>
                                         <div>
-                                            <p className="font-medium text-gray-800">{task.topic}</p>
-                                            <p className="text-xs text-gray-500">
+                                            <p className="font-bold text-slate-800 text-base">{task.topic}</p>
+                                            <p className="text-sm font-medium text-slate-500 mt-0.5">
                                                 {task.status === 'locked'
                                                     ? 'Hoàn thành bài trên để mở'
                                                     : `${task.correct}/${task.total} câu`
@@ -146,7 +153,7 @@ export default function StudentExperiencePage() {
                                     </div>
                                     {task.status === 'completed' && renderStars(task.stars)}
                                     {task.status === 'in_progress' && (
-                                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                                        <span className="text-sm font-bold px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full border border-indigo-200">
                                             {Math.round((task.correct / task.total) * 100)}%
                                         </span>
                                     )}
@@ -157,43 +164,45 @@ export default function StudentExperiencePage() {
                 </div>
 
                 {/* QR Scan Entry */}
-                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-5 mb-6 text-white text-center">
-                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                        <QrCode className="w-6 h-6" />
+                <div className="glass-panel bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl p-6 mb-8 text-white text-center shadow-soft transform hover:-translate-y-1 transition-transform">
+                    <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/30 backdrop-blur-sm">
+                        <QrCode className="w-8 h-8" />
                     </div>
-                    <h3 className="font-bold">📱 Bắt đầu học bài mới</h3>
-                    <p className="text-sm opacity-90 mb-3">Quét mã QR trên phiếu bài tập hoặc sách</p>
-                    <button className="px-6 py-2 bg-white text-purple-600 rounded-xl font-medium hover:bg-gray-100 transition-colors">
+                    <h3 className="font-extrabold text-xl drop-shadow-sm mb-1">📱 Bắt đầu học bài mới</h3>
+                    <p className="text-sm font-medium text-white/80 mb-5">Quét mã QR trên phiếu bài tập hoặc sách</p>
+                    <button className="px-8 py-3 bg-white text-purple-600 rounded-xl font-bold shadow-soft hover:bg-slate-50 transition-all active:scale-95">
                         Mở máy quét QR
                     </button>
                 </div>
 
                 {/* Learning Path */}
-                <div className="bg-white rounded-2xl p-5 shadow-sm">
-                    <h2 className="font-bold text-gray-900 mb-4">🗺️ LỘ TRÌNH HỌC TẬP</h2>
-                    <div className="space-y-3">
+                <div className="glass-panel border-white/50 rounded-3xl p-6 shadow-soft">
+                    <h2 className="font-bold text-slate-800 mb-5 flex items-center gap-2">
+                        <span className="text-xl drop-shadow-sm">🗺️</span> LỘ TRÌNH HỌC TẬP
+                    </h2>
+                    <div className="space-y-4">
                         {MOCK_STUDENT.learningPath.map((item, index) => (
                             <div
                                 key={index}
-                                className={`flex items-center justify-between p-3 rounded-xl ${item.status === 'completed'
-                                        ? 'bg-green-50'
+                                className={`flex items-center justify-between p-4 rounded-2xl transition-all ${item.status === 'completed'
+                                        ? 'bg-emerald-50/80 border border-emerald-100'
                                         : item.status === 'active'
-                                            ? 'bg-blue-50 border-2 border-blue-300'
-                                            : 'bg-gray-50 opacity-60'
+                                            ? 'bg-indigo-50/80 border border-indigo-200 ring-2 ring-indigo-500/20 shadow-sm'
+                                            : 'bg-white/40 border border-slate-100 opacity-60'
                                     }`}
                             >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-6 h-6 flex items-center justify-center">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
                                         {getPathStatus(item.status)}
                                     </div>
-                                    <span className={`text-sm ${item.status === 'locked' ? 'text-gray-400' : 'text-gray-700'
+                                    <span className={`font-semibold ${item.status === 'locked' ? 'text-slate-400' : 'text-slate-700'
                                         }`}>
                                         {item.topic}
                                     </span>
                                 </div>
                                 {item.status === 'completed' && renderStars(item.stars)}
                                 {item.status === 'active' && (
-                                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                                    <span className="text-xs font-bold px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full border border-indigo-200">
                                         Đang học
                                     </span>
                                 )}

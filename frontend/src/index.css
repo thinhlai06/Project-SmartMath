@@ -1,107 +1,135 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
-/* Custom fonts */
+@theme {
+  --font-sans: 'Outfit', system-ui, -apple-system, sans-serif;
+  
+  /* Bảng màu bổ sung cho Theme */
+  --color-primary-soft: #EDE9FF;
+  --color-primary-main: #6366F1; /* Indigo */
+  --color-primary-dark: #4F46E5;
+  
+  --color-success-soft: #D1FAE5;
+  --color-success-main: #10B981; /* Emerald */
+  
+  /* Hiệu ứng bóng đổ mềm (Diffused Shadow) */
+  --shadow-soft: 0 4px 20px -2px rgba(99, 102, 241, 0.08), 0 0 3px rgba(99, 102, 241, 0.04);
+  --shadow-soft-lg: 0 10px 40px -5px rgba(99, 102, 241, 0.12), 0 0 5px rgba(99, 102, 241, 0.05);
+  
+  /* Bo góc chuẩn */
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
 
 /* Theme variables for shadcn/ui components */
 :root {
-  /* Base colors */
-  --background: #ffffff;
-  --foreground: #0f172a;
+  /* Nền off-white slate 50 */
+  --background: #F8FAFC;
+  --foreground: #0F172A;
   
-  /* Card */
-  --card: #ffffff;
-  --card-foreground: #0f172a;
+  /* Card trắng tinh */
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
   
-  /* Popover */
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
   
-  /* Primary - Teal theme for education */
-  --primary: #0d9488;
-  --primary-foreground: #ffffff;
+  /* Primary - Indigo theme cho sự chuyên nghiệp */
+  --primary: #6366F1;
+  --primary-foreground: #FFFFFF;
   
-  /* Secondary */
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
+  /* Secondary (Màu nền phụ) */
+  --secondary: #EEF2F6;
+  --secondary-foreground: #1E293B;
   
-  /* Muted */
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
   
-  /* Accent */
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
+  --accent: #EEF2F6;
+  --accent-foreground: #1E293B;
   
-  /* Destructive */
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
   
-  /* Border and Input */
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --input-background: #ffffff;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --input-background: #FFFFFF;
   
-  /* Ring (focus) */
-  --ring: #0d9488;
+  --ring: #6366F1;
   
-  /* Radius */
-  --radius: 0.5rem;
+  /* Tăng độ bo góc lên XL làm chuẩn */
+  --radius: 1rem; 
   
-  /* Font family */
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Dark mode theme variables */
+/* Dark mode (nếu cần hỗ trợ) */
 .dark {
-  --background: #0f172a;
-  --foreground: #f8fafc;
+  --background: #0F172A;
+  --foreground: #F8FAFC;
   
-  --card: #1e293b;
-  --card-foreground: #f8fafc;
+  --card: #1E293B;
+  --card-foreground: #F8FAFC;
   
-  --popover: #1e293b;
-  --popover-foreground: #f8fafc;
+  --popover: #1E293B;
+  --popover-foreground: #F8FAFC;
   
-  --primary: #14b8a6;
-  --primary-foreground: #0f172a;
+  --primary: #818CF8;
+  --primary-foreground: #0F172A;
   
   --secondary: #334155;
-  --secondary-foreground: #f8fafc;
+  --secondary-foreground: #F8FAFC;
   
   --muted: #334155;
-  --muted-foreground: #94a3b8;
+  --muted-foreground: #94A3B8;
   
   --accent: #334155;
-  --accent-foreground: #f8fafc;
+  --accent-foreground: #F8FAFC;
   
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
+  --destructive: #F87171;
+  --destructive-foreground: #FFFFFF;
   
   --border: #334155;
   --input: #334155;
-  --input-background: #1e293b;
+  --input-background: #1E293B;
   
-  --ring: #14b8a6;
+  --ring: #818CF8;
 }
 
-/* Base styles */
-body {
-  margin: 0;
-  min-height: 100vh;
-  background-color: var(--background);
-  color: var(--foreground);
+/* Utilities base */
+@layer base {
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: var(--background);
+    color: var(--foreground);
+    /* Tạo hiệu ứng dải màu blur ở nền */
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(253,16%,7%,0) 0, transparent 50%), 
+      radial-gradient(at 50% 0%, hsla(225,39%,30%,0) 0, transparent 50%), 
+      radial-gradient(at 100% 0%, hsla(339,49%,30%,0) 0, transparent 50%);
+  }
+  
+  * {
+    border-color: var(--border);
+  }
 }
 
-#root {
-  min-height: 100vh;
-}
-
-/* Utility for border color */
-* {
-  border-color: var(--border);
+/* Thêm các hiệu ứng tương tác cao cấp (Glass, Bounce) */
+@layer utilities {
+  .glass-panel {
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-soft;
+  }
+  
+  .btn-bounce {
+    @apply transition-transform active:scale-95 duration-200;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-lg;
+  }
 }

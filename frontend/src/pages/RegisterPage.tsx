@@ -30,107 +30,115 @@ export function RegisterPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md">
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative overflow-hidden">
+            {/* Background Decorations */}
+            <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-200/40 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '9s' }} />
+            <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-200/40 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '11s' }} />
+            
+            <div className="w-full max-w-md relative z-10 my-8">
                 {/* Logo */}
-                <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <span className="text-3xl">📐</span>
+                <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-soft-lg transform -rotate-3 hover:rotate-0 transition-transform">
+                        <span className="text-4xl drop-shadow-md">📐</span>
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-900">Smart-MathAI</h1>
-                    <p className="text-gray-600">Tạo tài khoản mới</p>
+                    <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Smart-MathAI</h1>
+                    <p className="text-slate-500 mt-2 font-medium">Tạo tài khoản mới</p>
                 </div>
 
                 {/* Register Form */}
-                <div className="bg-white rounded-2xl shadow-xl p-8">
+                <div className="glass-panel rounded-3xl p-8 shadow-soft-lg hover:shadow-2xl transition-all duration-500 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 fill-mode-both">
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {error && (
-                            <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg">
+                            <div className="flex items-center gap-3 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 animate-in zoom-in duration-300">
                                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                                <span className="text-sm">{error}</span>
+                                <span className="text-sm font-medium">{error}</span>
                             </div>
                         )}
 
                         {/* Role Selection */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-3">
-                                Bạn là
+                        <div className="space-y-3">
+                            <label className="block text-sm font-semibold text-slate-700 ml-1">
+                                Bạn là:
                             </label>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-4">
                                 <button
                                     type="button"
                                     onClick={() => setRole('teacher')}
-                                    className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${role === 'teacher'
-                                            ? 'border-blue-500 bg-blue-50'
-                                            : 'border-gray-200 hover:border-blue-300'
+                                    className={`btn-bounce p-5 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${role === 'teacher'
+                                            ? 'border-indigo-500 bg-indigo-50 shadow-soft'
+                                            : 'border-slate-200 bg-white/50 hover:border-indigo-300 hover:bg-white'
                                         }`}
                                 >
-                                    <GraduationCap className={`w-6 h-6 ${role === 'teacher' ? 'text-blue-500' : 'text-gray-400'}`} />
-                                    <span className={`font-medium ${role === 'teacher' ? 'text-blue-700' : 'text-gray-700'}`}>
+                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${role === 'teacher' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
+                                        <GraduationCap className="w-6 h-6" />
+                                    </div>
+                                    <span className={`font-bold ${role === 'teacher' ? 'text-indigo-700' : 'text-slate-600'}`}>
                                         Giáo viên
                                     </span>
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setRole('parent')}
-                                    className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${role === 'parent'
-                                            ? 'border-green-500 bg-green-50'
-                                            : 'border-gray-200 hover:border-green-300'
+                                    className={`btn-bounce p-5 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${role === 'parent'
+                                            ? 'border-emerald-500 bg-emerald-50 shadow-soft'
+                                            : 'border-slate-200 bg-white/50 hover:border-emerald-300 hover:bg-white'
                                         }`}
                                 >
-                                    <Users className={`w-6 h-6 ${role === 'parent' ? 'text-green-500' : 'text-gray-400'}`} />
-                                    <span className={`font-medium ${role === 'parent' ? 'text-green-700' : 'text-gray-700'}`}>
+                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${role === 'parent' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                                        <Users className="w-6 h-6" />
+                                    </div>
+                                    <span className={`font-bold ${role === 'parent' ? 'text-emerald-700' : 'text-slate-600'}`}>
                                         Phụ huynh
                                     </span>
                                 </button>
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <div className="space-y-2 mt-2">
+                            <label className="block text-sm font-semibold text-slate-700 ml-1">
                                 Họ và tên
                             </label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <div className="relative group">
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                                 <input
                                     type="text"
                                     value={fullName}
                                     onChange={(e) => setFullName(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    className="w-full pl-12 pr-4 py-3.5 bg-white/60 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-medium"
                                     placeholder="Nguyễn Văn A"
                                     required
                                 />
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <div className="space-y-2">
+                            <label className="block text-sm font-semibold text-slate-700 ml-1">
                                 Email
                             </label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <div className="relative group">
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    className="w-full pl-12 pr-4 py-3.5 bg-white/60 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-medium"
                                     placeholder="email@example.com"
                                     required
                                 />
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <div className="space-y-2">
+                            <label className="block text-sm font-semibold text-slate-700 ml-1">
                                 Mật khẩu
                             </label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <div className="relative group">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                                 <input
                                     type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    className="w-full pl-12 pr-4 py-3.5 bg-white/60 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-medium"
                                     placeholder="Tối thiểu 6 ký tự"
                                     minLength={6}
                                     required
@@ -141,10 +149,10 @@ export function RegisterPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full py-3 bg-gradient-to-r from-blue-500 to-teal-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            className="btn-bounce w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-2xl shadow-soft hover:shadow-soft-lg flex items-center justify-center gap-2 disabled:opacity-50 mt-8"
                         >
                             {isLoading ? (
-                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : (
                                 <>
                                     <UserPlus className="w-5 h-5" />
@@ -154,10 +162,10 @@ export function RegisterPage() {
                         </button>
                     </form>
 
-                    <div className="mt-6 text-center">
-                        <p className="text-gray-600">
+                    <div className="mt-8 text-center">
+                        <p className="text-slate-500 font-medium">
                             Đã có tài khoản?{' '}
-                            <Link to="/login" className="text-blue-500 hover:text-blue-600 font-medium">
+                            <Link to="/login" className="text-indigo-600 hover:text-indigo-700 font-bold transition-colors">
                                 Đăng nhập
                             </Link>
                         </p>

@@ -151,66 +151,72 @@ export function DifferentiationWizard() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4">
-            {/* Header */}
-            <div className="max-w-6xl mx-auto mb-8">
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold text-gray-900">Thiết kế Bài tập Phân hóa</h1>
-                    <Button variant="ghost" onClick={() => navigate('/')} className="text-gray-500 hover:text-gray-900">
-                        <X className="w-6 h-6" />
-                    </Button>
-                </div>
+        <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans py-8 px-4">
+            <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-indigo-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[40%] h-[40%] bg-emerald-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
+            
+            <div className="max-w-6xl mx-auto relative z-10">
+                {/* Header */}
+                <div className="mb-8">
+                    <div className="flex justify-between items-center mb-6">
+                        <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Thiết kế Bài tập Phân hóa</h1>
+                        <Button variant="ghost" onClick={() => navigate('/')} className="text-slate-500 hover:text-slate-900 hover:bg-slate-200/50 rounded-xl transition-colors">
+                            <X className="w-6 h-6" />
+                        </Button>
+                    </div>
 
-                {/* Class Selector */}
-                <div className="mb-4 flex items-center gap-4">
-                    <label className="text-sm font-medium text-gray-700">Lớp học:</label>
-                    <select
-                        value={selectedClassId || ''}
-                        onChange={(e) => setSelectedClassId(Number(e.target.value))}
-                        className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm"
-                    >
-                        {classes.map((cls) => (
-                            <option key={cls.id} value={cls.id}>
-                                {cls.class_name} (Lớp {cls.grade})
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                    {/* Class Selector */}
+                    <div className="mb-8 flex items-center gap-4 glass-panel bg-white/60 border-white/50 rounded-2xl p-4 shadow-sm w-fit mx-auto md:mx-0">
+                        <label className="text-sm font-bold text-slate-700">Lớp học:</label>
+                        <select
+                            value={selectedClassId || ''}
+                            onChange={(e) => setSelectedClassId(Number(e.target.value))}
+                            className="px-4 py-2 border border-slate-200 rounded-xl bg-white/80 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-shadow"
+                        >
+                            {classes.map((cls) => (
+                                <option key={cls.id} value={cls.id}>
+                                    {cls.class_name} (Lớp {cls.grade})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
-                {/* Progress Bar */}
-                <div className="max-w-3xl mx-auto relative">
-                    <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-200 -translate-y-1/2 rounded-full z-0"></div>
-                    <div
-                        className="absolute top-1/2 left-0 h-1 bg-indigo-600 -translate-y-1/2 rounded-full z-0 transition-all duration-300"
-                        style={{ width: `${((currentStep - 1) / 2) * 100}%` }}
-                    ></div>
-                    <div className="relative z-10 flex justify-between">
-                        {[1, 2, 3].map((step) => (
-                            <div
-                                key={step}
-                                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 border-4 ${step <= currentStep
-                                    ? 'bg-indigo-600 text-white border-white shadow-md'
-                                    : 'bg-white text-gray-400 border-gray-100'
-                                    }`}
-                            >
-                                {step}
-                            </div>
-                        ))}
+                    {/* Progress Bar */}
+                    <div className="max-w-3xl mx-auto relative mt-4">
+                        <div className="absolute top-1/2 left-0 w-full h-2 bg-slate-200/60 backdrop-blur-sm -translate-y-1/2 rounded-full z-0"></div>
+                        <div
+                            className="absolute top-1/2 left-0 h-2 bg-gradient-to-r from-indigo-500 to-emerald-400 -translate-y-1/2 rounded-full z-0 transition-all duration-500 ease-out shadow-sm"
+                            style={{ width: `${((currentStep - 1) / 2) * 100}%` }}
+                        ></div>
+                        <div className="relative z-10 flex justify-between">
+                            {[1, 2, 3].map((step) => (
+                                <div
+                                    key={step}
+                                    className={`w-12 h-12 rounded-full flex items-center justify-center font-extrabold text-base transition-all duration-500 border-4 ${step <= currentStep
+                                        ? 'bg-indigo-600 text-white border-white shadow-soft scale-110'
+                                        : 'bg-slate-50 text-slate-400 border-slate-200/60 scale-100'
+                                        }`}
+                                >
+                                    {step}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="max-w-3xl mx-auto flex justify-between mt-3 text-sm font-bold text-slate-500 px-2">
+                        <span className={currentStep >= 1 ? 'text-indigo-600' : ''}>Cấu hình</span>
+                        <span className={currentStep >= 2 ? 'text-indigo-600' : ''}>Phân nhóm</span>
+                        <span className={currentStep >= 3 ? 'text-indigo-600' : ''}>Nội dung</span>
                     </div>
                 </div>
-                <div className="max-w-3xl mx-auto flex justify-between mt-2 text-xs font-medium text-gray-500 px-2">
-                    <span>Cấu hình</span>
-                    <span>Phân nhóm</span>
-                    <span>Nội dung</span>
-                </div>
-            </div>
 
-            {/* Save Error */}
-            {saveError && (
-                <div className="max-w-6xl mx-auto mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                    {saveError}
-                </div>
-            )}
+                {/* Save Error */}
+                {saveError && (
+                    <div className="max-w-6xl mx-auto mb-6 p-4 bg-red-50/90 backdrop-blur-sm border border-red-200 rounded-2xl text-red-700 text-sm font-medium shadow-sm flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-500 flex-shrink-0">⚠️</div>
+                        {saveError}
+                    </div>
+                )}
+            </div>
 
             {/* Steps */}
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
