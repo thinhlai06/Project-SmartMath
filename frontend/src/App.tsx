@@ -158,6 +158,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/parent/student/:studentId"
+        element={
+          <ProtectedRoute>
+            <StudentExperiencePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/ai-grading"
         element={
           <ProtectedRoute>

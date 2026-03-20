@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
 import {
     BookOpen, Clock, Star, Target,
     FileText, Users, BookMarked,
@@ -63,7 +62,6 @@ const MOCK_DASHBOARD: DashboardData = {
 };
 
 export default function ParentDashboardPage() {
-    const { user, logout } = useAuth();
     const { classId } = useParams<{ classId: string }>();
     const [dashboard, setDashboard] = useState<DashboardData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -130,27 +128,6 @@ export default function ParentDashboardPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 via-teal-50 to-blue-50">
-            {/* Navigation */}
-            <nav className="bg-white shadow-sm pt-[env(safe-area-inset-top)] [touch-action:manipulation]">
-                <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-500 rounded-xl flex items-center justify-center">
-                            <span className="text-xl">📐</span>
-                        </div>
-                        <span className="font-bold text-gray-900">Smart-MathAI</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <span className="text-gray-600">Xin chào, {user?.full_name}</span>
-                        <button
-                            onClick={logout}
-                            className="px-4 py-2 text-gray-600 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
-                        >
-                            Đăng xuất
-                        </button>
-                    </div>
-                </div>
-            </nav>
-
             <div className="max-w-6xl mx-auto px-4 py-8">
                 {/* Header */}
                 <div className="mb-6">

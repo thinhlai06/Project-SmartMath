@@ -20,7 +20,7 @@ export function ProgressChartWidget({ data, title }: ProgressChartWidgetProps) {
         <CardTitle className="text-base text-slate-900">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-64 w-full" role="img" aria-label={`Biểu đồ ${title}`}>
+        <div className="h-64 min-h-64 min-w-[320px] w-full" role="img" aria-label={`Biểu đồ ${title}`}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
