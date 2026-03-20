@@ -127,74 +127,94 @@ export default function ParentDashboardPage() {
     const numberFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 });
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-green-50 via-teal-50 to-blue-50">
-            <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans">
+            <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-emerald-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[40%] h-[40%] bg-orange-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
+            <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
                 {/* Header */}
-                <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-gray-900">
-                        👋 Xin chào, Phụ huynh {data.student_name}
-                    </h1>
-                    <p className="text-gray-600">Cẩm nang đồng hành cùng con học toán</p>
+                <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">
+                            👋 Xin chào, Phụ huynh {data.student_name}
+                        </h1>
+                        <p className="text-slate-500 font-medium mt-1">Cẩm nang đồng hành cùng con học toán hiệu quả</p>
+                    </div>
                 </div>
 
                 {/* Premium Banner */}
-                <div className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl p-4 mb-6 text-white">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="font-bold flex items-center gap-2">
-                                🏆 Gói Premium - Đồng hành tối ưu
-                            </h3>
-                            <p className="text-sm opacity-90">
-                                • Giải thích đơn giản • Theo dõi tiến độ chi tiết
-                            </p>
+                <div className="glass-panel overflow-hidden rounded-3xl p-5 mb-8 text-white relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-600 opacity-90 transition-opacity group-hover:opacity-100" />
+                    <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/20 rounded-full blur-2xl" />
+                    <div className="flex items-center justify-between relative z-10">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+                                <span className="text-2xl drop-shadow-md">💎</span>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg drop-shadow-sm flex items-center gap-2">
+                                    Gói Premium - Đồng hành tối ưu
+                                </h3>
+                                <p className="text-sm text-emerald-50 font-medium mt-0.5 max-w-sm">
+                                    Mở khóa giải thích chi tiết, nhận xét sâu từ AI và bài tập bổ trợ cá nhân hóa.
+                                </p>
+                            </div>
                         </div>
-                        <span className="text-sm opacity-80">Đến 30/06/2026</span>
+                        <div className="text-right">
+                            <button className="bg-white text-emerald-600 px-5 py-2.5 rounded-xl font-bold shadow-soft hover:shadow-lg transition-all hover:scale-105 btn-bounce">
+                                Nâng cấp ngay
+                            </button>
+                            <p className="text-xs text-emerald-100 mt-2 font-medium">Bản dùng thử kết thúc sau 14 ngày</p>
+                        </div>
                     </div>
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white rounded-xl p-4 shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <BookOpen className="w-5 h-5 text-blue-600" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-8">
+                    <div className="glass-panel card-hover rounded-3xl p-5 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-blue-100/50 rounded-bl-full -z-10 transition-transform duration-500 group-hover:scale-125" />
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-blue-100/50 rounded-2xl flex items-center justify-center transform group-hover:rotate-6 transition-transform">
+                                <BookOpen className="w-6 h-6 text-blue-600 drop-shadow-sm" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-gray-900 tabular-nums">{numberFormatter.format(data.stats.completed)}</p>
-                                <p className="text-xs text-gray-500">bài xong</p>
+                                <p className="text-3xl font-black text-slate-800 tabular-nums drop-shadow-sm group-hover:text-blue-600 transition-colors">{numberFormatter.format(data.stats.completed)}</p>
+                                <p className="text-sm font-semibold text-slate-500">Bài đã xong</p>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl p-4 shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                                <Clock className="w-5 h-5 text-orange-600" />
+                    <div className="glass-panel card-hover rounded-3xl p-5 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-orange-100/50 rounded-bl-full -z-10 transition-transform duration-500 group-hover:scale-125" />
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-orange-100/50 rounded-2xl flex items-center justify-center transform group-hover:-rotate-6 transition-transform">
+                                <Clock className="w-6 h-6 text-orange-600 drop-shadow-sm" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-gray-900 tabular-nums">{numberFormatter.format(data.stats.study_time)}p</p>
-                                <p className="text-xs text-gray-500">hôm nay</p>
+                                <p className="text-3xl font-black text-slate-800 tabular-nums drop-shadow-sm group-hover:text-orange-600 transition-colors">{numberFormatter.format(data.stats.study_time)}<span className="text-lg">p</span></p>
+                                <p className="text-sm font-semibold text-slate-500">Học hôm nay</p>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl p-4 shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                                <Star className="w-5 h-5 text-yellow-600" />
+                    <div className="glass-panel card-hover rounded-3xl p-5 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-100/50 rounded-bl-full -z-10 transition-transform duration-500 group-hover:scale-125" />
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-yellow-100/50 rounded-2xl flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                                <Star className="w-6 h-6 text-yellow-600 drop-shadow-sm" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-gray-900 tabular-nums">{numberFormatter.format(data.stats.avg_score)}</p>
-                                <p className="text-xs text-gray-500">điểm TB</p>
+                                <p className="text-3xl font-black text-slate-800 tabular-nums drop-shadow-sm group-hover:text-yellow-600 transition-colors">{numberFormatter.format(data.stats.avg_score)}</p>
+                                <p className="text-sm font-semibold text-slate-500">Điểm TB</p>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl p-4 shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                <Target className="w-5 h-5 text-green-600" />
+                    <div className="glass-panel card-hover rounded-3xl p-5 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-100/50 rounded-bl-full -z-10 transition-transform duration-500 group-hover:scale-125" />
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-emerald-100/50 rounded-2xl flex items-center justify-center transform group-hover:-scale-110 transition-transform">
+                                <Target className="w-6 h-6 text-emerald-600 drop-shadow-sm" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-gray-900 tabular-nums">{numberFormatter.format(data.stats.accuracy)}%</p>
-                                <p className="text-xs text-gray-500">làm đúng</p>
+                                <p className="text-3xl font-black text-slate-800 tabular-nums drop-shadow-sm group-hover:text-emerald-600 transition-colors">{numberFormatter.format(data.stats.accuracy)}<span className="text-lg">%</span></p>
+                                <p className="text-sm font-semibold text-slate-500">Độ chính xác</p>
                             </div>
                         </div>
                     </div>
@@ -209,18 +229,18 @@ export default function ParentDashboardPage() {
                             data={data.topic_progress.map((topic) => ({ topic: topic.topic, score: topic.percent }))}
                         />
 
-                        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <h2 className="mb-4 font-semibold text-gray-900">Trạng thái học tập</h2>
-                            <div className="space-y-4">
+                        <div className="glass-panel rounded-3xl p-6 relative overflow-hidden">
+                            <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><div className="w-2 h-6 bg-blue-500 rounded-full" />Trạng thái học tập</h2>
+                            <div className="space-y-5">
                                 {data.topic_progress.map((topic, index) => (
-                                    <div key={index}>
-                                        <div className="mb-1 flex items-center justify-between">
-                                            <span className="text-sm font-medium text-gray-700">{topic.topic}</span>
+                                    <div key={index} className="group">
+                                        <div className="mb-2 flex items-center justify-between">
+                                            <span className="text-sm font-bold text-slate-700">{topic.topic}</span>
                                             {getStatusBadge(topic.status)}
                                         </div>
-                                        <div className="h-2 w-full rounded-full bg-gray-100">
+                                        <div className="h-2.5 w-full rounded-full bg-slate-100 shadow-inner overflow-hidden">
                                             <div
-                                                className={`h-2 rounded-full ${getProgressColor(topic.status)}`}
+                                                className={`h-full rounded-full transition-all duration-1000 ease-out ${getProgressColor(topic.status)} group-hover:opacity-80`}
                                                 style={{ width: `${topic.percent}%` }}
                                             ></div>
                                         </div>
@@ -230,13 +250,17 @@ export default function ParentDashboardPage() {
                         </div>
 
                         {/* Teacher Comment */}
-                        <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100">
-                            <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <div className="glass-panel border border-blue-200/50 bg-blue-50/50 rounded-3xl p-8 relative overflow-hidden">
+                            <div className="absolute -right-4 -top-4 text-6xl opacity-10 drop-shadow-xl transform rotate-12">💬</div>
+                            <h2 className="font-bold text-blue-900 mb-4 flex items-center gap-2 text-lg">
                                 <MessageSquare className="w-5 h-5 text-blue-600" />
-                                💙 Nhận xét từ giáo viên
+                                Nhận xét từ cô giáo
                             </h2>
-                            <p className="text-gray-700 italic">&quot;{data.teacher_comment}&quot;</p>
-                            <p className="text-sm text-gray-500 mt-2">- {data.teacher_name}, GV {data.class_name}</p>
+                            <p className="text-slate-700 italic font-medium leading-relaxed bg-white/60 p-4 rounded-2xl shadow-sm">&quot;{data.teacher_comment}&quot;</p>
+                            <p className="text-sm font-semibold text-blue-700/80 mt-4 text-right flex items-center justify-end gap-2">
+                                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">GV</span>
+                                {data.teacher_name}, Chủ nhiệm {data.class_name}
+                            </p>
                         </div>
 
                         {/* Class Announcements */}
@@ -256,76 +280,103 @@ export default function ParentDashboardPage() {
                         />
 
                         {/* Quick Actions */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm">
-                            <h2 className="font-semibold text-gray-900 mb-4">📚 Cẩm nang đồng hành</h2>
-                            <div className="space-y-3">
+                        <div className="glass-panel rounded-3xl p-6 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-bl-full -z-10" />
+                            <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><div className="w-2 h-6 bg-indigo-500 rounded-full" />Cẩm nang đồng hành</h2>
+                            <div className="space-y-4">
                                 <Link
                                     to="/parent/solutions/1"
-                                    className="flex items-center justify-between p-3 bg-green-50 rounded-xl hover:bg-green-100 transition-colors group"
+                                    className="flex items-center justify-between p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/50 hover:bg-emerald-50 hover:shadow-soft transition-all duration-300 group"
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <FileText className="w-5 h-5 text-green-600" />
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-emerald-100/80 flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                                            <FileText className="w-6 h-6 text-emerald-600 drop-shadow-sm" />
+                                        </div>
                                         <div>
-                                            <p className="font-medium text-gray-700">Hướng dẫn giải bài</p>
-                                            <p className="text-xs text-gray-500">Giải thích đơn giản</p>
+                                            <p className="font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">Hướng dẫn giải bài</p>
+                                            <p className="text-sm text-slate-500 font-medium mt-0.5">Lời giải chi tiết từng bước</p>
                                         </div>
                                     </div>
-                                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-green-600" />
+                                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:bg-emerald-500 transition-colors">
+                                        <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+                                    </div>
                                 </Link>
                                 <Link
                                     to="/parent/student"
-                                    className="flex items-center justify-between p-3 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors group"
+                                    className="flex items-center justify-between p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50 hover:bg-blue-50 hover:shadow-soft transition-all duration-300 group"
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <Users className="w-5 h-5 text-blue-600" />
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-blue-100/80 flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                                            <Users className="w-6 h-6 text-blue-600 drop-shadow-sm" />
+                                        </div>
                                         <div>
-                                            <p className="font-medium text-gray-700">Màn hình học của con</p>
-                                            <p className="text-xs text-gray-500">Xem tiến độ và bài tập</p>
+                                            <p className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors">Màn hình học của con</p>
+                                            <p className="text-sm text-slate-500 font-medium mt-0.5">Giao diện mà con sẽ thấy</p>
                                         </div>
                                     </div>
-                                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:bg-blue-500 transition-colors">
+                                        <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+                                    </div>
                                 </Link>
-                                <button className="w-full flex items-center justify-between p-3 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors group">
-                                    <div className="flex items-center gap-3">
-                                        <BookMarked className="w-5 h-5 text-purple-600" />
-                                        <div className="text-left">
-                                            <p className="font-medium text-gray-700">Bài tập bổ trợ</p>
-                                            <p className="text-xs text-gray-500">Luyện thêm tại nhà</p>
+                                <button className="w-full text-left flex items-center justify-between p-4 bg-purple-50/50 rounded-2xl border border-purple-100/50 hover:bg-purple-50 hover:shadow-soft transition-all duration-300 group">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-purple-100/80 flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                                            <BookMarked className="w-6 h-6 text-purple-600 drop-shadow-sm" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-slate-800 group-hover:text-purple-700 transition-colors">Bài tập bổ trợ</p>
+                                            <p className="text-sm text-slate-500 font-medium mt-0.5">AI đề xuất dựa trên lỗi sai</p>
                                         </div>
                                     </div>
-                                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-purple-600" />
+                                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:bg-purple-500 transition-colors">
+                                        <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+                                    </div>
                                 </button>
                             </div>
                         </div>
 
                         {/* Today's Assignments */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm">
-                            <h2 className="font-semibold text-gray-900 mb-4">📝 Bài tập hôm nay</h2>
-                            <div className="space-y-3">
+                        <div className="glass-panel rounded-3xl p-6 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50/50 rounded-bl-full -z-10" />
+                            <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><div className="w-2 h-6 bg-orange-500 rounded-full" />Bài tập hôm nay</h2>
+                            <div className="space-y-4">
                                 {data.today_assignments.map((assignment) => (
                                     <div
                                         key={assignment.id}
-                                        className={`p-3 rounded-xl border ${assignment.status === 'completed'
-                                            ? 'bg-green-50 border-green-200'
-                                            : 'bg-gray-50 border-gray-200'
+                                        className={`p-4 rounded-2xl border bg-white/60 shadow-sm transition-all hover:shadow-soft ${assignment.status === 'completed'
+                                            ? 'border-emerald-200'
+                                            : 'border-slate-200'
                                             }`}
                                     >
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="font-medium text-gray-700">{assignment.title}</p>
-                                                <p className="text-xs text-gray-500">
-                                                    {assignment.correct}/{assignment.total} câu
-                                                </p>
+                                                <p className="font-bold text-slate-800 group-hover:text-slate-900">{assignment.title}</p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                                                        {assignment.topic}
+                                                    </span>
+                                                    <span className="text-xs font-semibold text-slate-500">
+                                                        {assignment.correct}/{assignment.total} câu
+                                                    </span>
+                                                </div>
                                             </div>
                                             {assignment.status === 'completed' ? (
-                                                <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
-                                                    Hoàn thành ✓
+                                                <span className="text-xs font-bold px-3 py-1.5 bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-full flex items-center gap-1 shadow-sm">
+                                                    Hoàn thành <span className="text-emerald-500">✓</span>
                                                 </span>
                                             ) : (
-                                                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                                                    Đang làm
+                                                <span className="text-xs font-bold px-3 py-1.5 bg-blue-100 border border-blue-200 text-blue-700 rounded-full flex items-center gap-1 shadow-sm">
+                                                    Đang làm...
                                                 </span>
                                             )}
+                                        </div>
+                                        
+                                        {/* Simple Progress Bar for Assignment */}
+                                        <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                            <div 
+                                                className={`h-full rounded-full transition-all duration-1000 ${assignment.status === 'completed' ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                                                style={{ width: `${(assignment.correct / assignment.total) * 100}%` }}
+                                            />
                                         </div>
                                     </div>
                                 ))}

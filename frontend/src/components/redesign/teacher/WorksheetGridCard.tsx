@@ -15,25 +15,26 @@ export function WorksheetGridCard({ title, status, editHref, onPdfExport }: Work
   const statusLabel = status === 'published' ? 'Đã xuất bản' : 'Bản nháp';
 
   return (
-    <Card className="border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-within:ring-2 focus-within:ring-teal-400 focus-within:ring-offset-2">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="min-w-0 text-base leading-6 text-slate-900 break-words">{title}</CardTitle>
-          <Badge className={status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}>
+    <Card className="glass-panel card-hover border-none overflow-hidden group rounded-3xl relative z-10 h-full flex flex-col">
+      <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50/60 rounded-bl-full -z-10 transition-transform duration-500 group-hover:scale-125" />
+      <CardHeader className="pb-4 px-6 pt-6 flex-grow">
+        <div className="flex flex-col gap-3">
+          <Badge className={`w-fit rounded-full px-3 py-1 font-semibold ${status === 'published' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
             {statusLabel}
           </Badge>
+          <CardTitle className="min-w-0 text-xl font-bold leading-tight text-slate-800 break-words group-hover:text-indigo-700 transition-colors line-clamp-3">{title}</CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="flex gap-2">
-        <Button asChild variant="outline" className="flex-1 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-teal-500">
+      <CardContent className="flex gap-3 px-6 pb-6">
+        <Button asChild variant="outline" className="btn-bounce flex-1 bg-slate-50 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 rounded-xl font-semibold border-none shadow-none group-hover:shadow-soft transition-all h-11">
           <Link to={editHref}>
-            <Pencil className="h-4 w-4" />
+            <Pencil className="h-4 w-4 mr-2" />
             Sửa
           </Link>
         </Button>
-        <Button variant="outline" className="flex-1 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-teal-500" onClick={onPdfExport}>
-          <Download className="h-4 w-4" />
-          PDF
+        <Button variant="outline" className="btn-bounce flex-1 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 rounded-xl font-semibold border-none shadow-none group-hover:shadow-soft transition-all h-11" onClick={onPdfExport}>
+          <Download className="h-4 w-4 mr-2" />
+          Xuất PDF
         </Button>
       </CardContent>
     </Card>

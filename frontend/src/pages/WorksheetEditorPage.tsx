@@ -144,16 +144,16 @@ export function WorksheetEditorPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
-                <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin" />
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin drop-shadow-sm" />
             </div>
         );
     }
 
     if (!worksheet) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
-                <p className="text-gray-500">Không tìm thấy bài tập</p>
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <p className="text-slate-500 font-medium">Không tìm thấy bài tập</p>
             </div>
         );
     }
@@ -161,8 +161,10 @@ export function WorksheetEditorPage() {
     const sections = worksheet.worksheet_type === 'cpa' ? CPA_SECTIONS : DIFF_TIERS;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 p-6">
-            <div className="max-w-5xl mx-auto">
+        <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans p-6">
+            <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-indigo-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[40%] h-[40%] bg-emerald-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
+            <div className="max-w-5xl mx-auto relative z-10">
                 <PageHeader
                     title={worksheet.title}
                     breadcrumbs={[
@@ -182,14 +184,14 @@ export function WorksheetEditorPage() {
                     )}
                     className="mb-3"
                 />
-                <div className="mb-6 flex gap-2">
-                    <Badge className={worksheet.worksheet_type === 'cpa' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}>
+                <div className="mb-8 flex flex-wrap gap-2">
+                    <Badge className={worksheet.worksheet_type === 'cpa' ? 'bg-indigo-100/80 text-indigo-700 hover:bg-indigo-200 px-3 py-1' : 'bg-purple-100/80 text-purple-700 hover:bg-purple-200 px-3 py-1'}>
                         {worksheet.worksheet_type === 'cpa' ? 'CPA' : 'Phân hóa'}
                     </Badge>
-                    <Badge className={worksheet.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}>
+                    <Badge className={worksheet.status === 'published' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-3 py-1' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 px-3 py-1'}>
                         {worksheet.status === 'published' ? 'Đã xuất bản' : 'Nháp'}
                     </Badge>
-                    <span className="text-sm text-gray-500">Lớp {worksheet.grade}</span>
+                    <span className="text-sm font-medium text-slate-500 bg-white/60 px-3 py-1 rounded-full border border-slate-200">Lớp {worksheet.grade}</span>
                 </div>
 
                 {worksheet.status !== 'published' && (
@@ -209,16 +211,16 @@ export function WorksheetEditorPage() {
 
                 {/* Error */}
                 {error && (
-                    <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6">
+                    <div className="glass-panel bg-red-50/80 border-red-200 text-red-600 p-4 rounded-2xl mb-6 shadow-sm flex items-center justify-between font-medium">
                         {error}
-                        <button onClick={() => setError(null)} className="ml-4 underline">Đóng</button>
+                        <button onClick={() => setError(null)} className="ml-4 underline hover:text-red-800 transition-colors">Đóng</button>
                     </div>
                 )}
 
                 {/* Published warning */}
                 {worksheet.status === 'published' && (
-                    <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-4 rounded-lg mb-6">
-                        ⚠️ Bài tập đã xuất bản. Hãy hủy xuất bản để chỉnh sửa.
+                    <div className="glass-panel bg-amber-50/80 border-amber-200 text-amber-700 p-4 rounded-2xl mb-8 shadow-sm flex items-center font-medium gap-2">
+                        <span>⚠️</span> Bài tập đã xuất bản. Hãy hủy xuất bản để chỉnh sửa.
                     </div>
                 )}
 
@@ -230,13 +232,13 @@ export function WorksheetEditorPage() {
                         const isActive = activeSection === sectionType;
 
                         return (
-                            <Card key={sectionType} className={`border-2 ${section.color.split(' ')[2] || 'border-gray-200'}`}>
-                                <CardHeader className={section.color.split(' ').slice(0, 2).join(' ')}>
+                            <Card key={sectionType} className={`glass-panel border-white/50 rounded-3xl overflow-hidden shadow-soft transition-all ${isActive ? 'ring-2 ring-indigo-500/30' : ''}`}>
+                                <CardHeader className={`border-b border-white/40 bg-white/40 p-5`}>
                                     <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            {'icon' in section && <span>{section.icon}</span>}
-                                            <CardTitle className="text-lg">{section.label}</CardTitle>
-                                            <span className="text-sm opacity-70">({exercises.length} câu)</span>
+                                        <div className="flex items-center gap-3">
+                                            {'icon' in section && <span className="text-2xl drop-shadow-sm">{section.icon}</span>}
+                                            <CardTitle className="text-xl font-bold text-slate-800">{section.label}</CardTitle>
+                                            <span className="text-sm font-semibold text-slate-500 bg-white/50 px-2 py-0.5 rounded-md">({exercises.length} câu)</span>
                                             {'tier' in section && (
                                                 <DiffLevelBadge level={section.tier === 'foundation' ? 1 : section.tier === 'standard' ? 2 : 3} />
                                             )}
@@ -245,38 +247,41 @@ export function WorksheetEditorPage() {
                                             <Button
                                                 size="sm"
                                                 variant={isActive ? 'default' : 'outline'}
+                                                className={isActive ? 'bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm' : 'rounded-xl hover:bg-slate-100'}
                                                 onClick={() => setActiveSection(isActive ? null : sectionType)}
                                             >
-                                                <Plus className="w-4 h-4" />
+                                                <Plus className="w-4 h-4 mr-1" />
                                                 Thêm câu hỏi
                                             </Button>
                                         )}
                                     </div>
                                     {'description' in section && (
-                                        <p className="text-sm opacity-70 mt-1">{section.description}</p>
+                                        <p className="text-sm font-medium text-slate-500 mt-2">{section.description}</p>
                                     )}
                                 </CardHeader>
-                                <CardContent className="pt-4">
+                                <CardContent className="p-5 bg-white/20">
                                     {/* Existing exercises */}
                                     {exercises.length > 0 ? (
-                                        <div className="space-y-3 mb-4">
+                                        <div className="space-y-4 mb-4">
                                             {exercises.map((ex, idx) => (
-                                                <div key={ex.id} className="flex items-start gap-3 p-3 bg-white border rounded-lg">
-                                                    <span className="text-gray-400 text-sm mt-1">{idx + 1}.</span>
-                                                    <div className="flex-1">
-                                                        <MathFormattedText text={ex.question} />
+                                                <div key={ex.id} className="flex items-start gap-4 p-4 bg-white/80 backdrop-blur-sm border border-slate-100/50 rounded-2xl shadow-sm hover:shadow-soft transition-all group">
+                                                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold text-sm shrink-0 mt-0.5">{idx + 1}</span>
+                                                    <div className="flex-1 mt-1">
+                                                        <div className="text-slate-800 font-medium">
+                                                            <MathFormattedText text={ex.question} />
+                                                        </div>
                                                         {ex.answer && (
-                                                            <p className="text-sm text-green-600 mt-1">Đáp án: {ex.answer}</p>
+                                                            <p className="text-sm text-emerald-600 mt-2 font-medium bg-emerald-50 inline-block px-2 py-1 rounded-md">Đáp án: {ex.answer}</p>
                                                         )}
                                                         {ex.hint && (
-                                                            <p className="text-sm text-blue-500 mt-1">Gợi ý: {ex.hint}</p>
+                                                            <p className="text-sm text-indigo-600 mt-2 ml-2 font-medium bg-indigo-50 inline-block px-2 py-1 rounded-md">Gợi ý: {ex.hint}</p>
                                                         )}
                                                     </div>
                                                     {worksheet.status !== 'published' && (
                                                         <Button
                                                             size="sm"
                                                             variant="ghost"
-                                                            className="text-red-500"
+                                                            className="text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all focus:opacity-100"
                                                             onClick={() => handleDeleteExercise(ex.id)}
                                                             aria-label={`Xóa câu hỏi ${idx + 1}`}
                                                         >
@@ -287,46 +292,52 @@ export function WorksheetEditorPage() {
                                             ))}
                                         </div>
                                     ) : (
-                                        <p className="text-gray-400 text-center py-4">Chưa có câu hỏi</p>
+                                        <div className="text-center py-8">
+                                            <p className="text-slate-400 font-medium">Chưa có câu hỏi nào trong phần này</p>
+                                        </div>
                                     )}
 
                                     {/* Add new exercise form */}
                                     {isActive && worksheet.status !== 'published' && (
-                                        <div className="border-t pt-4 mt-4 space-y-3">
+                                        <div className="border-t border-slate-200/50 pt-5 mt-5 space-y-4">
                                             <div>
-                                                <Label>Câu hỏi</Label>
+                                                <Label className="text-slate-700 font-semibold">Câu hỏi</Label>
                                                 <Input
+                                                    className="mt-1"
                                                     placeholder="Nhập câu hỏi..."
                                                     value={newExercise.question}
                                                     onChange={(e) => setNewExercise({ ...newExercise, question: e.target.value })}
                                                 />
                                             </div>
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <Label>Đáp án (tùy chọn)</Label>
+                                                    <Label className="text-slate-700 font-semibold">Đáp án (tùy chọn)</Label>
                                                     <Input
+                                                        className="mt-1"
                                                         placeholder="Đáp án..."
                                                         value={newExercise.answer}
                                                         onChange={(e) => setNewExercise({ ...newExercise, answer: e.target.value })}
                                                     />
                                                 </div>
                                                 <div>
-                                                    <Label>Gợi ý (tùy chọn)</Label>
+                                                    <Label className="text-slate-700 font-semibold">Gợi ý (tùy chọn)</Label>
                                                     <Input
+                                                        className="mt-1"
                                                         placeholder="Gợi ý..."
                                                         value={newExercise.hint}
                                                         onChange={(e) => setNewExercise({ ...newExercise, hint: e.target.value })}
                                                     />
                                                 </div>
                                             </div>
-                                            <div className="flex gap-2">
+                                            <div className="flex gap-3 pt-2">
                                                 <Button
+                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-soft"
                                                     onClick={() => handleAddExercise(sectionType)}
                                                     disabled={isSaving || !newExercise.question.trim()}
                                                 >
-                                                    {isSaving ? 'Đang lưu...' : 'Thêm câu hỏi'}
+                                                    {isSaving ? 'Đang lưu...' : 'Lưu câu hỏi'}
                                                 </Button>
-                                                <Button variant="outline" onClick={() => setActiveSection(null)}>
+                                                <Button variant="outline" className="rounded-xl hover:bg-slate-100" onClick={() => setActiveSection(null)}>
                                                     Hủy
                                                 </Button>
                                             </div>
@@ -339,9 +350,9 @@ export function WorksheetEditorPage() {
                 </div>
 
                 {/* Summary */}
-                <div className="mt-8 p-4 bg-white rounded-lg border">
-                    <p className="text-gray-600">
-                        Tổng cộng: <strong>{worksheet.exercises.length}</strong> câu hỏi
+                <div className="mt-8 glass-panel border-white/50 p-6 rounded-3xl shadow-sm flex items-center justify-between">
+                    <p className="text-slate-600 font-medium text-lg">
+                        Tổng số lượng câu hỏi: <strong className="text-indigo-600 text-2xl ml-2">{worksheet.exercises.length}</strong>
                     </p>
                 </div>
 

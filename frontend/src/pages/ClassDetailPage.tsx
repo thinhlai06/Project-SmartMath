@@ -146,43 +146,47 @@ export function ClassDetailPage() {
 
     if (isLoading && !classData) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-teal-50 to-green-50">
-                <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin" />
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin drop-shadow-sm" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-green-50 p-6">
-            <div className="max-w-6xl mx-auto">
+        <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 relative overflow-hidden font-sans p-6">
+            <div className="absolute top-0 right-0 w-[30%] h-[30%] bg-indigo-300/30 rounded-full blur-[120px] -z-0 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[30%] h-[30%] bg-purple-300/30 rounded-full blur-[120px] -z-0 pointer-events-none" />
+            <div className="max-w-6xl mx-auto relative z-10">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div>
                         <button
                             onClick={() => navigate('/classes')}
-                            className="text-sm text-gray-500 hover:text-gray-700 mb-2 flex items-center gap-1"
+                            className="text-sm text-slate-500 hover:text-indigo-600 mb-2 flex items-center gap-1 font-medium transition-colors"
                         >
                             <ArrowLeft className="w-4 h-4" />
                             Quay lại danh sách lớp
                         </button>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-bold text-gray-800">{classData?.class_name}</h1>
-                            <Badge className={`bg-${classData?.grade === 1 ? 'green' : classData?.grade === 2 ? 'blue' : 'purple'}-100 text-${classData?.grade === 1 ? 'green' : classData?.grade === 2 ? 'blue' : 'purple'}-700`}>
+                        <div className="flex items-center gap-4">
+                            <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">{classData?.class_name}</h1>
+                            <Badge className="bg-indigo-100/80 text-indigo-700 hover:bg-indigo-200 text-sm px-3 py-1 rounded-lg">
                                 Lớp {classData?.grade}
                             </Badge>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 shadow-sm">
-                            <span className="text-sm text-gray-500">Mã lớp:</span>
-                            <span className="font-mono font-bold text-lg">{classData?.class_code}</span>
-                            <button onClick={copyClassCode} className="text-gray-400 hover:text-gray-600">
-                                <Copy className="w-4 h-4" />
-                            </button>
-                            <button onClick={handleRegenerateCode} className="text-gray-400 hover:text-gray-600">
-                                <RefreshCw className="w-4 h-4" />
-                            </button>
-                            {copiedCode && <span className="text-green-600 text-xs">Đã sao chép!</span>}
+                        <div className="relative flex items-center gap-3 glass-panel rounded-2xl px-5 py-3 shadow-sm border-white/50">
+                            <span className="text-sm font-semibold text-slate-500">Mã lớp:</span>
+                            <span className="font-mono font-bold text-xl text-slate-800 tracking-wider bg-white/50 px-2 py-0.5 rounded-md">{classData?.class_code}</span>
+                            <div className="flex gap-1 ml-2 border-l border-slate-200 pl-3">
+                                <button onClick={copyClassCode} className="text-slate-400 hover:text-indigo-600 p-1 rounded-lg hover:bg-indigo-50 transition-colors" title="Sao chép mã">
+                                    <Copy className="w-4 h-4" />
+                                </button>
+                                <button onClick={handleRegenerateCode} className="text-slate-400 hover:text-indigo-600 p-1 rounded-lg hover:bg-indigo-50 transition-colors" title="Tạo mã mới">
+                                    <RefreshCw className="w-4 h-4" />
+                                </button>
+                            </div>
+                            {copiedCode && <span className="absolute -top-8 right-0 bg-slate-800 text-white text-xs px-2 py-1 rounded shadow-lg animate-fade-in-up">Đã sao chép!</span>}
                         </div>
                     </div>
                 </div>
@@ -195,18 +199,19 @@ export function ClassDetailPage() {
                 )}
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-8">
                     {Object.entries(TIER_CONFIG).map(([tier, config]) => (
-                        <Card key={tier} className="text-center p-4">
-                            <div className="text-2xl mb-1">{config.icon}</div>
-                            <div className="text-2xl font-bold">{tierCounts[tier as keyof typeof tierCounts]}</div>
-                            <div className="text-sm text-gray-500">{config.label}</div>
+                        <Card key={tier} className="glass-panel border-white/50 text-center p-5 rounded-3xl shadow-soft hover:shadow-md transition-all group overflow-hidden relative">
+                            <div className="absolute top-0 right-0 w-20 h-20 bg-white/40 rounded-bl-full -z-10 transition-transform duration-500 group-hover:scale-125" />
+                            <div className="text-3xl mb-2 transform group-hover:scale-110 transition-transform drop-shadow-sm">{config.icon}</div>
+                            <div className="text-3xl font-black text-slate-800 drop-shadow-sm">{tierCounts[tier as keyof typeof tierCounts]}</div>
+                            <div className="text-sm font-semibold text-slate-500 mt-1">{config.label}</div>
                         </Card>
                     ))}
                 </div>
 
                 {/* Published Worksheets Section */}
-                <Card className="mb-6">
+                <Card className="mb-8 glass-panel border-white/50 rounded-3xl shadow-soft overflow-hidden">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="flex items-center gap-2">
                             <FileText className="w-5 h-5" />
@@ -234,19 +239,21 @@ export function ClassDetailPage() {
                                 {publishedWorksheets.map((ws) => (
                                     <div
                                         key={ws.id}
-                                        className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors cursor-pointer"
+                                        className="flex items-center justify-between p-4 bg-white/60 backdrop-blur-sm border border-emerald-100/50 rounded-2xl hover:bg-emerald-50 hover:shadow-soft transition-all cursor-pointer group"
                                         onClick={() => navigate(`/worksheets/${ws.id}/edit`)}
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <CheckCircle className="w-5 h-5 text-green-600" />
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-emerald-100/80 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                                                <CheckCircle className="w-5 h-5 text-emerald-600 drop-shadow-sm" />
+                                            </div>
                                             <div>
-                                                <p className="font-medium text-gray-900">{ws.title}</p>
-                                                <p className="text-sm text-gray-500">
-                                                    {ws.exercise_count} câu hỏi • {ws.worksheet_type === 'cpa' ? 'CPA' : 'Phân hóa'}
+                                                <p className="font-bold text-slate-800 group-hover:text-emerald-700 transition-colors cursor-pointer">{ws.title}</p>
+                                                <p className="text-sm font-medium text-slate-500 mt-0.5">
+                                                    {ws.exercise_count} câu hỏi • <span className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{ws.worksheet_type === 'cpa' ? 'CPA' : 'Phân hóa'}</span>
                                                 </p>
                                             </div>
                                         </div>
-                                        <Badge className="bg-green-100 text-green-700">Đã xuất bản</Badge>
+                                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">Đã xuất bản</Badge>
                                     </div>
                                 ))}
                             </div>
@@ -255,8 +262,8 @@ export function ClassDetailPage() {
                 </Card>
 
                 {/* Students Section */}
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
+                <Card className="glass-panel border-white/50 rounded-3xl shadow-soft overflow-hidden mb-8">
+                    <CardHeader className="flex flex-row items-center justify-between bg-white/40 border-b border-white/20">
                         <CardTitle className="flex items-center gap-2">
                             <Users className="w-5 h-5" />
                             Danh sách học sinh ({students.length})
@@ -290,21 +297,23 @@ export function ClassDetailPage() {
                                 {filteredStudents.map((student) => (
                                     <div
                                         key={student.id}
-                                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                                        className="flex items-center justify-between p-4 bg-white/60 backdrop-blur-sm border border-slate-100/50 rounded-2xl hover:bg-white hover:shadow-soft transition-all"
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <UserCircle className="w-8 h-8 text-gray-400" />
-                                            <span className="font-medium">{student.full_name}</span>
-                                            <Badge className={TIER_CONFIG[student.tier as keyof typeof TIER_CONFIG]?.color || 'bg-gray-100'}>
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                                                <UserCircle className="w-6 h-6 text-indigo-400" />
+                                            </div>
+                                            <span className="font-bold text-slate-800">{student.full_name}</span>
+                                            <Badge className={`${TIER_CONFIG[student.tier as keyof typeof TIER_CONFIG]?.color || 'bg-slate-100'} hover:opacity-90 transition-opacity`}>
                                                 {TIER_CONFIG[student.tier as keyof typeof TIER_CONFIG]?.label || student.tier}
                                             </Badge>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <button className="text-gray-400 hover:text-blue-600 p-1">
+                                        <div className="flex items-center gap-1">
+                                            <button className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors">
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
                                             <button
-                                                className="text-gray-400 hover:text-red-600 p-1"
+                                                className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
                                                 onClick={() => handleDeleteStudent(student.id)}
                                             >
                                                 <Trash2 className="w-4 h-4" />
@@ -324,9 +333,9 @@ export function ClassDetailPage() {
 
                 {/* Add Student Modal */}
                 {showAddStudent && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
-                            <h2 className="text-xl font-bold mb-4">Thêm học sinh</h2>
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <div className="glass-panel border-white/50 bg-white/90 rounded-3xl p-8 w-full max-w-md shadow-2xl">
+                            <h2 className="text-xl font-bold mb-4 text-slate-800">Thêm học sinh</h2>
                             <form onSubmit={handleAddStudent}>
                                 <div className="space-y-4">
                                     <div>
@@ -347,9 +356,9 @@ export function ClassDetailPage() {
                                                     key={tier}
                                                     type="button"
                                                     onClick={() => setNewStudent({ ...newStudent, tier: tier as StudentCreate['tier'] })}
-                                                    className={`py-2 px-3 rounded-lg border-2 transition-colors text-sm ${newStudent.tier === tier
-                                                        ? 'border-teal-500 bg-teal-50'
-                                                        : 'border-gray-200 hover:border-gray-300'
+                                                    className={`py-3 px-3 rounded-xl border-2 transition-all duration-300 text-sm font-semibold flex items-center justify-center gap-1 ${newStudent.tier === tier
+                                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
+                                                        : 'border-slate-100 bg-white hover:border-indigo-200 text-slate-600'
                                                         }`}
                                                 >
                                                     {config.icon} {config.label}
@@ -362,12 +371,12 @@ export function ClassDetailPage() {
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        className="flex-1"
+                                        className="flex-1 rounded-xl h-12 font-semibold hover:bg-slate-100"
                                         onClick={() => setShowAddStudent(false)}
                                     >
                                         Hủy
                                     </Button>
-                                    <Button type="submit" className="flex-1" disabled={isAdding}>
+                                    <Button type="submit" className="flex-1 rounded-xl h-12 font-bold bg-indigo-600 hover:bg-indigo-700 shadow-soft" disabled={isAdding}>
                                         {isAdding ? 'Đang thêm...' : 'Thêm học sinh'}
                                     </Button>
                                 </div>

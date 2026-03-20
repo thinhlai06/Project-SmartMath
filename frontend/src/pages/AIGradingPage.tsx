@@ -169,17 +169,20 @@ export default function AIGradingPage() {
     };
 
     return (
-        <div className="container mx-auto p-6 max-w-5xl space-y-8 animate-in fade-in duration-500">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Chấm điểm AI (Beta)</h1>
-                    <p className="text-muted-foreground mt-2">Tải lên ảnh bài làm và cung cấp đáp án để AI chấm điểm.</p>
+        <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans p-6">
+            <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-indigo-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[40%] h-[40%] bg-purple-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
+            <div className="container mx-auto max-w-5xl space-y-8 relative z-10">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Chấm điểm AI (Beta)</h1>
+                        <p className="text-slate-500 font-medium mt-2">Tải lên ảnh bài làm và cung cấp đáp án để AI chấm điểm ngoài giờ.</p>
+                    </div>
+                    <Badge className="bg-purple-100/80 text-purple-700 hover:bg-purple-200 px-4 py-1.5 text-sm font-semibold rounded-xl">
+                        Powered by PaddleOCR
+                    </Badge>
                 </div>
-                <Badge variant="secondary" className="bg-purple-100 text-purple-700 hover:bg-purple-100 px-3 py-1">
-                    Powered by PaddleOCR
-                </Badge>
-            </div>
 
             {error && (
                 <Alert variant="destructive">
@@ -192,9 +195,9 @@ export default function AIGradingPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column: Upload & Config */}
                 <div className="lg:col-span-1 space-y-6">
-                    <Card>
-                        <CardContent className="p-6 space-y-4">
-                            <Label>1. Ảnh bài làm</Label>
+                    <Card className="glass-panel border-white/50 rounded-3xl overflow-hidden shadow-soft">
+                        <CardContent className="p-6 space-y-6">
+                            <Label className="text-slate-700 font-bold mb-3 block text-base">1. Ảnh bài làm</Label>
 
                             {!previewUrl ? (
                                 <button
@@ -206,13 +209,15 @@ export default function AIGradingPage() {
                                     }}
                                     onDragLeave={() => setIsDragging(false)}
                                     onDrop={handleDrop}
-                                    className={`w-full rounded-lg border-2 border-dashed p-8 text-center transition-colors [touch-action:manipulation] select-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 ${
-                                        isDragging ? 'border-teal-400 bg-teal-50' : 'border-gray-300 hover:bg-gray-50'
+                                    className={`w-full rounded-2xl border-2 border-dashed p-10 text-center transition-all duration-300 [touch-action:manipulation] select-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+                                        isDragging ? 'border-indigo-400 bg-indigo-50/50 scale-105' : 'border-slate-300 hover:border-indigo-400 hover:bg-white/50'
                                     }`}
                                     aria-label="Tải ảnh bài làm"
                                 >
-                                    <Upload className="mx-auto h-10 w-10 text-gray-400 mb-2" />
-                                    <p className="text-sm text-gray-600">Click để chọn ảnh</p>
+                                    <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 transition-colors ${isDragging ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500'}`}>
+                                        <Upload className="h-6 w-6" />
+                                    </div>
+                                    <p className="text-sm font-medium text-slate-600">Kéo thả hoặc click để chọn ảnh</p>
                                 </button>
                             ) : (
                                 <div className="relative border rounded-lg overflow-hidden">
@@ -235,22 +240,22 @@ export default function AIGradingPage() {
                                 onChange={handleFileChange}
                             />
 
-                            <div className="space-y-2">
-                                <Label>2. Đáp án mẫu (Tùy chọn)</Label>
+                            <div className="space-y-3 pt-4 border-t border-slate-200/50">
+                                <Label className="text-slate-700 font-bold block text-base">2. Đáp án mẫu (Tùy chọn)</Label>
                                 <Textarea
-                                    rows={10}
-                                    className="font-mono text-xs"
+                                    rows={8}
+                                    className="font-mono text-xs bg-white/60 border-slate-200 focus:border-indigo-500 rounded-xl resize-none"
                                     value={correctAnswersJson}
                                     onChange={(e) => setCorrectAnswersJson(e.target.value)}
                                     placeholder='[{"id": 1, "answer": "..."}]'
                                 />
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-slate-500 font-medium">
                                     Để trống để AI tự động giải và chấm điểm. Hoặc nhập JSON để chấm theo đáp án của bạn.
                                 </p>
                             </div>
 
                             <Button
-                                className="w-full"
+                                className="w-full rounded-xl h-12 font-bold bg-indigo-600 hover:bg-indigo-700 shadow-soft text-base transition-all"
                                 size="lg"
                                 onClick={handleGrade}
                                 disabled={!file || step === 'processing'}
@@ -272,25 +277,27 @@ export default function AIGradingPage() {
                 {/* Right Column: Results */}
                 <div className="lg:col-span-2">
                     {step === 'processing' && (
-                        <Card className="h-full min-h-[400px] flex items-center justify-center">
-                            <div className="text-center space-y-4">
-                                <div className="relative w-16 h-16 mx-auto">
-                                    <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-                                    <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+                        <Card className="h-full min-h-[500px] flex items-center justify-center glass-panel border-white/50 rounded-3xl shadow-soft">
+                            <div className="text-center space-y-6">
+                                <div className="relative w-20 h-20 mx-auto">
+                                    <div className="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
+                                    <div className="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin drop-shadow-sm"></div>
                                 </div>
-                                <p className="text-lg font-medium">AI đang tự giải bài toán và chấm điểm...</p>
-                                <p className="text-sm text-muted-foreground">Quá trình này có thể mất vài giây</p>
+                                <div>
+                                    <p className="text-xl font-bold text-slate-800">AI đang tự giải bài toán và chấm điểm...</p>
+                                    <p className="text-sm font-medium text-slate-500 mt-2">Quá trình này có thể mất vài giây</p>
+                                </div>
                             </div>
                         </Card>
                     )}
 
                     {step === 'result' && gradingResult && (
-                        <Card className="h-full">
-                            <CardContent className="p-6 space-y-6">
-                                <div className="flex items-center justify-between border-b pb-4">
+                        <Card className="h-full glass-panel border-white/50 rounded-3xl shadow-soft overflow-hidden">
+                            <CardContent className="p-8 space-y-8">
+                                <div className="flex items-center justify-between border-b border-slate-200/50 pb-6">
                                     <div>
-                                        <h2 className="text-xl font-semibold">Kết quả chi tiết</h2>
-                                        <p className="text-sm text-muted-foreground">
+                                        <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Kết quả chi tiết</h2>
+                                        <p className="text-sm font-medium text-slate-500 mt-1">
                                             Dựa trên {gradingResult.results.length} câu hỏi
                                         </p>
                                     </div>
@@ -359,7 +366,7 @@ export default function AIGradingPage() {
                                     </pre>
                                 </div>
 
-                                <Button onClick={handleReset} variant="outline" className="w-full">
+                                <Button onClick={handleReset} variant="outline" className="w-full rounded-xl h-12 font-semibold hover:bg-slate-100 text-slate-700">
                                     <RefreshCw className="mr-2 h-4 w-4" /> Chấm bài khác
                                 </Button>
                             </CardContent>
@@ -367,13 +374,16 @@ export default function AIGradingPage() {
                     )}
 
                     {step === 'upload' && !file && (
-                        <div className="h-full flex items-center justify-center p-12 text-gray-400 bg-gray-50 rounded-lg border-2 border-dashed">
+                        <div className="h-full flex items-center justify-center p-12 text-slate-400 bg-white/40 backdrop-blur-sm rounded-3xl border-2 border-dashed border-slate-200/60 shadow-inner">
                             <div className="text-center">
-                                <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                                <p>Kết quả chấm điểm sẽ hiển thị ở đây</p>
+                                <div className="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                    <FileText className="h-10 w-10 text-slate-300" />
+                                </div>
+                                <p className="font-medium">Kết quả chấm điểm sẽ hiển thị ở đây</p>
                             </div>
                         </div>
                     )}
+                </div>
                 </div>
             </div>
         </div>
