@@ -33,9 +33,10 @@ export function DiffStep3Content({ assignments, data, onBack, onSave, isSaving =
         setIsGenerating(true);
         setError(null);
         try {
-            const response = await fetch('http://localhost:8000/api/ai/generate-differentiation', {
+            const response = await fetch('/api/ai/generate-differentiation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({
                     topic_id: parseInt(data.topicId),
                     grade: data.grade || 1,

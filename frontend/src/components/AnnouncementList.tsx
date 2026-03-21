@@ -44,7 +44,7 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
             } else {
                 setError('Không thể tải thông báo');
             }
-        } catch (err) {
+        } catch (_err) {
             setError('Lỗi kết nối');
         } finally {
             setIsLoading(false);
@@ -76,10 +76,10 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
                 setIsCreating(false);
                 fetchAnnouncements();
             } else {
-                const err = await response.json();
-                alert(err.detail || 'Không thể tạo thông báo');
+                const payload = await response.json();
+                alert(payload.detail || 'Không thể tạo thông báo');
             }
-        } catch (err) {
+        } catch (_err) {
             alert('Lỗi kết nối');
         } finally {
             setIsSubmitting(false);
@@ -98,7 +98,7 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
             } else {
                 alert('Không thể xóa thông báo');
             }
-        } catch (err) {
+        } catch (_err) {
             alert('Lỗi kết nối');
         }
     };
@@ -106,7 +106,7 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
     const formatDate = (dateString: string) => {
         try {
             return format(new Date(dateString), "d MMMM, yyyy 'lúc' HH:mm", { locale: vi });
-        } catch (e) {
+        } catch (_e) {
             return dateString;
         }
     };

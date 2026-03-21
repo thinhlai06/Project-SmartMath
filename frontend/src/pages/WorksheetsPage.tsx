@@ -95,9 +95,9 @@ export function WorksheetsPage() {
             const created = await worksheetApi.createWorksheet(id, newWorksheet);
             // Navigate to editor
             navigate(`/worksheets/${created.id}/edit`);
-        } catch (err) {
+        } catch (_err) {
             setError('Không thể tạo bài tập');
-            console.error(err);
+            console.error(_err);
         } finally {
             setIsCreating(false);
         }
@@ -114,7 +114,7 @@ export function WorksheetsPage() {
     const handleUnpublish = async (worksheetId: number) => {
         try {
             await unpublishMutation.mutateAsync(worksheetId);
-        } catch (err) {
+        } catch (_err) {
             setError('Không thể hủy xuất bản');
         }
     };
@@ -122,7 +122,7 @@ export function WorksheetsPage() {
     const handleDuplicate = async (worksheetId: number) => {
         try {
             await duplicateMutation.mutateAsync(worksheetId);
-        } catch (err) {
+        } catch (_err) {
             setError('Không thể nhân bản');
         }
     };
@@ -131,7 +131,7 @@ export function WorksheetsPage() {
         if (!confirm('Bạn có chắc muốn xóa bài tập này?')) return;
         try {
             await deleteMutation.mutateAsync(worksheetId);
-        } catch (err) {
+        } catch (_err) {
             setError('Không thể xóa bài tập');
         }
     };

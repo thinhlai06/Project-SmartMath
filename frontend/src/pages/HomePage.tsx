@@ -425,7 +425,7 @@ function ParentHome() {
             } else {
                 setJoinError(data.detail || 'Không thể tham gia lớp');
             }
-        } catch (err) {
+        } catch (_err) {
             setJoinError('Lỗi kết nối. Vui lòng thử lại.');
         } finally {
             setIsJoining(false);

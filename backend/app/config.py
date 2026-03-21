@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     # LMStudio AI Configuration
     LMSTUDIO_API_BASE: str = "http://localhost:1234/v1"
     LMSTUDIO_TEXT_MODEL: str = "qwen2.5-1.5b-instruct"
-    LMSTUDIO_VISION_MODEL: str = "PaddleOCR-VL-1.5-GGUF"
+    LMSTUDIO_VISION_MODEL: str = "paddleocr-vl-1.5"
     LMSTUDIO_TIMEOUT: int = 120
     
     class Config:

@@ -58,7 +58,7 @@ export function JoinClassModal({ isOpen, onClose, onSuccess }: JoinClassModalPro
             } else {
                 setError(data.detail || 'Không thể tham gia lớp học');
             }
-        } catch (err) {
+        } catch (_err) {
             setError('Lỗi kết nối. Vui lòng thử lại.');
         } finally {
             setIsLoading(false);
