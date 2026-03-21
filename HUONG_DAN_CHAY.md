@@ -107,3 +107,54 @@ Dự án hiện đang kết nối trực tiếp với **LMStudio** xử lý cụ
 
 - **Import Errors (Lỗi báo biến đỏ IDE):** Gần đây chúng tôi đã thiết lập `.vscode/settings.json` và `pyrightconfig.json`. Nếu dùng VS Code, bạn cần sử dụng Ctrl+Shift+P -> `Python: Select Interpreter` để chọn trỏ đúng vào thư mục `backend\venv\Scripts\python.exe` hoặc môi trường Conda tương ứng để thoát khỏi lỗi cảnh báo nhập vòng lặp ảo. Mọi đoạn code thực tế lúc chạy Server (`uvicorn`) vẫn hoàn toàn bình thường.
 - Ngôn ngữ mặc định cho các thành phần tạo đề tự động trong AI đã được ràng buộc bằng Prompts (Tiếng Việt lớp 1-3).
+
+---
+
+## ✅ Hướng dẫn Chạy Test
+
+Phần này dùng để kiểm tra nhanh trạng thái backend/frontend sau khi thay đổi code.
+
+### 1) Backend tests (Pytest)
+
+Từ thư mục gốc dự án:
+
+```bash
+backend\venv\Scripts\python.exe -m pytest -q backend/tests
+```
+
+Kỳ vọng:
+- Test pass: hiển thị `X passed`.
+- Có thể có cảnh báo `PydanticDeprecatedSince20` (warning, không phải fail test).
+
+### 2) Frontend unit tests (Vitest)
+
+Từ thư mục gốc dự án:
+
+```bash
+npm --prefix frontend run test
+```
+
+Kỳ vọng:
+- Hiển thị danh sách file test pass.
+
+### 3) Frontend lint
+
+Từ thư mục gốc dự án:
+
+```bash
+npm --prefix frontend run lint
+```
+
+Ý nghĩa:
+- Dùng để kiểm tra quy chuẩn TypeScript/React hooks.
+- Nếu có lỗi lint, CI nội bộ thường xem như chưa đạt chất lượng code.
+
+### 4) Bộ lệnh kiểm tra nhanh (khuyến nghị)
+
+```bash
+backend\venv\Scripts\python.exe -m pytest -q backend/tests
+npm --prefix frontend run test
+npm --prefix frontend run lint
+```
+
+Nếu cả 3 lệnh đều ổn thì có thể xem thay đổi là an toàn ở mức MVP hiện tại.

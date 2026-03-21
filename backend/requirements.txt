@@ -23,6 +23,7 @@ qrcode[pil]==7.4.2
 
 # Development
 pytest==7.4.4
+pytest-asyncio==0.23.8
 httpx==0.26.0
 
 # AI / OCR
@@ -31,3 +32,9 @@ paddlepaddle==2.6.2
 paddleocr>=2.7.0.3
 opencv-python-headless>=4.8.0
 numpy>=1.24.0,<2.0.0
+
+# AI / Embeddings / RAG
+langchain-community==0.0.19
+langchain-huggingface==0.0.2
+sentence-transformers==2.3.1
+chromadb==0.4.22

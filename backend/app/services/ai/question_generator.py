@@ -2,10 +2,13 @@
 Question Generator - Generates CPA-style math questions using RAG + Qwen2.5.
 """
 import json
+import logging
 import re
 from typing import Dict, List
 from .lmstudio_service import LMStudioService
 from .rag_service import RAGService
+
+logger = logging.getLogger(__name__)
 
 
 class QuestionGenerator:
@@ -38,7 +41,7 @@ class QuestionGenerator:
             prompt = self._build_prompt(level, topic, grade, objective, count, rag_context)
             system = "Bạn là AI giáo viên Toán tiểu học Việt Nam. Trả lời bằng JSON array hợp lệ."
 
-            print(f"🤖 Generating {count} {level} questions...")
+            logger.info("[AI] Generating %d %s questions...", count, level)
             response = LMStudioService.generate(prompt, system=system, temperature=0.7)
             questions = self._parse_json(response)
             result[level] = questions
@@ -69,7 +72,7 @@ class QuestionGenerator:
             prompt = self._build_prompt(tier, topic, grade, objective, count, rag_context)
             system = "Bạn là AI giáo viên Toán tiểu học Việt Nam. Trả lời bằng JSON array hợp lệ."
             
-            print(f"🤖 Generating {count} {tier} questions...")
+            logger.info("[AI] Generating %d %s questions...", count, tier)
             response = LMStudioService.generate(prompt, system=system, temperature=0.7)
             questions = self._parse_json(response)
             result["content"][tier] = questions

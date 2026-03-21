@@ -37,8 +37,6 @@ interface OCRDiffState {
 }
 
 export default function AIGradingPage() {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    // const navigate = useNavigate();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // State
@@ -83,7 +81,7 @@ export default function AIGradingPage() {
         if (correctAnswersJson.trim()) {
             try {
                 JSON.parse(correctAnswersJson);
-            } catch (e) {
+            } catch (_e) {
                 setError("Invalid JSON format for Correct Answers");
                 return;
             }

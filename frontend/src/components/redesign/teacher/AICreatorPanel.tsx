@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Loader2, WandSparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,13 @@ export function AICreatorPanel({ topics, onGenerate, isLoading }: AICreatorPanel
   const defaultTopic = useMemo(() => topics[0] ?? '', [topics]);
   const [topic, setTopic] = useState(defaultTopic);
   const [diffLevel, setDiffLevel] = useState<1 | 2 | 3>(1);
+
+  // Sync topic state when topics list loads asynchronously
+  useEffect(() => {
+    if (topics.length > 0 && (!topic || !topics.includes(topic))) {
+      setTopic(topics[0]);
+    }
+  }, [topics]);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

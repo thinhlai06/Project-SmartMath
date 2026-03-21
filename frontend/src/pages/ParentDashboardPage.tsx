@@ -38,29 +38,6 @@ interface DashboardData {
     today_assignments: TodayAssignment[];
 }
 
-// Mock data for when API is not available
-const MOCK_DASHBOARD: DashboardData = {
-    student_name: 'Nguyễn Văn An',
-    class_name: 'Lớp 3A',
-    teacher_name: 'Cô Lan',
-    stats: {
-        completed: 12,
-        study_time: 25,
-        avg_score: 8.2,
-        accuracy: 85
-    },
-    topic_progress: [
-        { topic: 'Phép chia có dư', status: 'mastered', percent: 90 },
-        { topic: 'Bài toán nhiều bước', status: 'practicing', percent: 65 },
-        { topic: 'Đổi đơn vị đo', status: 'started', percent: 40 },
-    ],
-    teacher_comment: 'Con đã có tiến bộ rõ rệt trong tuần này! Con rất tập trung và cố gắng. Hãy tiếp tục phát huy nhé!',
-    today_assignments: [
-        { id: 1, title: 'Phép chia có dư', topic: 'Số học', status: 'completed', correct: 5, total: 5 },
-        { id: 2, title: 'Bài toán tổng hợp', topic: 'Tư duy', status: 'in_progress', correct: 3, total: 8 },
-    ]
-};
-
 export default function ParentDashboardPage() {
     const { classId } = useParams<{ classId: string }>();
     const [dashboard, setDashboard] = useState<DashboardData | null>(null);
@@ -76,10 +53,10 @@ export default function ParentDashboardPage() {
                     const data = await response.json();
                     setDashboard(data);
                 } else {
-                    setDashboard(MOCK_DASHBOARD);
+                    setDashboard(null);
                 }
             } catch {
-                setDashboard(MOCK_DASHBOARD);
+                setDashboard(null);
             } finally {
                 setIsLoading(false);
             }
@@ -88,7 +65,7 @@ export default function ParentDashboardPage() {
         if (classId) {
             fetchDashboard();
         } else {
-            setDashboard(MOCK_DASHBOARD);
+            setDashboard(null);
             setIsLoading(false);
         }
     }, [classId]);
@@ -123,8 +100,21 @@ export default function ParentDashboardPage() {
         );
     }
 
-    const data = dashboard || MOCK_DASHBOARD;
+    const data = dashboard;
     const numberFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 });
+
+    if (!data) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+                <div className="glass-panel rounded-2xl p-8 text-center max-w-md">
+                    <h2 className="text-xl font-bold text-slate-800 mb-2">Chưa có dữ liệu dashboard</h2>
+                    <p className="text-slate-600">Phụ huynh chưa có dữ liệu học tập cho lớp này hoặc không thể tải dữ liệu từ hệ thống.</p>
+                </div>
+            </div>
+        );
+    }
+
+    const firstAssignmentId = data.today_assignments[0]?.id;
 
     return (
         <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans">
@@ -285,7 +275,7 @@ export default function ParentDashboardPage() {
                             <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><div className="w-2 h-6 bg-indigo-500 rounded-full" />Cẩm nang đồng hành</h2>
                             <div className="space-y-4">
                                 <Link
-                                    to="/parent/solutions/1"
+                                    to={firstAssignmentId ? `/parent/solutions/${firstAssignmentId}` : '/parent'}
                                     className="flex items-center justify-between p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/50 hover:bg-emerald-50 hover:shadow-soft transition-all duration-300 group"
                                 >
                                     <div className="flex items-center gap-4">
