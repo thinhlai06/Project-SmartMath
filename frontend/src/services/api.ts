@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Token, User, RegisterRequest } from '../types';
+import type { Token, User, RegisterRequest, UpdateMeRequest } from '../types';
 
 // Create axios instance
 const api = axios.create({
@@ -30,6 +30,11 @@ export const authApi = {
 
     getMe: async (): Promise<User> => {
         const response = await api.get<User>('/auth/me');
+        return response.data;
+    },
+
+    updateMe: async (data: UpdateMeRequest): Promise<User> => {
+        const response = await api.put<User>('/auth/me', data);
         return response.data;
     },
 

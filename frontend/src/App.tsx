@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryProvider } from './app/providers/query-provider';
+import { ToastProvider } from './components/ui/toast';
 import { CPAStepWizard } from './components/cpa/CPAStepWizard';
 import { DifferentiationWizard } from './components/differentiation/DifferentiationWizard';
 import { AuthProvider, useAuth } from './hooks/useAuth';
@@ -10,6 +11,7 @@ import ParentSolutionsPage from './pages/ParentSolutionsPage';
 import StudentExperiencePage from './pages/StudentExperiencePage';
 import AIGradingPage from './pages/AIGradingPage';
 import ErrorAnalyticsPage from './pages/ErrorAnalyticsPage';
+import SettingsPage from './pages/SettingsPage';
 import './index.css';
 
 // Protected route wrapper
@@ -181,6 +183,14 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
       {/* Catch all - redirect to home */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -192,7 +202,9 @@ function App() {
     <QueryProvider>
       <BrowserRouter>
         <AuthProvider>
-          <AppRoutes />
+          <ToastProvider>
+            <AppRoutes />
+          </ToastProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryProvider>

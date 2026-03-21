@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -16,11 +16,13 @@ router = APIRouter()
 @router.get("/classes/{class_id}/announcements", response_model=List[AnnouncementResponse])
 async def get_announcements(
     class_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Get all announcements for a class."""
-    return announcement_service.get_announcements_by_class(db, class_id)
+    return announcement_service.get_announcements_by_class(db, class_id, skip=skip, limit=limit)
 
 
 @router.post("/announcements", response_model=AnnouncementResponse, status_code=status.HTTP_201_CREATED)

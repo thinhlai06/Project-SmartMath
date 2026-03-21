@@ -7,14 +7,19 @@ import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
+import { Skeleton } from '../components/ui/skeleton';
+import { useToast } from '@/components/ui/toast';
 import { ClassCard, PageHeader } from '@/components/redesign';
 
 export function ClassesPage() {
+    const { toast } = useToast();
     const [classes, setClasses] = useState<MathClass[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
+    const [skip, setSkip] = useState(0);
+    const [limit] = useState(9);
 
     // Form state for creating new class
     const [newClass, setNewClass] = useState<ClassCreate>({
@@ -26,16 +31,17 @@ export function ClassesPage() {
     // Fetch classes on mount
     useEffect(() => {
         fetchClasses();
-    }, []);
+    }, [skip]);
 
     const fetchClasses = async () => {
         try {
             setIsLoading(true);
-            const data = await classApi.getClasses();
+            const data = await classApi.getClasses(skip, limit);
             setClasses(data);
             setError(null);
         } catch (err) {
             setError('Không thể tải danh sách lớp học');
+            toast('Không thể tải danh sách lớp học', 'error');
             console.error(err);
         } finally {
             setIsLoading(false);
@@ -49,11 +55,13 @@ export function ClassesPage() {
         try {
             setIsCreating(true);
             const created = await classApi.createClass(newClass);
-            setClasses([...classes, created]);
+            setClasses([created, ...classes]);
             setShowCreateModal(false);
             setNewClass({ class_name: '', grade: 1 });
+            toast('Đã tạo lớp học mới', 'success');
         } catch (err) {
             setError('Không thể tạo lớp học');
+            toast('Không thể tạo lớp học', 'error');
             console.error(err);
         } finally {
             setIsCreating(false);
@@ -63,13 +71,21 @@ export function ClassesPage() {
     const copyClassCode = (code: string) => {
         navigator.clipboard.writeText(code);
         setCopiedCode(code);
+        toast('Đã sao chép mã lớp', 'success');
         setTimeout(() => setCopiedCode(null), 2000);
     };
 
-    if (isLoading) {
+    if (isLoading && classes.length === 0) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
-                <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin drop-shadow-sm" />
+            <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans p-6">
+                <div className="mx-auto max-w-6xl space-y-6">
+                    <Skeleton className="h-12 w-72 rounded-xl" />
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {Array.from({ length: 6 }).map((_, index) => (
+                            <Skeleton key={index} className="h-40 rounded-3xl" />
+                        ))}
+                    </div>
+                </div>
             </div>
         );
     }
@@ -116,6 +132,7 @@ export function ClassesPage() {
                                 </Button>
                             </Card>
                         ) : (
+                            <>
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 [content-visibility:auto]">
                                 {classes.map((cls) => (
                                     <div key={cls.id} className="space-y-3">
@@ -142,6 +159,23 @@ export function ClassesPage() {
                                     </div>
                                 ))}
                             </div>
+                            <div className="mt-6 flex items-center justify-end gap-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setSkip((prev) => Math.max(0, prev - limit))}
+                                    disabled={skip === 0}
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setSkip((prev) => prev + limit)}
+                                    disabled={classes.length < limit}
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                            </>
                         )}
                 </div>
             </div>

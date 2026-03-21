@@ -5,12 +5,14 @@ from datetime import timedelta
 
 from app.database import get_db
 from app.schemas.auth import LoginRequest, RegisterRequest, Token
-from app.schemas.user import UserResponse
+from app.schemas.user import UserResponse, UserUpdateMeRequest
 from app.services.auth_service import (
     create_user,
     authenticate_user,
     create_access_token,
     get_user_by_email,
+    verify_password,
+    get_password_hash,
 )
 from app.utils.dependencies import get_current_user
 from app.models.user import User
@@ -122,4 +124,50 @@ async def get_me(current_user: User = Depends(get_current_user)):
     
     Yêu cầu JWT token trong header Authorization.
     """
+    return current_user
+
+
+@router.put("/me", response_model=UserResponse)
+async def update_me(
+    request: UserUpdateMeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Cập nhật thông tin cá nhân (họ tên, mật khẩu) của người dùng hiện tại."""
+    has_name_change = request.full_name is not None and request.full_name.strip() != ""
+    has_password_change = request.new_password is not None and request.new_password.strip() != ""
+
+    if not has_name_change and not has_password_change:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Không có thông tin nào để cập nhật"
+        )
+
+    if has_name_change:
+        current_user.full_name = request.full_name.strip()
+
+    if has_password_change:
+        if not request.current_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Vui lòng nhập mật khẩu hiện tại để đổi mật khẩu mới"
+            )
+
+        if len(request.new_password.strip()) < 6:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Mật khẩu mới phải có ít nhất 6 ký tự"
+            )
+
+        if not verify_password(request.current_password, current_user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Mật khẩu hiện tại không đúng"
+            )
+
+        current_user.password_hash = get_password_hash(request.new_password.strip())
+
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
     return current_user

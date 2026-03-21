@@ -12,9 +12,12 @@ import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { PdfExportModal } from '../components/PdfExportModal';
+import { Skeleton } from '../components/ui/skeleton';
+import { useToast } from '@/components/ui/toast';
 import { PageHeader, WorksheetGridCard } from '@/components/redesign';
 
 export function WorksheetsPage() {
+    const { toast } = useToast();
     const { classId } = useParams<{ classId: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -23,6 +26,8 @@ export function WorksheetsPage() {
     const [filterType, setFilterType] = useState<WorksheetType | ''>('');
     const [showPdfModal, setShowPdfModal] = useState(false);
     const [selectedWorksheetForPdf, setSelectedWorksheetForPdf] = useState<Worksheet | null>(null);
+    const [skip, setSkip] = useState(0);
+    const [limit] = useState(9);
 
     // Form state
     const [newWorksheet, setNewWorksheet] = useState<WorksheetCreate>({
@@ -42,8 +47,8 @@ export function WorksheetsPage() {
     });
 
     const worksheetsQuery = useQuery<Worksheet[]>({
-        queryKey: ['class-worksheets', id, filterType],
-        queryFn: () => worksheetApi.getWorksheets(id, undefined, filterType || undefined),
+        queryKey: ['class-worksheets', id, filterType, skip, limit],
+        queryFn: () => worksheetApi.getWorksheets(id, undefined, filterType || undefined, skip, limit),
         enabled: !!id,
     });
 
@@ -86,6 +91,10 @@ export function WorksheetsPage() {
         }
     }, [mathClass]);
 
+    useEffect(() => {
+        setSkip(0);
+    }, [filterType]);
+
     const handleCreateWorksheet = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newWorksheet.title.trim()) return;
@@ -97,6 +106,7 @@ export function WorksheetsPage() {
             navigate(`/worksheets/${created.id}/edit`);
         } catch (_err) {
             setError('Không thể tạo bài tập');
+            toast('Không thể tạo bài tập', 'error');
             console.error(_err);
         } finally {
             setIsCreating(false);
@@ -106,24 +116,30 @@ export function WorksheetsPage() {
     const handlePublish = async (worksheetId: number) => {
         try {
             await publishMutation.mutateAsync(worksheetId);
+            toast('Đã xuất bản bài tập', 'success');
         } catch (err: any) {
             setError(err.response?.data?.detail || 'Không thể xuất bản');
+            toast('Không thể xuất bản bài tập', 'error');
         }
     };
 
     const handleUnpublish = async (worksheetId: number) => {
         try {
             await unpublishMutation.mutateAsync(worksheetId);
+            toast('Đã hủy xuất bản bài tập', 'success');
         } catch (_err) {
             setError('Không thể hủy xuất bản');
+            toast('Không thể hủy xuất bản', 'error');
         }
     };
 
     const handleDuplicate = async (worksheetId: number) => {
         try {
             await duplicateMutation.mutateAsync(worksheetId);
+            toast('Đã nhân bản bài tập', 'success');
         } catch (_err) {
             setError('Không thể nhân bản');
+            toast('Không thể nhân bản bài tập', 'error');
         }
     };
 
@@ -131,8 +147,10 @@ export function WorksheetsPage() {
         if (!confirm('Bạn có chắc muốn xóa bài tập này?')) return;
         try {
             await deleteMutation.mutateAsync(worksheetId);
+            toast('Đã xóa bài tập', 'success');
         } catch (_err) {
             setError('Không thể xóa bài tập');
+            toast('Không thể xóa bài tập', 'error');
         }
     };
 
@@ -158,8 +176,15 @@ export function WorksheetsPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
-                <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin drop-shadow-sm" />
+            <div className="min-h-screen bg-slate-50 p-6">
+                <div className="max-w-6xl mx-auto space-y-6">
+                    <Skeleton className="h-12 w-80 rounded-xl" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {Array.from({ length: 6 }).map((_, index) => (
+                            <Skeleton key={index} className="h-56 rounded-3xl" />
+                        ))}
+                    </div>
+                </div>
             </div>
         );
     }
@@ -235,6 +260,7 @@ export function WorksheetsPage() {
                         </Button>
                     </Card>
                 ) : (
+                    <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 [content-visibility:auto]">
                         {worksheets.map((ws) => (
                             <div key={ws.id} className="space-y-3 group">
@@ -288,6 +314,11 @@ export function WorksheetsPage() {
                             </div>
                         ))}
                     </div>
+                    <div className="mt-6 flex items-center justify-end gap-2">
+                        <Button variant="outline" onClick={() => setSkip((prev) => Math.max(0, prev - limit))} disabled={skip === 0}>Previous</Button>
+                        <Button variant="outline" onClick={() => setSkip((prev) => prev + limit)} disabled={worksheets.length < limit}>Next</Button>
+                    </div>
+                    </>
                 )}
 
                 {/* Create Modal */}

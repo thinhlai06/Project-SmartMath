@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -22,6 +22,8 @@ router = APIRouter()
 
 @router.get("", response_model=List[ClassListResponse])
 async def list_classes(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_teacher),
     db: Session = Depends(get_db)
 ):
@@ -30,7 +32,7 @@ async def list_classes(
     
     Yêu cầu quyền: Teacher
     """
-    classes = get_teacher_classes(db, current_user.id)
+    classes = get_teacher_classes(db, current_user.id, skip=skip, limit=limit)
     result = []
     for c in classes:
         result.append(ClassListResponse(

@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { AnnouncementList } from '../components/AnnouncementList';
 import { HomeworkActionCard, ProgressChartWidget } from '@/components/redesign';
+import { useToast } from '@/components/ui/toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface TopicProgress {
     topic: string;
@@ -39,6 +41,7 @@ interface DashboardData {
 }
 
 export default function ParentDashboardPage() {
+    const { toast } = useToast();
     const { classId } = useParams<{ classId: string }>();
     const [dashboard, setDashboard] = useState<DashboardData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -54,9 +57,11 @@ export default function ParentDashboardPage() {
                     setDashboard(data);
                 } else {
                     setDashboard(null);
+                    toast('Không thể tải dashboard phụ huynh', 'error');
                 }
             } catch {
                 setDashboard(null);
+                toast('Lỗi kết nối khi tải dashboard', 'error');
             } finally {
                 setIsLoading(false);
             }
@@ -92,10 +97,56 @@ export default function ParentDashboardPage() {
         }
     };
 
+    const handleMarkCompleted = async (worksheetId: number) => {
+        try {
+            const response = await fetch(`/api/parent/worksheets/${worksheetId}/mark-completed`, {
+                method: 'POST',
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                throw new Error(payload.detail || 'Không thể cập nhật tiến độ');
+            }
+
+            setDashboard((prev) => {
+                if (!prev) return prev;
+                const updatedAssignments = prev.today_assignments.map((assignment) =>
+                    assignment.id === worksheetId
+                        ? {
+                            ...assignment,
+                            status: 'completed' as const,
+                            correct: assignment.total,
+                          }
+                        : assignment
+                );
+                return {
+                    ...prev,
+                    today_assignments: updatedAssignments,
+                    stats: {
+                        ...prev.stats,
+                        completed: prev.stats.completed + 1,
+                    },
+                };
+            });
+
+            toast('Đã đánh dấu hoàn thành', 'success');
+        } catch (error) {
+            toast(error instanceof Error ? error.message : 'Không thể cập nhật tiến độ', 'error');
+        }
+    };
+
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-green-50 via-teal-50 to-blue-50 flex items-center justify-center">
-                <div className="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full"></div>
+            <div className="min-h-screen bg-slate-50 p-4">
+                <div className="mx-auto max-w-6xl space-y-6">
+                    <Skeleton className="h-14 w-96 rounded-xl" />
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+                        {Array.from({ length: 4 }).map((_, index) => (
+                            <Skeleton key={index} className="h-32 rounded-3xl" />
+                        ))}
+                    </div>
+                </div>
             </div>
         );
     }
@@ -355,9 +406,12 @@ export default function ParentDashboardPage() {
                                                     Hoàn thành <span className="text-emerald-500">✓</span>
                                                 </span>
                                             ) : (
-                                                <span className="text-xs font-bold px-3 py-1.5 bg-blue-100 border border-blue-200 text-blue-700 rounded-full flex items-center gap-1 shadow-sm">
-                                                    Đang làm...
-                                                </span>
+                                                <button
+                                                    className="text-xs font-bold px-3 py-1.5 bg-blue-100 border border-blue-200 text-blue-700 rounded-full flex items-center gap-1 shadow-sm hover:bg-blue-200 transition-colors"
+                                                    onClick={() => handleMarkCompleted(assignment.id)}
+                                                >
+                                                    Đánh dấu hoàn thành
+                                                </button>
                                             )}
                                         </div>
                                         
@@ -365,7 +419,7 @@ export default function ParentDashboardPage() {
                                         <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                                             <div 
                                                 className={`h-full rounded-full transition-all duration-1000 ${assignment.status === 'completed' ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                                                style={{ width: `${(assignment.correct / assignment.total) * 100}%` }}
+                                                style={{ width: `${assignment.total > 0 ? (assignment.correct / assignment.total) * 100 : 0}%` }}
                                             />
                                         </div>
                                     </div>

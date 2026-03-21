@@ -56,6 +56,8 @@ async def list_worksheets(
     class_id: int,
     status: Optional[str] = Query(None, description="Lọc theo trạng thái (draft/published)"),
     worksheet_type: Optional[str] = Query(None, description="Lọc theo loại (cpa/differentiation)"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     teacher: User = Depends(get_current_teacher)
 ):
@@ -66,7 +68,14 @@ async def list_worksheets(
     - **worksheet_type**: Lọc theo loại (cpa, differentiation)
     """
     verify_class_ownership(db, class_id, teacher)
-    worksheets = worksheet_service.get_worksheets_by_class(db, class_id, status, worksheet_type)
+    worksheets = worksheet_service.get_worksheets_by_class(
+        db,
+        class_id,
+        status,
+        worksheet_type,
+        skip=skip,
+        limit=limit,
+    )
     
     # Add exercise count to each worksheet
     result = []

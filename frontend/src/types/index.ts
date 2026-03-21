@@ -1,7 +1,7 @@
 // Centralized type exports for Smart-MathAI
 
 // Auth types
-export type { User, UserRole, LoginRequest, RegisterRequest, AuthResponse, Token, ApiError } from './auth';
+export type { User, UserRole, LoginRequest, RegisterRequest, UpdateMeRequest, AuthResponse, Token, ApiError } from './auth';
 
 // Domain types
 export type {

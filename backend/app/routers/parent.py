@@ -1,5 +1,7 @@
 """Parent router - API endpoints for Parent features."""
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -17,6 +19,7 @@ from app.models.worksheet_exercise import WorksheetExercise
 from app.schemas.parent import (
     JoinClassRequest,
     JoinClassResponse,
+    MarkWorksheetCompletedResponse,
     ParentClassInfo,
     TopicProgress,
     TodayAssignment,
@@ -244,17 +247,22 @@ async def get_parent_dashboard(
 @router.get("/worksheets/{class_id}", response_model=List[WorksheetForParent])
 async def get_parent_worksheets(
     class_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_parent),
     db: Session = Depends(get_db)
 ):
     """Lấy danh sách bài tập đã published cho phụ huynh xem."""
     parent_service.check_parent_access(db, current_user.id, class_id)
-    return _build_parent_worksheets(db, class_id)
+    worksheets = _build_parent_worksheets(db, class_id)
+    return worksheets[skip: skip + limit]
 
 
 @router.get("/classes/{class_code}/worksheets", response_model=List[WorksheetForParent])
 async def get_parent_worksheets_by_class_code(
     class_code: str,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_parent),
     db: Session = Depends(get_db)
 ):
@@ -264,7 +272,60 @@ async def get_parent_worksheets_by_class_code(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mã lớp không hợp lệ")
 
     parent_service.check_parent_access(db, current_user.id, math_class.id)
-    return _build_parent_worksheets(db, math_class.id)
+    worksheets = _build_parent_worksheets(db, math_class.id)
+    return worksheets[skip: skip + limit]
+
+
+@router.post("/worksheets/{worksheet_id}/mark-completed", response_model=MarkWorksheetCompletedResponse)
+async def mark_parent_worksheet_completed(
+    worksheet_id: int,
+    current_user: User = Depends(get_current_parent),
+    db: Session = Depends(get_db)
+):
+    """Phụ huynh đánh dấu worksheet giấy đã hoàn thành cho con."""
+    worksheet = db.query(Worksheet).filter(Worksheet.id == worksheet_id).first()
+    if not worksheet:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bài tập không tồn tại")
+
+    link = parent_service.check_parent_access(db, current_user.id, worksheet.class_id)
+    if _status_value(worksheet.status) != "published":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bài tập chưa được xuất bản")
+
+    progress = (
+        db.query(StudentProgress)
+        .filter(
+            StudentProgress.student_id == link.student_id,
+            StudentProgress.worksheet_id == worksheet_id,
+        )
+        .first()
+    )
+
+    if not progress:
+        exercise_count = (
+            db.query(WorksheetExercise)
+            .filter(WorksheetExercise.worksheet_id == worksheet_id)
+            .count()
+        )
+        progress = StudentProgress(
+            student_id=link.student_id,
+            worksheet_id=worksheet_id,
+            status=ProgressStatus.COMPLETED,
+            correct_count=0,
+            total_count=exercise_count,
+            completed_at=datetime.utcnow(),
+        )
+        db.add(progress)
+    else:
+        progress.status = ProgressStatus.COMPLETED
+        progress.completed_at = datetime.utcnow()
+
+    db.commit()
+
+    return MarkWorksheetCompletedResponse(
+        worksheet_id=worksheet_id,
+        status=ProgressStatus.COMPLETED.value,
+        message="Đã đánh dấu hoàn thành",
+    )
 
 
 @router.get("/worksheets/{worksheet_id}/exercises", response_model=List[ExerciseResponse])

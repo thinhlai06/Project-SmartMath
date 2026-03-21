@@ -5,9 +5,21 @@ from app.models.math_class import MathClass, generate_class_code
 from app.models.student import Student
 
 
-def get_teacher_classes(db: Session, teacher_id: int) -> List[MathClass]:
+def get_teacher_classes(
+    db: Session,
+    teacher_id: int,
+    skip: int = 0,
+    limit: int = 20,
+) -> List[MathClass]:
     """Get all classes for a teacher."""
-    return db.query(MathClass).filter(MathClass.teacher_id == teacher_id).all()
+    return (
+        db.query(MathClass)
+        .filter(MathClass.teacher_id == teacher_id)
+        .order_by(MathClass.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 def get_class_by_id(db: Session, class_id: int) -> Optional[MathClass]:

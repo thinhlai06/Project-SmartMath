@@ -7,6 +7,8 @@ import { Bell, Plus, Trash2, X, Save, MessageSquare, Loader2 } from 'lucide-reac
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { Badge } from './ui/badge';
+import { Skeleton } from './ui/skeleton';
+import { useToast } from './ui/toast';
 
 interface Announcement {
     id: number;
@@ -24,18 +26,21 @@ interface AnnouncementListProps {
 const API_BASE = '/api';
 
 export function AnnouncementList({ classId = 1, isTeacher = false }: AnnouncementListProps) {
+    const { toast } = useToast();
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({ title: '', content: '' });
     const [error, setError] = useState<string | null>(null);
+    const [skip, setSkip] = useState(0);
+    const [limit] = useState(5);
 
     const fetchAnnouncements = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${API_BASE}/classes/${classId}/announcements`, {
+            const response = await fetch(`${API_BASE}/classes/${classId}/announcements?skip=${skip}&limit=${limit}`, {
                 credentials: 'include'
             });
             if (response.ok) {
@@ -43,13 +48,15 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
                 setAnnouncements(data);
             } else {
                 setError('Không thể tải thông báo');
+                toast('Không thể tải thông báo', 'error');
             }
         } catch (_err) {
             setError('Lỗi kết nối');
+            toast('Lỗi kết nối khi tải thông báo', 'error');
         } finally {
             setIsLoading(false);
         }
-    }, [classId]);
+    }, [classId, limit, skip, toast]);
 
     useEffect(() => {
         fetchAnnouncements();
@@ -75,12 +82,13 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
                 setFormData({ title: '', content: '' });
                 setIsCreating(false);
                 fetchAnnouncements();
+                toast('Đã đăng thông báo', 'success');
             } else {
                 const payload = await response.json();
-                alert(payload.detail || 'Không thể tạo thông báo');
+                toast(payload.detail || 'Không thể tạo thông báo', 'error');
             }
         } catch (_err) {
-            alert('Lỗi kết nối');
+            toast('Lỗi kết nối', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -95,11 +103,12 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
             });
             if (response.ok) {
                 fetchAnnouncements();
+                toast('Đã xóa thông báo', 'success');
             } else {
-                alert('Không thể xóa thông báo');
+                toast('Không thể xóa thông báo', 'error');
             }
         } catch (_err) {
-            alert('Lỗi kết nối');
+            toast('Lỗi kết nối', 'error');
         }
     };
 
@@ -171,8 +180,10 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
                 {/* List */}
                 <div className="space-y-4">
                     {isLoading ? (
-                        <div className="flex justify-center py-10">
-                            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                        <div className="space-y-3 py-2">
+                            {Array.from({ length: 3 }).map((_, index) => (
+                                <Skeleton key={index} className="h-20 rounded-xl" />
+                            ))}
                         </div>
                     ) : error ? (
                         <div className="text-center py-10 text-red-500">{error}</div>
@@ -214,6 +225,10 @@ export function AnnouncementList({ classId = 1, isTeacher = false }: Announcemen
                             </div>
                         ))
                     )}
+                </div>
+                <div className="mt-4 flex items-center justify-end gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setSkip((prev) => Math.max(0, prev - limit))} disabled={skip === 0}>Previous</Button>
+                    <Button variant="outline" size="sm" onClick={() => setSkip((prev) => prev + limit)} disabled={announcements.length < limit}>Next</Button>
                 </div>
             </CardContent>
         </Card>
