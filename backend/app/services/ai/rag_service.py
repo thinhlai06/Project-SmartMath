@@ -12,7 +12,7 @@ can coexist simultaneously in _dbs without interfering with each other.
 """
 import logging
 import os
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class RAGService:
 
     _instance = None
     _embedding_model = None
-    _dbs: Dict[int, object] = {}   # grade_int → Chroma object
+    _dbs: Dict[int, Any] = {}   # grade_int → Chroma object
     _model_initialized = False
 
     def __new__(cls):
@@ -78,12 +78,15 @@ class RAGService:
             logger.warning("⚠️ Could not load embedding model: %s. RAG will be disabled.", e)
             RAGService._model_initialized = True  # mark attempted, don't retry
 
-    def _get_db_for_grade(self, grade: int):
+    def _get_db_for_grade(self, grade: Optional[int]):
         """
         Return the Chroma collection for the given grade.
         Loads it from disk on the first call; returns cached object on subsequent calls.
         Returns None if the collection directory does not exist.
         """
+        if grade is None:
+            return None
+
         if grade in RAGService._dbs:
             return RAGService._dbs[grade]  # already loaded — instant return
 
@@ -147,7 +150,7 @@ class RAGService:
                 return True
         return False
 
-    def retrieve(self, query: str, grade: int = None, k: int = 5) -> list:
+    def retrieve(self, query: str, grade: Optional[int] = None, k: int = 5) -> list:
         """
         Retrieve relevant chunks from the collection of the specified grade.
 
