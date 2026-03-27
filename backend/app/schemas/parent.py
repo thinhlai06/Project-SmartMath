@@ -64,3 +64,9 @@ class WorksheetForParent(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class MarkWorksheetCompletedResponse(BaseModel):
+    worksheet_id: int
+    status: str
+    message: str

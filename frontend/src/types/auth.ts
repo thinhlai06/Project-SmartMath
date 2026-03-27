@@ -22,6 +22,12 @@ export interface RegisterRequest {
     role: UserRole;
 }
 
+export interface UpdateMeRequest {
+    full_name?: string;
+    current_password?: string;
+    new_password?: string;
+}
+
 export interface AuthResponse {
     access_token: string;
     token_type: string;

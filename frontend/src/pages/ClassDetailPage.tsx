@@ -12,6 +12,8 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { AnnouncementList } from '../components/AnnouncementList';
+import { useToast } from '@/components/ui/toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const TIER_CONFIG = {
     foundation: { label: 'Nền tảng', color: 'bg-green-100 text-green-700', icon: '🌱' },
@@ -21,6 +23,7 @@ const TIER_CONFIG = {
 };
 
 export function ClassDetailPage() {
+    const { toast } = useToast();
     const navigate = useNavigate();
     const { classId } = useParams<{ classId: string }>();
 
@@ -32,6 +35,9 @@ export function ClassDetailPage() {
     const [showAddStudent, setShowAddStudent] = useState(false);
     const [selectedTier, setSelectedTier] = useState<string>('all');
     const [copiedCode, setCopiedCode] = useState(false);
+    const [studentSkip, setStudentSkip] = useState(0);
+    const [worksheetSkip, setWorksheetSkip] = useState(0);
+    const pageLimit = 10;
 
     // New student form
     const [newStudent, setNewStudent] = useState<StudentCreate>({
@@ -46,7 +52,7 @@ export function ClassDetailPage() {
             fetchStudents();
             fetchWorksheets();
         }
-    }, [classId]);
+    }, [classId, studentSkip, worksheetSkip]);
 
     const fetchClassData = async () => {
         try {
@@ -54,6 +60,7 @@ export function ClassDetailPage() {
             setClassData(data);
         } catch (err) {
             setError('Không thể tải thông tin lớp học');
+            toast('Không thể tải thông tin lớp học', 'error');
             console.error(err);
         }
     };
@@ -61,11 +68,12 @@ export function ClassDetailPage() {
     const fetchStudents = async () => {
         try {
             setIsLoading(true);
-            const data = await studentApi.getStudents(Number(classId));
+            const data = await studentApi.getStudents(Number(classId), undefined, studentSkip, pageLimit);
             setStudents(data);
             setError(null);
         } catch (err) {
             setError('Không thể tải danh sách học sinh');
+            toast('Không thể tải danh sách học sinh', 'error');
             console.error(err);
         } finally {
             setIsLoading(false);
@@ -74,7 +82,7 @@ export function ClassDetailPage() {
 
     const fetchWorksheets = async () => {
         try {
-            const data = await worksheetApi.getWorksheets(Number(classId), 'published');
+            const data = await worksheetApi.getWorksheets(Number(classId), 'published', undefined, worksheetSkip, pageLimit);
             setPublishedWorksheets(data);
         } catch (err) {
             console.error('Error fetching worksheets:', err);
@@ -91,8 +99,10 @@ export function ClassDetailPage() {
             setStudents([...students, created]);
             setShowAddStudent(false);
             setNewStudent({ full_name: '', tier: 'standard' });
+            toast('Đã thêm học sinh mới', 'success');
         } catch (err) {
             setError('Không thể thêm học sinh');
+            toast('Không thể thêm học sinh', 'error');
             console.error(err);
         } finally {
             setIsAdding(false);
@@ -105,8 +115,10 @@ export function ClassDetailPage() {
         try {
             await studentApi.deleteStudent(studentId);
             setStudents(students.filter((s) => s.id !== studentId));
+            toast('Đã xóa học sinh', 'success');
         } catch (err) {
             setError('Không thể xóa học sinh');
+            toast('Không thể xóa học sinh', 'error');
             console.error(err);
         }
     };
@@ -118,8 +130,10 @@ export function ClassDetailPage() {
         try {
             const updated = await classApi.regenerateCode(classData.id);
             setClassData(updated);
+            toast('Đã tạo mã lớp mới', 'success');
         } catch (err) {
             setError('Không thể tạo mã mới');
+            toast('Không thể tạo mã lớp mới', 'error');
             console.error(err);
         }
     };
@@ -128,6 +142,7 @@ export function ClassDetailPage() {
         if (classData) {
             navigator.clipboard.writeText(classData.class_code);
             setCopiedCode(true);
+            toast('Đã sao chép mã lớp', 'success');
             setTimeout(() => setCopiedCode(false), 2000);
         }
     };
@@ -146,8 +161,15 @@ export function ClassDetailPage() {
 
     if (isLoading && !classData) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
-                <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin drop-shadow-sm" />
+            <div className="min-h-screen bg-slate-50 p-6">
+                <div className="mx-auto max-w-6xl space-y-6">
+                    <Skeleton className="h-12 w-72 rounded-xl" />
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                        {Array.from({ length: 4 }).map((_, index) => (
+                            <Skeleton key={index} className="h-32 rounded-3xl" />
+                        ))}
+                    </div>
+                </div>
             </div>
         );
     }
@@ -235,28 +257,34 @@ export function ClassDetailPage() {
                                 </Button>
                             </div>
                         ) : (
-                            <div className="space-y-2">
-                                {publishedWorksheets.map((ws) => (
-                                    <div
-                                        key={ws.id}
-                                        className="flex items-center justify-between p-4 bg-white/60 backdrop-blur-sm border border-emerald-100/50 rounded-2xl hover:bg-emerald-50 hover:shadow-soft transition-all cursor-pointer group"
-                                        onClick={() => navigate(`/worksheets/${ws.id}/edit`)}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 bg-emerald-100/80 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform">
-                                                <CheckCircle className="w-5 h-5 text-emerald-600 drop-shadow-sm" />
+                            <>
+                                <div className="space-y-2">
+                                    {publishedWorksheets.map((ws) => (
+                                        <div
+                                            key={ws.id}
+                                            className="flex items-center justify-between p-4 bg-white/60 backdrop-blur-sm border border-emerald-100/50 rounded-2xl hover:bg-emerald-50 hover:shadow-soft transition-all cursor-pointer group"
+                                            onClick={() => navigate(`/worksheets/${ws.id}/edit`)}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 bg-emerald-100/80 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                                                    <CheckCircle className="w-5 h-5 text-emerald-600 drop-shadow-sm" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-slate-800 group-hover:text-emerald-700 transition-colors cursor-pointer">{ws.title}</p>
+                                                    <p className="text-sm font-medium text-slate-500 mt-0.5">
+                                                        {ws.exercise_count} câu hỏi • <span className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{ws.worksheet_type === 'cpa' ? 'CPA' : 'Phân hóa'}</span>
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="font-bold text-slate-800 group-hover:text-emerald-700 transition-colors cursor-pointer">{ws.title}</p>
-                                                <p className="text-sm font-medium text-slate-500 mt-0.5">
-                                                    {ws.exercise_count} câu hỏi • <span className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{ws.worksheet_type === 'cpa' ? 'CPA' : 'Phân hóa'}</span>
-                                                </p>
-                                            </div>
+                                            <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">Đã xuất bản</Badge>
                                         </div>
-                                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">Đã xuất bản</Badge>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                                <div className="mt-4 flex items-center justify-end gap-2">
+                                    <Button variant="outline" size="sm" onClick={() => setWorksheetSkip((prev) => Math.max(0, prev - pageLimit))} disabled={worksheetSkip === 0}>Previous</Button>
+                                    <Button variant="outline" size="sm" onClick={() => setWorksheetSkip((prev) => prev + pageLimit)} disabled={publishedWorksheets.length < pageLimit}>Next</Button>
+                                </div>
+                            </>
                         )}
                     </CardContent>
                 </Card>
@@ -293,35 +321,41 @@ export function ClassDetailPage() {
                                 <p>Chưa có học sinh nào</p>
                             </div>
                         ) : (
-                            <div className="space-y-2">
-                                {filteredStudents.map((student) => (
-                                    <div
-                                        key={student.id}
-                                        className="flex items-center justify-between p-4 bg-white/60 backdrop-blur-sm border border-slate-100/50 rounded-2xl hover:bg-white hover:shadow-soft transition-all"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
-                                                <UserCircle className="w-6 h-6 text-indigo-400" />
+                            <>
+                                <div className="space-y-2">
+                                    {filteredStudents.map((student) => (
+                                        <div
+                                            key={student.id}
+                                            className="flex items-center justify-between p-4 bg-white/60 backdrop-blur-sm border border-slate-100/50 rounded-2xl hover:bg-white hover:shadow-soft transition-all"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                                                    <UserCircle className="w-6 h-6 text-indigo-400" />
+                                                </div>
+                                                <span className="font-bold text-slate-800">{student.full_name}</span>
+                                                <Badge className={`${TIER_CONFIG[student.tier as keyof typeof TIER_CONFIG]?.color || 'bg-slate-100'} hover:opacity-90 transition-opacity`}>
+                                                    {TIER_CONFIG[student.tier as keyof typeof TIER_CONFIG]?.label || student.tier}
+                                                </Badge>
                                             </div>
-                                            <span className="font-bold text-slate-800">{student.full_name}</span>
-                                            <Badge className={`${TIER_CONFIG[student.tier as keyof typeof TIER_CONFIG]?.color || 'bg-slate-100'} hover:opacity-90 transition-opacity`}>
-                                                {TIER_CONFIG[student.tier as keyof typeof TIER_CONFIG]?.label || student.tier}
-                                            </Badge>
+                                            <div className="flex items-center gap-1">
+                                                <button className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors">
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                                                    onClick={() => handleDeleteStudent(student.id)}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <button className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors">
-                                                <Edit2 className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                                                onClick={() => handleDeleteStudent(student.id)}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                                <div className="mt-4 flex items-center justify-end gap-2">
+                                    <Button variant="outline" size="sm" onClick={() => setStudentSkip((prev) => Math.max(0, prev - pageLimit))} disabled={studentSkip === 0}>Previous</Button>
+                                    <Button variant="outline" size="sm" onClick={() => setStudentSkip((prev) => prev + pageLimit)} disabled={students.length < pageLimit}>Next</Button>
+                                </div>
+                            </>
                         )}
                     </CardContent>
                 </Card>

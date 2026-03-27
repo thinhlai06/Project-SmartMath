@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { classApi } from '../services/classApi';
 import type { MathClass } from '../services/classApi';
-import { GraduationCap, BookOpen, BarChart3, FileDown, Camera, Users, ChevronRight } from 'lucide-react';
+import { GraduationCap, BookOpen, BarChart3, FileDown, Camera, Users, ChevronRight, Settings } from 'lucide-react';
 import { QuickActionCard } from '../components/dashboard/QuickActionCard';
 import { RecentActivityList } from '../components/dashboard/RecentActivityList';
 import { mockErrorStats } from '../mockData/mockErrorData';
@@ -195,11 +195,30 @@ function TeacherHome() {
                         <span className="font-extrabold text-xl tracking-tight text-slate-800">Smart-MathAI</span>
                     </div>
                     <div className="flex items-center gap-4 bg-white/50 px-4 py-2 rounded-xl border border-slate-100/50 shadow-sm">
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/settings')}
+                            className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold hover:bg-indigo-200 transition-colors"
+                            title="Cài đặt hồ sơ"
+                        >
                             {user?.full_name?.charAt(0) || 'GV'}
-                        </div>
-                        <span className="text-slate-700 font-medium font-sans">Cô {user?.full_name}</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/settings')}
+                            className="text-slate-700 font-medium font-sans hover:text-indigo-600 transition-colors"
+                        >
+                            Cô {user?.full_name}
+                        </button>
                         <div className="w-px h-6 bg-slate-200 mx-2"></div>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/settings')}
+                            className="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors"
+                        >
+                            <Settings className="w-4 h-4 mr-1" />
+                            Cài đặt
+                        </button>
                         <button
                             onClick={logout}
                             className="text-sm font-semibold text-slate-500 hover:text-red-500 transition-colors"

@@ -16,6 +16,7 @@ const baseAuthContext = {
   login: vi.fn(async () => undefined),
   logout: vi.fn(async () => undefined),
   register: vi.fn(async () => undefined),
+  refreshUser: vi.fn(async () => undefined),
 };
 
 function renderRoleGuard(allowedRole: 'teacher' | 'parent') {

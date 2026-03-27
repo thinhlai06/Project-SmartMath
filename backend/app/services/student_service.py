@@ -4,12 +4,18 @@ from typing import List, Optional
 from app.models.student import Student
 
 
-def get_students_by_class(db: Session, class_id: int, tier: Optional[str] = None) -> List[Student]:
+def get_students_by_class(
+    db: Session,
+    class_id: int,
+    tier: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 20,
+) -> List[Student]:
     """Get all students in a class, optionally filtered by tier."""
     query = db.query(Student).filter(Student.class_id == class_id)
     if tier:
         query = query.filter(Student.tier == tier)
-    return query.order_by(Student.full_name).all()
+    return query.order_by(Student.full_name).offset(skip).limit(limit).all()
 
 
 def get_student_by_id(db: Session, student_id: int) -> Optional[Student]:

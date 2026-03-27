@@ -35,7 +35,9 @@ def get_worksheets_by_class(
     db: Session,
     class_id: int,
     status: Optional[str] = None,
-    worksheet_type: Optional[str] = None
+    worksheet_type: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 20,
 ) -> List[Worksheet]:
     """Get all worksheets for a class with optional filters."""
     query = db.query(Worksheet).filter(Worksheet.class_id == class_id)
@@ -46,7 +48,13 @@ def get_worksheets_by_class(
     if worksheet_type:
         query = query.filter(Worksheet.worksheet_type == worksheet_type)
     
-    return query.order_by(Worksheet.created_at.desc()).all()
+    return (
+        query
+        .order_by(Worksheet.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 def get_worksheet_by_id(db: Session, worksheet_id: int) -> Optional[Worksheet]:

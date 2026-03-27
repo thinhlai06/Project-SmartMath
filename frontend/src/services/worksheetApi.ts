@@ -88,11 +88,15 @@ export const worksheetApi = {
     getWorksheets: async (
         classId: number,
         status?: WorksheetStatus,
-        worksheetType?: WorksheetType
+        worksheetType?: WorksheetType,
+        skip: number = 0,
+        limit: number = 20,
     ): Promise<Worksheet[]> => {
         const params = new URLSearchParams();
         if (status) params.append('status', status);
         if (worksheetType) params.append('worksheet_type', worksheetType);
+        params.append('skip', String(skip));
+        params.append('limit', String(limit));
 
         const response = await api.get<Worksheet[]>(
             `/classes/${classId}/worksheets?${params.toString()}`

@@ -35,7 +35,7 @@ describe('classApi service', () => {
 
     const classes = await classApi.getClasses();
 
-    expect(mockApi.get).toHaveBeenCalledWith('/classes');
+    expect(mockApi.get).toHaveBeenCalledWith('/classes', { params: { skip: 0, limit: 20 } });
     expect(classes).toHaveLength(1);
     expect(classes[0].class_name).toBe('3A');
   });

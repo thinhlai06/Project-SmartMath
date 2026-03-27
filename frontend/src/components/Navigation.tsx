@@ -114,6 +114,9 @@ export function Navigation() {
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
+                                    <Link to="/settings" className="cursor-pointer">Cài đặt hồ sơ</Link>
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={logout} className="text-red-600 cursor-pointer">
                                     <LogOut className="mr-2 h-4 w-4" />
                                     <span>Đăng xuất</span>

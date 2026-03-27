@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -33,6 +33,8 @@ def verify_class_ownership(db: Session, class_id: int, teacher_id: int) -> MathC
 async def list_students(
     class_id: int,
     tier: Optional[str] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_teacher),
     db: Session = Depends(get_db)
 ):
@@ -42,7 +44,7 @@ async def list_students(
     - **tier**: Lọc theo nhóm (foundation, standard, extension, advanced)
     """
     verify_class_ownership(db, class_id, current_user.id)
-    return student_service.get_students_by_class(db, class_id, tier)
+    return student_service.get_students_by_class(db, class_id, tier, skip=skip, limit=limit)
 
 
 @router.post("/classes/{class_id}/students", response_model=StudentResponse, status_code=status.HTTP_201_CREATED)

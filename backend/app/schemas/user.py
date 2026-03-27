@@ -34,3 +34,10 @@ class UserResponse(UserBase):
 class UserInDB(UserResponse):
     """User with password hash (internal use only)."""
     password_hash: str
+
+
+class UserUpdateMeRequest(BaseModel):
+    """Schema for updating current user profile and/or password."""
+    full_name: Optional[str] = None
+    current_password: Optional[str] = None
+    new_password: Optional[str] = None

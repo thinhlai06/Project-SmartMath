@@ -6,15 +6,25 @@ from app.models.announcement import Announcement
 from app.models.math_class import MathClass
 
 
-def get_announcements_by_class(db: Session, class_id: int) -> List[Announcement]:
+def get_announcements_by_class(
+    db: Session,
+    class_id: int,
+    skip: int = 0,
+    limit: int = 20,
+) -> List[Announcement]:
     """Get all announcements for a class."""
     math_class = db.query(MathClass).filter(MathClass.id == class_id).first()
     if not math_class:
         raise HTTPException(status_code=404, detail="Class not found")
         
-    return db.query(Announcement).filter(
-        Announcement.class_id == class_id
-    ).order_by(Announcement.created_at.desc()).all()
+    return (
+        db.query(Announcement)
+        .filter(Announcement.class_id == class_id)
+        .order_by(Announcement.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 def create_announcement(db: Session, teacher_id: int, class_id: int, title: str, content: str) -> Announcement:

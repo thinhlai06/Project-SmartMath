@@ -46,8 +46,8 @@ export interface MathTopic {
 // Class API
 export const classApi = {
     // Get all classes for the current teacher
-    getClasses: async (): Promise<MathClass[]> => {
-        const response = await api.get<MathClass[]>('/classes');
+    getClasses: async (skip: number = 0, limit: number = 20): Promise<MathClass[]> => {
+        const response = await api.get<MathClass[]>('/classes', { params: { skip, limit } });
         return response.data;
     },
 
@@ -84,8 +84,8 @@ export const classApi = {
 // Student API
 export const studentApi = {
     // Get all students in a class
-    getStudents: async (classId: number, tier?: string): Promise<Student[]> => {
-        const params = tier ? { tier } : {};
+    getStudents: async (classId: number, tier?: string, skip: number = 0, limit: number = 20): Promise<Student[]> => {
+        const params = tier ? { tier, skip, limit } : { skip, limit };
         const response = await api.get<Student[]>(`/classes/${classId}/students`, { params });
         return response.data;
     },
