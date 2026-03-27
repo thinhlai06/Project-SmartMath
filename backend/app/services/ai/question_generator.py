@@ -22,13 +22,21 @@ class QuestionGenerator:
         objective: str,
         counts: Dict[str, int] = None
     ) -> Dict:
-        """Generate CPA worksheet questions with RAG context."""
+        """Generate CPA worksheet questions with RAG patterns from SGK."""
         if counts is None:
             counts = {"concrete": 3, "pictorial": 3, "abstract": 3}
 
         # Retrieve SGK context
-        rag_results = self.rag.retrieve(f"{topic} {objective}", grade=grade, k=4)
-        rag_context = "\n".join([d.page_content[:500] for d in rag_results])
+        rag_results = self.rag.retrieve(f"{topic} {objective}", grade=grade, k=5)
+        
+        # Format RAG context as clear reference patterns (synchronized with differentiation)
+        rag_patterns = []
+        for i, doc in enumerate(rag_results, 1):
+            content = doc.page_content.strip()
+            source = doc.metadata.get('source_file', 'SGK')
+            rag_patterns.append(f"Mẫu {i} (Nguồn: {source}):\n{content}")
+        
+        rag_context = "\n\n".join(rag_patterns)
         rag_sources = list(set([d.metadata.get('source_file', '') for d in rag_results]))
 
         result = {"concrete": [], "pictorial": [], "abstract": [], "rag_sources": rag_sources}
@@ -39,10 +47,14 @@ class QuestionGenerator:
                 continue
 
             prompt = self._build_prompt(level, topic, grade, objective, count, rag_context)
-            system = "Bạn là AI giáo viên Toán tiểu học Việt Nam. Bắt buộc bám sát ngữ cảnh SGK được cung cấp và chỉ trả về JSON array hợp lệ."
+            system = (
+                "Bạn là chuyên gia giáo dục Toán tiểu học Việt Nam. "
+                "Nhiệm vụ của bạn là dựa trên cấu trúc các MẪU BÀI TẬP SGK để sinh bài mới "
+                "đáp ứng đúng tiêu chuẩn CPA (Cụ thể - Hình ảnh - Trừu tượng). Chỉ trả về JSON array."
+            )
 
-            logger.info("[AI] Generating %d %s questions...", count, level)
-            response = LMStudioService.generate(prompt, system=system, temperature=0.2)
+            logger.info("[AI] Generating %d %s questions (CPA Sync)...", count, level)
+            response = LMStudioService.generate(prompt, system=system, temperature=0.3)
             questions = self._parse_json(response)
             result[level] = questions
 
@@ -55,25 +67,37 @@ class QuestionGenerator:
         objective: str,
         tiers: List[str] = None
     ) -> Dict:
-        """Generate differentiated questions with RAG context."""
+        """Generate differentiated questions with RAG context used as structural patterns."""
         if not tiers:
             tiers = ["foundation", "standard", "extension", "advanced"]
 
         # Retrieve SGK context
-        rag_results = self.rag.retrieve(f"{topic} {objective}", grade=grade, k=4)
-        rag_context = "\n".join([d.page_content[:500] for d in rag_results])
+        rag_results = self.rag.retrieve(f"{topic} {objective}", grade=grade, k=5)
+        
+        # Format RAG context as clear reference patterns
+        rag_patterns = []
+        for i, doc in enumerate(rag_results, 1):
+            content = doc.page_content.strip()
+            source = doc.metadata.get('source_file', 'SGK')
+            rag_patterns.append(f"Mẫu {i} (Nguồn: {source}):\n{content}")
+        
+        rag_context = "\n\n".join(rag_patterns)
         rag_sources = list(set([d.metadata.get('source_file', '') for d in rag_results]))
 
         result = {"content": {}, "rag_sources": rag_sources}
 
         for tier in tiers:
-            # Generate 2 questions per tier for now
+            # Generate 2 questions per tier
             count = 2
             prompt = self._build_differentiation_prompt(tier, topic, grade, objective, count, rag_context)
-            system = "Bạn là AI giáo viên Toán tiểu học Việt Nam. Bắt buộc bám sát ngữ cảnh SGK được cung cấp và chỉ trả về JSON array hợp lệ."
+            system = (
+                "Bạn là chuyên gia giáo dục Toán tiểu học Việt Nam. "
+                "Nhiệm vụ của bạn là dựa trên các MẪU BÀI TẬP SGK được cung cấp để sinh bài tập mới "
+                "theo đúng phong cách, từ vựng và độ khó yêu cầu. Chỉ trả về JSON array."
+            )
             
-            logger.info("[AI] Generating %d %s questions...", count, tier)
-            response = LMStudioService.generate(prompt, system=system, temperature=0.2)
+            logger.info("[AI] Generating %d %s questions (Refined RAG)...", count, tier)
+            response = LMStudioService.generate(prompt, system=system, temperature=0.3)
             questions = self._parse_json(response)
             result["content"][tier] = questions
 
@@ -97,68 +121,68 @@ class QuestionGenerator:
 
         grade_rule_map = {
             1: {
-                "limit": "Chỉ 1 bước, số nhỏ, không suy luận phức tạp.",
-                "forbidden": "Không nhân/chia, không phân số/thập phân/phần trăm, không câu đố mẹo.",
+                "limit": "Số trong phạm vi 10, 20 hoặc 100 (tùy bài). Không quá 1 bước tính.",
+                "forbidden": "Không nhân/chia, không phân số, không số thập phân.",
                 "tiers": {
                     "foundation": {
-                        "must": "Phép tính trực tiếp hoặc nhận dạng số, cực cơ bản.",
-                        "language": "Dùng từ: tính, điền số, số nào, bao nhiêu.",
+                        "must": "Nhìn hình đếm số hoặc phép tính cộng/trừ 1 bước cực đơn giản.",
+                        "transformation": "Dùng ngữ cảnh bài mẫu nhưng đơn giản hóa tối đa câu chữ.",
                     },
                     "standard": {
-                        "must": "Bài toán lời văn rất ngắn (1 câu) với thêm/bớt/còn lại.",
-                        "language": "Dùng từ: có, thêm, bớt, còn, tất cả, cho thêm, lấy đi.",
+                        "must": "Bài toán lời văn 1 bước (thêm/bớt/tất cả).",
+                        "transformation": "Giữ nguyên độ khó bài mẫu, chỉ thay đổi số và đối tượng (VD: táo -> cam).",
                     },
                     "extension": {
-                        "must": "Tình huống quen thuộc (kẹo, bút, bạn bè), học sinh tự chọn phép tính.",
-                        "language": "Dùng từ: trong hộp, trên bàn, của bạn, nhiều hơn, ít hơn.",
+                        "must": "Bài toán yêu cầu suy luận nhẹ (nhiều hơn/ít hơn).",
+                        "transformation": "Dựa trên bài mẫu, thêm một dữ kiện so sánh (nhiều hơn/ít hơn).",
                     },
                     "advanced": {
-                        "must": "Tìm số chưa biết đơn giản hoặc suy luận nhẹ, vẫn không quá 1 bước.",
-                        "language": "Dùng từ: lúc đầu, sau đó, còn lại, hỏi ban đầu có bao nhiêu.",
+                        "must": "Bài toán tìm số chưa biết hoặc logic đơn giản.",
+                        "transformation": "Đảo ngược câu hỏi của bài mẫu (VD: cho biết tổng và 1 số, tìm số còn lại).",
                     },
                 },
             },
             2: {
-                "limit": "Có thể 1-2 bước nhẹ, số 2 chữ số, có thể dùng nhân/chia cơ bản.",
-                "forbidden": "Không kiến thức lớp trên, không câu dài rối, không đánh đố.",
+                "limit": "Phạm vi 1000. Phép nhân/chia bảng 2-5. Có thể 2 bước tính.",
+                "forbidden": "Không phân số, không số thập phân, không kiến thức lớp 3.",
                 "tiers": {
                     "foundation": {
-                        "must": "Tính toán trực tiếp.",
-                        "language": "Dùng từ: tính, đặt tính, kết quả.",
+                        "must": "Tính nhẩm hoặc đặt tính rồi tính trực tiếp.",
+                        "transformation": "Lấy phép tính lõi từ bài mẫu, bỏ phần lời văn phức tạp.",
                     },
                     "standard": {
-                        "must": "Hiểu khi nào dùng +, -, x, : trong ngữ cảnh đơn giản.",
-                        "language": "Dùng từ: mỗi, chia đều, gấp, tất cả, mỗi nhóm, mỗi bạn.",
+                        "must": "Bài toán lời văn 1-2 bước quen thuộc.",
+                        "transformation": "Tạo bài tương đương hoàn toàn với bài mẫu về cấu trúc.",
                     },
                     "extension": {
-                        "must": "Bài toán thực tế, có thể 2 bước nhẹ, có chọn phép tính.",
-                        "language": "Dùng từ: cửa hàng, mua, bán, còn lại, tổng cộng, sau khi, rồi.",
+                        "must": "Bài toán kết hợp cộng/trừ và nhân/chia cơ bản.",
+                        "transformation": "Kết hợp hai ý từ các bài mẫu khác nhau thành một bài toán 2 bước.",
                     },
                     "advanced": {
-                        "must": "Bài toán 2 bước có suy luận hoặc tìm ngược, không đánh đố.",
-                        "language": "Dùng từ: ban đầu, sau đó, biết rằng, hỏi lúc đầu.",
+                        "must": "Bài toán giải bằng 2 bước có suy luận gián tiếp.",
+                        "transformation": "Phát triển bài mẫu thành tình huống thực tế phức tạp hơn (VD: mua sắm có thối tiền).",
                     },
                 },
             },
             3: {
-                "limit": "2-3 bước, số lớn hơn, logic rõ ràng.",
-                "forbidden": "Không vượt kiến thức lớp 3, không bối cảnh phức tạp.",
+                "limit": "Phạm vi 100.000. Nhân/chia số có nhiều chữ số. 2-3 bước tính.",
+                "forbidden": "Không số thập phân, không hình học THCS.",
                 "tiers": {
                     "foundation": {
-                        "must": "Tính toán trực tiếp (nhân/chia/cộng/trừ).",
-                        "language": "Dùng từ: tính, tìm kết quả.",
+                        "must": "Thực hiện phép tính cơ bản hoặc nhận diện hình học/đơn vị đo.",
+                        "transformation": "Rút gọn bài mẫu thành dạng kiểm tra kiến thức nền tảng.",
                     },
                     "standard": {
-                        "must": "Hiểu bản chất bài toán, có thể có lời văn vừa phải.",
-                        "language": "Dùng từ: gấp, giảm, nhiều hơn, ít hơn, bằng.",
+                        "must": "Giải bài toán có lời văn 2 bước tính.",
+                        "transformation": "Tạo bài mới cùng dạng bài mẫu (VD: rút về đơn vị, tính chu vi).",
                     },
                     "extension": {
-                        "must": "Bài toán thực tế 2-3 bước, có kế hoạch giải rõ ràng.",
-                        "language": "Dùng từ: tổng cộng, còn lại, mỗi, chia đều, sau khi, tiếp tục.",
+                        "must": "Bài toán tổng hợp 2-3 bước, có dữ kiện cần xử lý trước.",
+                        "transformation": "Tăng độ phức tạp của bài mẫu bằng cách thêm đơn vị đo khác nhau cần đổi.",
                     },
                     "advanced": {
-                        "must": "Bài nhiều bước có suy luận, có thể có dữ kiện gián tiếp.",
-                        "language": "Dùng từ: hơn kém, gấp ... lần, biết rằng, nếu ... thì, tìm số ban đầu.",
+                        "must": "Bài toán tư duy, tìm quy luật hoặc giải toán bằng cách lập luận.",
+                        "transformation": "Biến bài mẫu thành bài toán thử thách, yêu cầu lập luận logic chặt chẽ.",
                     },
                 },
             },
@@ -168,57 +192,33 @@ class QuestionGenerator:
         tier_cfg = grade_cfg["tiers"].get(tier, grade_cfg["tiers"]["foundation"])
 
         rag_context = (context or "").strip()
-        if not rag_context:
-            rag_context = "Không có ngữ cảnh SGK cụ thể. Chỉ sinh bài cơ bản, đúng chuẩn lớp, không mở rộng nội dung."
+        if not rag_context or "Không tìm thấy" in rag_context:
+            rag_context = "Dùng kiến thức chuẩn SGK lớp %s. Sinh bài cơ bản, mẫu mực." % grade
 
-        return f"""SYSTEM RULE: SINH BAI TOAN PHAN HOA CHO LOP 1-3
+        return f"""NHIỆM VỤ: Sinh {count} bài toán phân hóa mức độ "{tier_label}" cho Lớp {grade}.
 
-MUC TIEU:
-- Tao dung {count} cau hoi cho mon Toan tieu hoc.
-- Chu de: {topic}
-- Muc tieu bai hoc: {objective}
-- Lop: {grade}
-- Muc do tu duy: {tier_label}
+CHỦ ĐỀ: {topic}
+MỤC TIÊU: {objective}
 
-NGUYEN TAC BAT BUOC:
-1) Dung trinh do lop.
-2) Dung muc do tu duy.
-3) Khong vuot chuong trinh.
+DANH SÁCH MẪU BÀI TẬP TỪ SGK (DÙNG LÀM KHUÔN MẪU):
+{rag_context}
 
-RANG BUOC RIENG CHO LOP {grade}:
-- Gioi han: {grade_cfg['limit']}
-- Cam: {grade_cfg['forbidden']}
+YÊU CẦU PHÂN HÓA MỨC ĐỘ "{tier_label}":
+- Đặc điểm: {tier_cfg['must']}
+- Cách biến đổi từ mẫu SGK: {tier_cfg['transformation']}
 
-RANG BUOC RIENG CHO MUC DO {tier_label}:
-- Bat buoc sinh: {tier_cfg['must']}
-- Ngu ngon uu tien: {tier_cfg['language']}
+QUY TẮC NGÔN NGỮ & KIẾN THỨC (LỚP {grade}):
+- Giới hạn: {grade_cfg['limit']}
+- Cấm: {grade_cfg['forbidden']}
+- Văn phong: Giống hệt sách giáo khoa (ngắn gọn, trong sáng, dùng từ gần gũi: kẹo, bi, bạn Lan, nhà em...).
+- Tuyệt đối không dùng từ Hán Việt khó hiểu hoặc cách đặt câu phức tạp.
 
-QUY TAC NGON NGU BAT BUOC:
-- Cau ngan, de hieu, toi da 2 dong/cau hoi.
-- Ngu canh doi thuong: lop hoc, gia dinh, cua hang.
-- Tu vung than quen: keo, but, sach, qua, ban, hoc sinh.
-- KHONG dung tu kho: "gia su", "suy ra", "chung minh".
-- KHONG dung cau dai nhieu menh de.
+ĐỊNH DẠNG ĐẦU RA:
+- Trả về JSON array: [{{"question": "...", "answer": "...", "hint": "..."}}]
+- Không kèm bất kỳ lời giải thích nào ngoài JSON.
 
-NGU CANH SGK (BAT BUOC BAM SAT):
-{rag_context[:1600]}
-
-DINH DANG DAU RA BAT BUOC:
-- Chi tra ve JSON array hop le.
-- Moi phan tu gom dung 3 truong: question, answer, hint.
-- Khong markdown, khong giai thich ngoai JSON.
-
-Mau:
-[
-  {{"question": "...", "answer": "...", "hint": "..."}}
-]
-
-Tu kiem tra truoc khi tra ve:
-- Dung {count} cau.
-- Dung lop {grade}.
-- Dung muc do {tier_label}.
-- Khong vuot chuong trinh.
-- JSON parse duoc.
+HƯỚNG DẪN SINH BÀI:
+Hãy chọn một cấu trúc bài trong phần "DANH SÁCH MẪU" rồi thực hiện "Cách biến đổi" để tạo ra bài mới cho mức độ {tier_label}. Đảm bảo bài sinh ra tự nhiên như trong sách bài tập.
 """
 
     def _build_prompt(self, level: str, topic: str, grade: int, objective: str, count: int, context: str) -> str:
@@ -268,10 +268,11 @@ Tu kiem tra truoc khi tra ve:
         )
 
         rag_context = (context or "").strip()
-        if not rag_context:
-            rag_context = "Không tìm thấy ngữ cảnh SGK cụ thể. Tự động sinh dựa trên kiến thức chuẩn Tiểu học Bộ GDĐT."
+        if not rag_context or "Không tìm thấy" in rag_context:
+            rag_context = "Dùng kiến thức chuẩn SGK lớp %s. Tự động sinh dựa trên kiến thức chuẩn Tiểu học Bộ GDĐT." % grade
 
         # Template ví dụ động (Dynamic Few-shot Example) theo Khối lớp và Phép tính
+        topic_lower = topic.lower()
         ex_num1, ex_num2 = (8, 3) if grade == 1 else ((45, 23) if grade == 2 else (150, 25))
         ex_obj = "quả táo" if grade == 1 else ("viên bi" if grade == 2 else "quyển vở")
         
@@ -310,28 +311,34 @@ Tu kiem tra truoc khi tra ve:
 
         example = f'[{{"question": "{ex_q}", "answer": "{ex_a}", "hint": "{ex_h}"}}]'
 
-        return f"""Bạn là Giáo viên Toán Tiểu học Việt Nam xuất sắc. Nhiệm vụ của bạn là VIẾT ĐỀ BÀI TẬP trực tiếp, KHÔNG đưa ra hướng dẫn hay mô tả.
+        return f"""NHIỆM VỤ: Sinh {count} bài toán dạng {desc} cho Lớp {grade}.
 
-HÃY ĐÓNG VAI LÀ NGƯỜI RA ĐỀ, viết thẳng nội dung {count} câu hỏi dưới dạng JSON.
-- Cấp lớp: Lớp {grade}.
-- Dạng bài: {desc}.
-- Chủ đề: {topic}. Mục tiêu: {objective}.
+CHỦ ĐỀ: {topic}
+MỤC TIÊU: {objective}
 
-Quy tắc Bắt buộc:
+DANH SÁCH MẪU BÀI TẬP TỪ SGK (DÙNG ĐỂ HỌC TẬP CẤU TRÚC):
+{rag_context}
+
+TIÊU CHUẨN CPA RIÊNG CHO BÀI NÀY:
+- {desc}
+
+QUY TẮC BẮT BUỘC:
 - {operator_rule}
 - {positive_rule}
 - {negative_rule}
-- KHÔNG chen chữ ngoài JSON. KHÔNG nói "Đây là câu hỏi...". Chỉ trả về duy nhất 1 array JSON.
+- Văn phong: Ngắn gọn, trong sáng, đúng kiểu SGK Việt Nam. Không giải thích bên ngoài JSON.
 
-Nội dung tham khảo (Bắt chước phong cách này):
-{rag_context[:1000]}
-
-MẪU VÍ DỤ PHẢI HỌC THEO VỀ MẶT CẤU TRÚC JSON (Ví dụ này là bài mô phỏng, hãy tự tạo bài mới của bạn):
+MẪU VÍ DỤ PHẢI HỌC THEO VỀ MẶT CẤU TRÚC JSON:
 ```json
 {example}
 ```
 
-Hãy trích xuất / sinh ra đúng {count} câu hỏi theo MẪU VÍ DỤ trên:
+HƯỚNG DẪN SINH:
+Dựa trên phong cách ngôn ngữ và bối cảnh (context) từ DANH SÁCH MẪU SGK bên trên, hãy tạo ra {count} bài mới phù hợp với mục tiêu {objective} và tiêu chuẩn {desc}. 
+Đảm bảo bài toán tự nhiên, gần gũi như trong sách giáo khoa Lớp {grade}.
+
+ĐỊNH DẠNG ĐẦU RA:
+JSON array duy nhất: [{{"question": "...", "answer": "...", "hint": "..."}}]
 """
 
     def _parse_json(self, text: str) -> List[Dict]:
