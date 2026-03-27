@@ -15,6 +15,7 @@ export type { MathClass, Student, MathTopic } from './class';
 
 export type {
     GradeResult, GradingResponse,
+    OCRToken, ExerciseExplanationResponse,
     WeakTopic, StudentPerformance, MistakePattern,
     AnalyticsResponse, AIStatusResponse, GradingReport
 } from './ai';

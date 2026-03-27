@@ -19,7 +19,10 @@ class GradingService:
         """
         # 1. OCR Extraction
         try:
-            raw_text = self.ocr.recognize(image_content)
+            ocr_payload = self.ocr.recognize_with_confidence(image_content)
+            raw_text = str(ocr_payload.get("raw_text", "")).strip()
+            ocr_tokens = ocr_payload.get("tokens", []) if isinstance(ocr_payload.get("tokens", []), list) else []
+            ocr_avg_confidence = float(ocr_payload.get("avg_confidence", 0.0) or 0.0)
         except Exception as e:
             logger.error(f"OCR failed: {e}")
             import traceback
@@ -49,6 +52,7 @@ class GradingService:
                 # Default 10 points per question if not specified
                 points = expected.get('points', 10)
                 score = points if is_correct else 0
+                answer_confidence, low_conf_tokens = self._estimate_answer_confidence(student_ans, ocr_tokens, ocr_avg_confidence)
                 
                 results.append({
                     "question_id": str(q_id),
@@ -56,7 +60,9 @@ class GradingService:
                     "correct_answer": expected['answer'],
                     "is_correct": is_correct,
                     "score": score,
-                    "max_score": points
+                    "max_score": points,
+                    "ocr_confidence": answer_confidence,
+                    "low_confidence_tokens": low_conf_tokens,
                 })
                 total_score += score
                 total_max_score += points
@@ -66,13 +72,15 @@ class GradingService:
                 "max_score": total_max_score,
                 "results": results,
                 "raw_text": raw_text,
-                "extracted_json": extracted_answers
+                "extracted_json": extracted_answers,
+                "ocr_tokens": ocr_tokens,
+                "ocr_avg_confidence": ocr_avg_confidence,
             }
         else:
             # Auto-Solve Path
-            return self._grade_without_key(raw_text)
+            return self._grade_without_key(raw_text, ocr_tokens, ocr_avg_confidence)
 
-    def _grade_without_key(self, text: str) -> Dict[str, Any]:
+    def _grade_without_key(self, text: str, ocr_tokens: List[Dict[str, Any]], ocr_avg_confidence: float) -> Dict[str, Any]:
         """
         Ask LLM to identify questions, solve them, and grade the student.
         """
@@ -112,16 +120,30 @@ CHỈ TRẢ VỀ JSON, KHÔNG CÓ TEXT KHÁC."""
             clean = re.sub(r"```json|```", "", response).strip()
             # Try to fix partial JSON if needed, but for now expect valid JSON
             results = json.loads(clean)
+
+            normalized_results = []
+            for item in results:
+                student_answer = str(item.get("student_answer", "")).strip()
+                answer_confidence, low_conf_tokens = self._estimate_answer_confidence(
+                    student_answer,
+                    ocr_tokens,
+                    ocr_avg_confidence,
+                )
+                item["ocr_confidence"] = answer_confidence
+                item["low_confidence_tokens"] = low_conf_tokens
+                normalized_results.append(item)
             
-            total_score = sum(item.get('score', 0) for item in results)
-            total_max_score = sum(item.get('max_score', 10) for item in results)
+            total_score = sum(item.get('score', 0) for item in normalized_results)
+            total_max_score = sum(item.get('max_score', 10) for item in normalized_results)
             
             return {
                 "total_score": total_score,
                 "max_score": total_max_score,
-                "results": results,
+                "results": normalized_results,
                 "raw_text": text,
-                "extracted_json": {str(r['question_id']): r['student_answer'] for r in results}
+                "extracted_json": {str(r['question_id']): r['student_answer'] for r in normalized_results},
+                "ocr_tokens": ocr_tokens,
+                "ocr_avg_confidence": ocr_avg_confidence,
             }
         except Exception as e:
             logger.error(f"Auto-grading failed: {e}")
@@ -177,3 +199,36 @@ CHỈ TRẢ VỀ JSON."""
         except Exception as e:
             logger.error(f"LLM Parsing failed: {e}")
             return {}
+
+    def _estimate_answer_confidence(
+        self,
+        student_answer: str,
+        ocr_tokens: List[Dict[str, Any]],
+        fallback_confidence: float,
+    ) -> tuple[float, List[Dict[str, Any]]]:
+        answer = (student_answer or "").strip().lower()
+        if not answer:
+            return round(fallback_confidence * 100, 1), []
+
+        answer_terms = [term for term in re.split(r"\s+", answer) if term]
+        matched: List[Dict[str, Any]] = []
+
+        if answer_terms:
+            for token in ocr_tokens:
+                token_text = str(token.get("text", "")).strip().lower()
+                if not token_text:
+                    continue
+                if any(term in token_text or token_text in term for term in answer_terms):
+                    try:
+                        confidence = float(token.get("confidence", 0.0) or 0.0)
+                    except (TypeError, ValueError):
+                        confidence = 0.0
+                    confidence = max(0.0, min(1.0, confidence))
+                    matched.append({"text": token.get("text", ""), "confidence": round(confidence * 100, 1)})
+
+        if not matched:
+            return round(fallback_confidence * 100, 1), []
+
+        avg = sum(item["confidence"] for item in matched) / len(matched)
+        low_tokens = [item for item in matched if item["confidence"] < 85.0]
+        return round(avg, 1), low_tokens

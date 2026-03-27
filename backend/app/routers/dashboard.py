@@ -34,7 +34,7 @@ async def get_dashboard_stats(
     ).count()
     
     # Get all class IDs for this teacher
-    class_ids = [c.id for c in db.query(MathClass.id).filter(
+    class_ids = [c.id for c in db.query(MathClass).filter(
         MathClass.teacher_id == current_user.id
     ).all()]
     
@@ -65,7 +65,7 @@ async def get_dashboard_stats(
         score_values = []
         for progress in progress_rows:
             if progress.total_count and progress.total_count > 0:
-                score_values.append((progress.correct_count / progress.total_count) * 10)
+                score_values.append(((progress.correct_count or 0) / progress.total_count) * 10)
 
         if score_values:
             avg_score = round(sum(score_values) / len(score_values), 1)

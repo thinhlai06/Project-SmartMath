@@ -24,10 +24,15 @@ from app.schemas.ai import (
     DifferentiationRequest,
     DifferentiationResponse,
     GradeImageResponse,
-    ClassAnalyticsResponse
+    ClassAnalyticsResponse,
+    ExerciseExplanationRequest,
+    ExerciseExplanationResponse,
 )
 from app.services.ai.analytics_service import AnalyticsService
 import json
+from app.models.worksheet_exercise import WorksheetExercise
+from app.models.worksheet import Worksheet
+from app.models.math_class import MathClass
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
@@ -144,6 +149,59 @@ async def get_class_analytics(
     """Get error analytics for a specific class (Teacher only)."""
     service = AnalyticsService(db)
     return service.analyze_class_errors(class_id)
+
+
+@router.post("/exercises/{exercise_id}/explanation", response_model=ExerciseExplanationResponse)
+async def generate_exercise_explanation(
+    exercise_id: int,
+    request: ExerciseExplanationRequest,
+    db: Session = Depends(get_db),
+    teacher: User = Depends(get_current_teacher),
+):
+    """Generate step-by-step explanation for one exercise (Teacher only)."""
+    exercise = db.query(WorksheetExercise).filter(WorksheetExercise.id == exercise_id).first()
+    if not exercise:
+        raise HTTPException(status_code=404, detail="Không tìm thấy câu hỏi")
+
+    worksheet = db.query(Worksheet).filter(Worksheet.id == exercise.worksheet_id).first()
+    if not worksheet:
+        raise HTTPException(status_code=404, detail="Không tìm thấy bài tập")
+
+    owned_class = db.query(MathClass).filter(
+        MathClass.id == worksheet.class_id,
+        MathClass.teacher_id == teacher.id,
+    ).first()
+    if not owned_class:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền truy cập câu hỏi này")
+
+    style = (request.response_style or "ngan gon").strip()
+    student_answer = (request.student_answer or "").strip()
+    prompt = f"""Ban la giao vien Toan tieu hoc Viet Nam.
+Hay giai thich tung buoc ro rang, de hieu cho hoc sinh lop {worksheet.grade}.
+
+Thong tin cau hoi:
+- Cau hoi: {exercise.question}
+- Dap an dung: {exercise.answer or 'Khong co dap an mau'}
+- Goi y co san: {exercise.hint or 'Khong co'}
+- Cau tra loi cua hoc sinh (neu co): {student_answer or 'Khong co'}
+
+Yeu cau dau ra:
+- Viet bang tieng Viet de hieu.
+- Tach thanh cac buoc danh so 1,2,3...
+- Neu co sai sot pho bien, nhac nhe cach tranh sai.
+- Do dai muc tieu: {style}.
+"""
+
+    try:
+        explanation = LMStudioService.generate(
+            prompt=prompt,
+            system="Ban la tro ly su pham, giai thich ngan gon, chinh xac, phu hop hoc sinh tieu hoc.",
+            temperature=0.2,
+        ).strip()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Khong the tao giai thich AI: {exc}") from exc
+
+    return ExerciseExplanationResponse(exercise_id=exercise.id, explanation=explanation)
 
 
 # === Grading Report Endpoints ===

@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 # --- SỬA LỖI: Dùng thư viện mới langchain_text_splitters ---
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -15,6 +16,75 @@ DB_PATH = os.path.join(PROJECT_ROOT, "vector_db")
 # Các từ khóa nhận diện
 KNOWN_PUBLISHERS = ["CanhDieu", "KetNoiTriThuc", "ChanTroiSangTao"]
 KNOWN_TYPES = ["SGK", "SGV", "SBT"]
+
+# Marker mở đầu một bài/ý mới trong SGK-SBT-SGV.
+SEMANTIC_MARKER_PATTERN = re.compile(
+    r"^(bài\s*\d+|bài\s+tập|ví\s*dụ|hoạt\s*động|luyện\s*tập|thực\s*hành|câu\s*\d+|\d+[\).:]|bước\s*\d+)",
+    re.IGNORECASE,
+)
+
+
+def normalize_extracted_text(text: str) -> str:
+    """Normalize extracted markdown/text before chunking."""
+    if not text:
+        return ""
+
+    # Remove markdown fences that create noisy standalone chunks.
+    text = text.replace("```", " ")
+
+    # Keep paragraph boundaries but normalize repeated whitespace.
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    lines = [line.strip() for line in text.split("\n")]
+    text = "\n".join(line for line in lines if line)
+    return text.strip()
+
+
+def merge_small_chunks(chunks, min_words=60, target_words=180):
+    """Merge consecutive small chunks from the same source into richer context blocks."""
+    merged = []
+    buffer_text = ""
+    buffer_meta = None
+
+    def flush_buffer():
+        nonlocal buffer_text, buffer_meta
+        if buffer_text and buffer_meta:
+            merged.append(Document(page_content=buffer_text.strip(), metadata=buffer_meta))
+        buffer_text = ""
+        buffer_meta = None
+
+    for chunk in chunks:
+        text = normalize_extracted_text(chunk.page_content)
+        if not text:
+            continue
+
+        words = len(text.split())
+        same_source = (
+            buffer_meta is not None
+            and chunk.metadata.get("source_file") == buffer_meta.get("source_file")
+            and chunk.metadata.get("grade") == buffer_meta.get("grade")
+            and chunk.metadata.get("publisher") == buffer_meta.get("publisher")
+            and chunk.metadata.get("book_type") == buffer_meta.get("book_type")
+            and chunk.metadata.get("semantic_block") == buffer_meta.get("semantic_block")
+        )
+
+        if buffer_text:
+            # If the buffer is still short and we are in the same source, keep aggregating.
+            if len(buffer_text.split()) < min_words and same_source:
+                buffer_text = f"{buffer_text}\n{text}"
+                if len(buffer_text.split()) >= target_words:
+                    flush_buffer()
+                continue
+
+            flush_buffer()
+
+        if words < min_words:
+            buffer_text = text
+            buffer_meta = dict(chunk.metadata)
+        else:
+            merged.append(Document(page_content=text, metadata=chunk.metadata))
+
+    flush_buffer()
+    return merged
 
 def get_metadata_from_path(file_path):
     path_parts = file_path.split(os.sep)
@@ -39,6 +109,82 @@ def get_metadata_from_path(file_path):
             metadata["book_type"] = b_type
             break
     return metadata
+
+
+def split_into_semantic_blocks(text: str, min_words_per_block=90):
+    """Split text into exercise-aware semantic blocks.
+
+    We start a new block when typical exercise markers appear. This helps keep
+    full problem statements together before technical chunking.
+    """
+    if not text:
+        return []
+
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+    if not lines:
+        return []
+
+    blocks = []
+    current = []
+
+    def word_count(parts):
+        return len(" ".join(parts).split())
+
+    for line in lines:
+        is_marker = bool(SEMANTIC_MARKER_PATTERN.match(line.lower()))
+        if is_marker and current and word_count(current) >= min_words_per_block:
+            blocks.append("\n".join(current).strip())
+            current = [line]
+            continue
+
+        current.append(line)
+
+    if current:
+        blocks.append("\n".join(current).strip())
+
+    return blocks
+
+
+def build_reference_docs(documents):
+    """Build reference-friendly docs that preserve full exercise context."""
+    semantic_docs = []
+
+    for doc in documents:
+        blocks = split_into_semantic_blocks(doc.page_content, min_words_per_block=90)
+        if not blocks:
+            blocks = [doc.page_content]
+
+        for idx, block in enumerate(blocks, start=1):
+            block_text = normalize_extracted_text(block)
+            if not block_text:
+                continue
+
+            semantic_docs.append(
+                Document(
+                    page_content=block_text,
+                    metadata={
+                        **doc.metadata,
+                        "semantic_block": idx,
+                    },
+                )
+            )
+
+    # Only split oversized blocks to avoid breaking full exercises unnecessarily.
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=2200,
+        chunk_overlap=350,
+        separators=["\n\n", "\n", ". ", "? ", "! ", "; ", ", ", " ", ""],
+    )
+
+    split_docs = []
+    for doc in semantic_docs:
+        if len(doc.page_content.split()) > 360:
+            split_docs.extend(splitter.split_documents([doc]))
+        else:
+            split_docs.append(doc)
+
+    # Merge any remaining fragments that are too small.
+    return merge_small_chunks(split_docs, min_words=100, target_words=220)
 
 def ingest_data():
     print("🚀 Bắt đầu nạp dữ liệu (Version: pymupdf4llm)...")
@@ -72,25 +218,22 @@ def ingest_data():
                         print(f"📖 Đọc: {filename} \t| {meta['grade']} - {meta['publisher']} - {meta['book_type']}")
                         
                         if use_llm_extractor:
-                            # Sử dụng pymupdf4llm để extract markdown (tốt hơn cho LLM)
+                            # Sử dụng pymupdf4llm để extract markdown (tốt hơn cho LLM).
+                            # Quan trọng: không chia nhỏ sớm theo section để tránh tạo chunk quá ngắn.
                             md_text = pymupdf4llm.to_markdown(file_path)
-                            
-                            if md_text and md_text.strip():
-                                # Chia nhỏ theo sections
-                                sections = md_text.split('\n\n')
-                                for i, section in enumerate(sections):
-                                    section = section.strip()
-                                    if len(section) > 50:  # Bỏ qua sections quá ngắn
-                                        doc_obj = Document(
-                                            page_content=section,
-                                            metadata={
-                                                **meta,
-                                                'source_file': filename,
-                                                'section': i + 1
-                                            }
-                                        )
-                                        documents.append(doc_obj)
-                                        total_pages_with_text += 1
+
+                            normalized_text = normalize_extracted_text(md_text)
+                            if normalized_text:
+                                doc_obj = Document(
+                                    page_content=normalized_text,
+                                    metadata={
+                                        **meta,
+                                        'source_file': filename,
+                                        'section': 1
+                                    }
+                                )
+                                documents.append(doc_obj)
+                                total_pages_with_text += 1
                         else:
                             # Fallback: dùng fitz trực tiếp
                             import fitz
@@ -129,14 +272,8 @@ def ingest_data():
 
     print(f"\n📦 Đang chia nhỏ {len(documents)} documents...")
 
-    # --- SỬ DỤNG CLASS TỪ GÓI MỚI ---
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800,
-        chunk_overlap=150,
-        separators=["\n\n", "\n", ".", " ", ""]
-    )
-    chunks = text_splitter.split_documents(documents)
-    print(f"🧩 Số lượng chunks: {len(chunks)}")
+    chunks = build_reference_docs(documents)
+    print(f"✅ Chunks semantic cho reference: {len(chunks)}")
 
     if len(chunks) == 0:
         print("❌ Không có chunks nào được tạo.")

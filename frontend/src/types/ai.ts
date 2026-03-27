@@ -11,6 +11,13 @@ export interface GradeResult {
     question_type?: string;
     reasoning?: string;
     feedback?: string;
+    ocr_confidence?: number;
+    low_confidence_tokens?: OCRToken[];
+}
+
+export interface OCRToken {
+    text: string;
+    confidence: number;
 }
 
 export interface GradingResponse {
@@ -19,6 +26,13 @@ export interface GradingResponse {
     results: GradeResult[];
     raw_text: string;
     extracted_json?: Record<string, string>;
+    ocr_tokens?: OCRToken[];
+    ocr_avg_confidence?: number;
+}
+
+export interface ExerciseExplanationResponse {
+    exercise_id: number;
+    explanation: string;
 }
 
 export interface WeakTopic {

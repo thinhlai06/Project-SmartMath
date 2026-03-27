@@ -43,6 +43,11 @@ class DifferentiationResponse(BaseModel):
     rag_sources: Optional[List[str]] = None
 
 
+class OCRTokenConfidence(BaseModel):
+    text: str
+    confidence: float
+
+
 class QuestionGradeResult(BaseModel):
     question_id: str
     student_answer: str
@@ -53,6 +58,8 @@ class QuestionGradeResult(BaseModel):
     feedback: Optional[str] = None
     reasoning: Optional[str] = None
     question_type: Optional[str] = None
+    ocr_confidence: Optional[float] = None
+    low_confidence_tokens: Optional[List[OCRTokenConfidence]] = None
 
 
 class GradeImageResponse(BaseModel):
@@ -61,6 +68,18 @@ class GradeImageResponse(BaseModel):
     results: List[QuestionGradeResult]
     raw_text: str
     extracted_json: Optional[Dict[str, str]] = None
+    ocr_tokens: Optional[List[OCRTokenConfidence]] = None
+    ocr_avg_confidence: Optional[float] = None
+
+
+class ExerciseExplanationRequest(BaseModel):
+    student_answer: Optional[str] = None
+    response_style: Optional[str] = "ngan gon"
+
+
+class ExerciseExplanationResponse(BaseModel):
+    exercise_id: int
+    explanation: str
 
 
 class WeakTopic(BaseModel):
