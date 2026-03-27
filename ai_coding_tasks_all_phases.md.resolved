@@ -75,8 +75,6 @@
 ## 🤖 PHASE 4: AI ENHANCEMENTS
 > **Mục tiêu:** Đưa hệ thống Plugin AI (đã tích hợp sơ bộ) lên mức hoàn chỉnh.
 
-~~**Task 4.1: RAG Pipeline Data Ingestion (✅ Đã hoàn thành)**~~
-*   *(User đã tự nạp dữ liệu vào ChromaDB. Bỏ qua bước này.)*
 
 **Task 4.2: Cải tiến Prompt Engineering (AI Generation)**
 *   **Vấn đề:** Hiện tại câu hỏi AI sinh ra (CPA & Differentiation) đôi khi dùng từ ngữ, đối tượng vật lý, hoặc dạng bài chưa hoàn toàn phù hợp với độ tuổi Tiểu học (Lớp 1-3).

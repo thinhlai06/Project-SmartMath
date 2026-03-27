@@ -1,6 +1,7 @@
 import os
+import re
 import shutil
-# --- SỬA LỖI: Dùng thư viện mới langchain_text_splitters ---
+from typing import Dict, List
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
@@ -9,19 +10,148 @@ from langchain_core.documents import Document
 # --- CẤU HÌNH ---
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
-DATA_ROOT = os.path.join(PROJECT_ROOT, "data_raw")
+DATA_ROOT = os.path.join(PROJECT_ROOT, "data_ocr")
 DB_PATH = os.path.join(PROJECT_ROOT, "vector_db")
+
+# Ánh xạ grade key → (collection_name, sub_dir)
+GRADE_COLLECTION_MAP = {
+    "Lop1": ("grade_1_db", "grade_1_db"),
+    "Lop2": ("grade_2_db", "grade_2_db"),
+    "Lop3": ("grade_3_db", "grade_3_db"),
+}
 
 # Các từ khóa nhận diện
 KNOWN_PUBLISHERS = ["CanhDieu", "KetNoiTriThuc", "ChanTroiSangTao"]
 KNOWN_TYPES = ["SGK", "SGV", "SBT"]
 
-def get_metadata_from_path(file_path):
+# -------------------------------------------------------------------
+# Problem-Boundary Chunker
+# Mỗi chunk = 1 bài toán hoàn chỉnh.
+# Cắt TẠI từng marker mới — không gộp, không cắt giữa câu.
+# -------------------------------------------------------------------
+PROBLEM_MARKER = re.compile(
+    r"^(bài\s*\d+|câu\s*\d+|\d+[\).:\-]\s|bước\s*\d+|ví\s*dụ\s*\d*"
+    r"|hoạt\s*động|luyện\s*tập|thực\s*hành|bài\s+tập|bài\s+toán)",
+    re.IGNORECASE,
+)
+
+# Tối đa ~600 tokens (≈ 180 từ tiếng Việt). Bài dài hơn sẽ bị cắt ở ranh giới câu.
+MAX_PROBLEM_WORDS = 180
+
+
+def normalize_extracted_text(text: str) -> str:
+    """Làm sạch text trước khi chunk."""
+    if not text:
+        return ""
+    text = text.replace("```", " ")
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    lines = [line.strip() for line in text.split("\n")]
+    text = "\n".join(line for line in lines if line)
+    return text.strip()
+
+
+def extract_problem_chunks(text: str, metadata: dict) -> List[Document]:
+    """
+    Mỗi chunk = 1 bài toán hoàn chỉnh.
+
+    Quy tắc:
+    1. Cắt TẠI mỗi marker mới (Bài 1, Câu 3, 1., Ví dụ...) — bất kể độ dài block hiện tại.
+    2. Bài quá dài (>MAX_PROBLEM_WORDS) → cắt ở ranh giới câu (./!/?), không cắt giữa câu.
+    3. KHÔNG gộp nhiều bài vào 1 chunk dù chúng ngắn.
+    4. Chunk tối thiểu: 1 câu hoàn chỉnh (dù chỉ 5 từ).
+    """
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+    if not lines:
+        return []
+
+    # Bước 1: Tách thành các "problem block" dựa trên marker
+    problems: List[str] = []
+    current: List[str] = []
+
+    for line in lines:
+        if PROBLEM_MARKER.match(line) and current:
+            problems.append(" ".join(current))
+            current = [line]
+        else:
+            current.append(line)
+    if current:
+        problems.append(" ".join(current))
+
+    # Bước 2: Với mỗi problem block, tạo Document(s)
+    docs: List[Document] = []
+    for i, prob_text in enumerate(problems, start=1):
+        prob_text = normalize_extracted_text(prob_text)
+        if not prob_text:
+            continue
+
+        words = prob_text.split()
+
+        if len(words) <= MAX_PROBLEM_WORDS:
+            # Bài vừa đủ → 1 chunk duy nhất
+            docs.append(Document(
+                page_content=prob_text,
+                metadata={
+                    **metadata,
+                    "problem_index": i,
+                    "is_partial": False,
+                }
+            ))
+        else:
+            # Bài quá dài → cắt ở ranh giới câu, không bao giờ cắt giữa câu
+            sentences = re.split(r'(?<=[.?!])\s+', prob_text)
+            chunk_words: List[str] = []
+            part = 1
+
+            for sent in sentences:
+                candidate = chunk_words + sent.split()
+                if len(candidate) > MAX_PROBLEM_WORDS and chunk_words:
+                    # Flush chunk hiện tại
+                    docs.append(Document(
+                        page_content=" ".join(chunk_words),
+                        metadata={
+                            **metadata,
+                            "problem_index": i,
+                            "part": part,
+                            "is_partial": True,
+                        }
+                    ))
+                    chunk_words = sent.split()
+                    part += 1
+                else:
+                    chunk_words.extend(sent.split())
+
+            # Flush phần cuối
+            if chunk_words:
+                docs.append(Document(
+                    page_content=" ".join(chunk_words),
+                    metadata={
+                        **metadata,
+                        "problem_index": i,
+                        "part": part,
+                        "is_partial": part > 1,
+                    }
+                ))
+
+    return docs
+
+
+def build_reference_docs(documents: List[Document]) -> List[Document]:
+    """
+    Mỗi chunk = 1 bài toán hoàn chỉnh.
+    Không dùng RecursiveTextSplitter hay merge_small_chunks.
+    """
+    all_docs: List[Document] = []
+    for doc in documents:
+        all_docs.extend(extract_problem_chunks(doc.page_content, doc.metadata))
+    return all_docs
+
+
+def get_metadata_from_path(file_path: str) -> dict:
     path_parts = file_path.split(os.sep)
     metadata = {
         "grade": "Unknown",
         "publisher": "TongHop",
-        "book_type": "TaiLieuKhac"
+        "book_type": "TaiLieuKhac",
     }
     # 1. Tìm Lớp
     for part in path_parts:
@@ -40,16 +170,13 @@ def get_metadata_from_path(file_path):
             break
     return metadata
 
+
 def ingest_data():
-    print("🚀 Bắt đầu nạp dữ liệu (Version: pymupdf4llm)...")
-    
+    print("🚀 Bắt đầu nạp dữ liệu (Problem-Boundary Chunker + Per-Grade Collections)...")
+
     if not os.path.exists(DATA_ROOT):
         print(f"❌ Lỗi: Không tìm thấy thư mục '{DATA_ROOT}'")
         return
-
-    documents = []
-    total_files = 0
-    total_pages_with_text = 0
 
     # Thử import pymupdf4llm
     try:
@@ -60,103 +187,112 @@ def ingest_data():
         use_llm_extractor = False
         print("⚠️ pymupdf4llm không có, sử dụng fitz trực tiếp")
 
-    # Quét file bằng os.walk (bất chấp cấu trúc thư mục)
+    # --- Bước 1: Đọc tất cả PDF, nhóm theo grade ---
+    raw_docs_by_grade: Dict[str, List[Document]] = {g: [] for g in GRADE_COLLECTION_MAP}
+    total_files = 0
+
     for root, dirs, files in os.walk(DATA_ROOT):
         for filename in files:
-            if filename.endswith(".pdf"):
-                file_path = os.path.join(root, filename)
-                meta = get_metadata_from_path(file_path)
-                
-                if meta["grade"] != "Unknown":
-                    try:
-                        print(f"📖 Đọc: {filename} \t| {meta['grade']} - {meta['publisher']} - {meta['book_type']}")
-                        
-                        if use_llm_extractor:
-                            # Sử dụng pymupdf4llm để extract markdown (tốt hơn cho LLM)
-                            md_text = pymupdf4llm.to_markdown(file_path)
-                            
-                            if md_text and md_text.strip():
-                                # Chia nhỏ theo sections
-                                sections = md_text.split('\n\n')
-                                for i, section in enumerate(sections):
-                                    section = section.strip()
-                                    if len(section) > 50:  # Bỏ qua sections quá ngắn
-                                        doc_obj = Document(
-                                            page_content=section,
-                                            metadata={
-                                                **meta,
-                                                'source_file': filename,
-                                                'section': i + 1
-                                            }
-                                        )
-                                        documents.append(doc_obj)
-                                        total_pages_with_text += 1
-                        else:
-                            # Fallback: dùng fitz trực tiếp
-                            import fitz
-                            doc = fitz.open(file_path)
-                            
-                            for page_num, page in enumerate(doc):
-                                text = page.get_text()
-                                
-                                if text and text.strip():
-                                    doc_obj = Document(
-                                        page_content=text.replace('\n', ' ').strip(),
-                                        metadata={
-                                            **meta,
-                                            'source_file': filename,
-                                            'page': page_num + 1
-                                        }
-                                    )
-                                    documents.append(doc_obj)
-                                    total_pages_with_text += 1
-                            
-                            doc.close()
-                        
-                        total_files += 1
-                        print(f"   → Documents so far: {len(documents)}")
-                    except Exception as e:
-                        print(f"⚠️ Lỗi file {filename}: {e}")
+            if not filename.endswith(".pdf"):
+                continue
 
-    print(f"\n📊 Thống kê:")
+            file_path = os.path.join(root, filename)
+            meta = get_metadata_from_path(file_path)
+
+            if meta["grade"] not in GRADE_COLLECTION_MAP:
+                print(f"⏭️  Bỏ qua (grade không xác định): {filename}")
+                continue
+
+            try:
+                print(f"📖 {filename} | {meta['grade']} - {meta['publisher']} - {meta['book_type']}")
+
+                if use_llm_extractor:
+                    md_text = pymupdf4llm.to_markdown(file_path)
+                    normalized = normalize_extracted_text(md_text)
+                    if normalized:
+                        raw_docs_by_grade[meta["grade"]].append(Document(
+                            page_content=normalized,
+                            metadata={**meta, "source_file": filename},
+                        ))
+                else:
+                    import fitz
+                    doc = fitz.open(file_path)
+                    for page_num, page in enumerate(doc):
+                        text = page.get_text()
+                        if text and text.strip():
+                            raw_docs_by_grade[meta["grade"]].append(Document(
+                                page_content=text.replace("\n", " ").strip(),
+                                metadata={**meta, "source_file": filename, "page": page_num + 1},
+                            ))
+                    doc.close()
+
+                total_files += 1
+            except Exception as e:
+                print(f"⚠️  Lỗi file {filename}: {e}")
+
+    print(f"\n📊 Thống kê đọc file:")
     print(f"   - Files đọc: {total_files}")
-    print(f"   - Documents tạo: {len(documents)}")
+    for grade, docs in raw_docs_by_grade.items():
+        print(f"   - {grade}: {len(docs)} tài liệu thô")
 
-    if len(documents) == 0:
-        print("❌ Không có document nào được tạo. PDFs có thể là dạng ảnh scan.")
-        print("💡 Gợi ý: Cần sử dụng OCR để extract text từ ảnh.")
-        return
+    # --- Bước 2: Chunk theo Problem Boundary ---
+    print("\n📦 Đang chunk theo Problem Boundary (1 chunk = 1 bài toán)...")
+    chunks_by_grade: Dict[str, List[Document]] = {}
 
-    print(f"\n📦 Đang chia nhỏ {len(documents)} documents...")
+    for grade_key, docs in raw_docs_by_grade.items():
+        if not docs:
+            print(f"   ⏭️  {grade_key}: không có tài liệu, bỏ qua")
+            continue
+        chunks = build_reference_docs(docs)
+        chunks_by_grade[grade_key] = chunks
+        partial = sum(1 for c in chunks if c.metadata.get("is_partial", False))
+        print(f"   ✅ {grade_key}: {len(chunks)} chunks "
+              f"({len(chunks) - partial} bài hoàn chỉnh, {partial} phần bài dài)")
 
-    # --- SỬ DỤNG CLASS TỪ GÓI MỚI ---
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800,
-        chunk_overlap=150,
-        separators=["\n\n", "\n", ".", " ", ""]
-    )
-    chunks = text_splitter.split_documents(documents)
-    print(f"🧩 Số lượng chunks: {len(chunks)}")
-
-    if len(chunks) == 0:
+    total_chunks = sum(len(v) for v in chunks_by_grade.values())
+    if total_chunks == 0:
         print("❌ Không có chunks nào được tạo.")
         return
 
-    # --- XÁC NHẬN: ĐÃ SỬ DỤNG MODEL BẠN YÊU CẦU ---
-    print("🧠 Đang tải Model 'keepitreal/vietnamese-sbert'...")
+    # --- Bước 3: Tải Embedding Model ---
+    print("\n🧠 Đang tải model 'keepitreal/vietnamese-sbert'...")
     embedding_model = HuggingFaceEmbeddings(
-        model_name="keepitreal/vietnamese-sbert", # <--- Chính xác là model này
-        model_kwargs={'device': 'cpu'}
+        model_name="keepitreal/vietnamese-sbert",
+        model_kwargs={"device": "cpu"},
     )
 
-    if os.path.exists(DB_PATH):
-        shutil.rmtree(DB_PATH) # Xóa DB cũ để làm sạch
-        print("🗑️  Đã xóa DB cũ.")
+    # --- Bước 4: Lưu từng collection riêng biệt ---
+    print("\n💾 Đang lưu vào ChromaDB (3 collections riêng biệt)...")
 
-    print("💾 Đang lưu vào ChromaDB...")
-    db = Chroma.from_documents(chunks, embedding_model, persist_directory=DB_PATH)
-    print(f"🎉 XONG! Dữ liệu đã lưu tại: {DB_PATH}")
-    print(f"   - Tổng chunks: {len(chunks)}")
+    for grade_key, (collection_name, sub_dir) in GRADE_COLLECTION_MAP.items():
+        grade_chunks = chunks_by_grade.get(grade_key, [])
+        persist_dir = os.path.join(DB_PATH, sub_dir)
+
+        if not grade_chunks:
+            print(f"   ⏭️  {grade_key}: không có chunk, bỏ qua collection '{collection_name}'")
+            continue
+
+        # Xóa collection cũ của lớp này (nếu có)
+        if os.path.exists(persist_dir):
+            shutil.rmtree(persist_dir)
+            print(f"   🗑️  Đã xóa collection cũ: {sub_dir}/")
+
+        Chroma.from_documents(
+            grade_chunks,
+            embedding_model,
+            persist_directory=persist_dir,
+            collection_name=collection_name,
+        )
+        print(f"   ✅ {grade_key} → '{collection_name}': {len(grade_chunks)} chunks đã lưu")
+
+    print(f"\n🎉 XONG! Tổng: {total_chunks} chunks trong 3 collections")
+    print(f"   📁 Vị trí: {DB_PATH}/")
+    print(f"   ├── grade_1_db/")
+    print(f"   ├── grade_2_db/")
+    print(f"   └── grade_3_db/")
+    print("\n⚠️  Lưu ý: Collection cũ (chroma.sqlite3 ở root vector_db) không bị xóa tự động.")
+    print("   Sau khi xác nhận 3 collections mới hoạt động, bạn có thể xóa thủ công.")
+
 
 if __name__ == "__main__":
     ingest_data()

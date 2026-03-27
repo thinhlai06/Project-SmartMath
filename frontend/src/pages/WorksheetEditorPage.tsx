@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Plus, Trash2, Download } from 'lucide-react';
+import { Plus, Trash2, Download, WandSparkles } from 'lucide-react';
 import { worksheetApi, exerciseApi } from '../services/worksheetApi';
 import type { WorksheetDetail, Exercise, ExerciseCreate, ExerciseType, DifficultyTier } from '../services/worksheetApi';
 import { Button } from '../components/ui/button';
@@ -16,6 +16,7 @@ import {
     MathFormattedText,
     PageHeader,
 } from '@/components/redesign';
+import aiApi from '@/services/aiApi';
 
 // CPA section labels
 const CPA_SECTIONS: { type: ExerciseType; label: string; color: string; description: string }[] = [
@@ -49,6 +50,8 @@ export function WorksheetEditorPage() {
     const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
     const [activeSection, setActiveSection] = useState<ExerciseType | DifficultyTier | null>(null);
     const [showPdfModal, setShowPdfModal] = useState(false);
+    const [exerciseExplanations, setExerciseExplanations] = useState<Record<number, string>>({});
+    const [explanationLoading, setExplanationLoading] = useState<Record<number, boolean>>({});
 
     const id = parseInt(worksheetId || '0', 10);
 
@@ -139,6 +142,21 @@ export function WorksheetEditorPage() {
     const handleApproveDraft = (content: string) => {
         setNewExercise((prev) => ({ ...prev, question: content }));
         setAiDraft('');
+    };
+
+    const handleGenerateExplanation = async (exerciseId: number) => {
+        try {
+            setExplanationLoading((prev) => ({ ...prev, [exerciseId]: true }));
+            const response = await aiApi.explainExercise(exerciseId, { response_style: 'ngan gon' });
+            setExerciseExplanations((prev) => ({
+                ...prev,
+                [exerciseId]: response.explanation,
+            }));
+        } catch (err: any) {
+            setError(err.response?.data?.detail || 'Không thể tạo giải thích AI');
+        } finally {
+            setExplanationLoading((prev) => ({ ...prev, [exerciseId]: false }));
+        }
     };
 
 
@@ -275,6 +293,25 @@ export function WorksheetEditorPage() {
                                                         )}
                                                         {ex.hint && (
                                                             <p className="text-sm text-indigo-600 mt-2 ml-2 font-medium bg-indigo-50 inline-block px-2 py-1 rounded-md">Gợi ý: {ex.hint}</p>
+                                                        )}
+                                                        <div className="mt-3 flex items-center gap-2">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="rounded-lg border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                                                                onClick={() => handleGenerateExplanation(ex.id)}
+                                                                disabled={!!explanationLoading[ex.id]}
+                                                            >
+                                                                <WandSparkles className="w-4 h-4 mr-1" />
+                                                                {explanationLoading[ex.id] ? 'Đang tạo...' : 'Giải thích AI'}
+                                                            </Button>
+                                                        </div>
+
+                                                        {exerciseExplanations[ex.id] && (
+                                                            <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50/70 p-3 text-sm text-indigo-900 leading-relaxed whitespace-pre-wrap">
+                                                                <p className="font-semibold mb-1">Giải thích từng bước:</p>
+                                                                {exerciseExplanations[ex.id]}
+                                                            </div>
                                                         )}
                                                     </div>
                                                     {worksheet.status !== 'published' && (

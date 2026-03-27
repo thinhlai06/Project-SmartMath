@@ -8,27 +8,8 @@ import { Upload, AlertCircle, RefreshCw, FileText } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { GradingDiffViewer } from '@/components/redesign';
-
-interface GradeResult {
-    question_id: string;
-    student_answer: string;
-    correct_answer: string;
-    is_correct: boolean;
-    score: number;
-    max_score: number;
-    question_text?: string;
-    question_type?: string;
-    reasoning?: string;
-    feedback?: string;
-}
-
-interface GradingResponse {
-    total_score: number;
-    max_score: number;
-    results: GradeResult[];
-    raw_text: string;
-    extracted_json?: Record<string, string>;
-}
+import aiApi from '@/services/aiApi';
+import type { GradeResult, GradingResponse } from '@/types/ai';
 
 interface OCRDiffState {
     resultIndex: number;
@@ -90,25 +71,8 @@ export default function AIGradingPage() {
         setStep('processing');
         setError(null);
 
-        const formData = new FormData();
-        formData.append('file', file);
-        if (correctAnswersJson.trim()) {
-            formData.append('correct_answers_json', correctAnswersJson);
-        }
-
         try {
-            const response = await fetch('/api/ai/grade-image', {
-                method: 'POST',
-                credentials: 'include',
-                body: formData,
-            });
-
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.detail || 'Grading failed');
-            }
-
-            const data: GradingResponse = await response.json();
+            const data: GradingResponse = await aiApi.gradeImage(file, correctAnswersJson.trim() || undefined);
             setGradingResult(data);
             const firstIncorrectIndex = data.results.findIndex((item) => !item.is_correct);
             if (firstIncorrectIndex >= 0) {
@@ -164,6 +128,13 @@ export default function AIGradingPage() {
             total_score: recalculatedTotal,
         });
         setOcrDiff(null);
+    };
+
+    const getResultConfidence = (result: GradeResult): number => {
+        if (typeof result.ocr_confidence === 'number') {
+            return result.ocr_confidence;
+        }
+        return gradingResult?.ocr_avg_confidence ?? 0;
     };
 
     return (
@@ -298,6 +269,9 @@ export default function AIGradingPage() {
                                         <p className="text-sm font-medium text-slate-500 mt-1">
                                             Dựa trên {gradingResult.results.length} câu hỏi
                                         </p>
+                                        <p className="text-xs font-semibold text-slate-500 mt-1">
+                                            OCR tin cậy trung bình: {(gradingResult.ocr_avg_confidence ?? 0).toFixed(1)}%
+                                        </p>
                                     </div>
                                     <div className="text-right">
                                         <div className="text-3xl font-bold text-green-600">
@@ -308,7 +282,7 @@ export default function AIGradingPage() {
 
                                 <div className="space-y-4">
                                     {gradingResult.results.map((res, idx) => (
-                                        <div key={idx} className={`p-4 rounded-lg border ${res.is_correct ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                                        <div key={idx} className={`p-4 rounded-lg border ${res.is_correct ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'} ${getResultConfidence(res) < 85 ? 'ring-1 ring-red-300' : ''}`}>
                                             <div className="flex justify-between items-start">
                                                 <div className="space-y-1">
                                                     <div className="flex items-center gap-2">
@@ -321,6 +295,9 @@ export default function AIGradingPage() {
                                                         ) : (
                                                             <Badge variant="destructive">Sai</Badge>
                                                         )}
+                                                        <Badge variant="outline" className={getResultConfidence(res) < 85 ? 'border-red-300 text-red-600' : 'border-emerald-300 text-emerald-700'}>
+                                                            OCR {getResultConfidence(res).toFixed(1)}%
+                                                        </Badge>
                                                     </div>
                                                     <p className="text-sm text-gray-700">
                                                         <span className="font-medium">Học sinh trả lời:</span> "{res.student_answer || "(Trống)"}"
@@ -329,6 +306,19 @@ export default function AIGradingPage() {
                                                     <p className="text-sm text-green-700 font-medium">
                                                         Đáp án đúng: "{res.correct_answer}"
                                                     </p>
+
+                                                    {!!res.low_confidence_tokens?.length && (
+                                                        <div className="mt-2 text-xs rounded-md border border-red-200 bg-red-50 p-2">
+                                                            <p className="font-semibold text-red-700">Từ OCR độ tin cậy thấp:</p>
+                                                            <div className="mt-1 flex flex-wrap gap-2">
+                                                                {res.low_confidence_tokens.map((token, tokenIndex) => (
+                                                                    <span key={`${token.text}-${tokenIndex}`} className="rounded bg-red-100 px-2 py-0.5 text-red-700">
+                                                                        {token.text} ({token.confidence.toFixed(1)}%)
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
 
                                                     {/* Reasoning & Feedback */}
                                                     {(res.reasoning || res.feedback) && (
@@ -350,7 +340,7 @@ export default function AIGradingPage() {
                                     <GradingDiffViewer
                                         ocrText={ocrDiff.ocrText}
                                         expectedText={ocrDiff.expectedText}
-                                        confidenceScore={80}
+                                        confidenceScore={getResultConfidence(gradingResult.results[ocrDiff.resultIndex])}
                                         onOverride={handleOverride}
                                     />
                                 )}

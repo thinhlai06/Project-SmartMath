@@ -3,7 +3,13 @@
  * Handles all AI-related API calls through the centralized axios instance.
  */
 import api from './api';
-import type { GradingResponse, AnalyticsResponse, AIStatusResponse, GradingReport } from '@/types/ai';
+import type {
+    GradingResponse,
+    AnalyticsResponse,
+    AIStatusResponse,
+    GradingReport,
+    ExerciseExplanationResponse,
+} from '@/types/ai';
 
 
 export const aiApi = {
@@ -79,7 +85,16 @@ export const aiApi = {
             responseType: 'blob',
         });
         return data;
-    }
+    },
+
+    /** Generate AI explanation for a specific exercise */
+    explainExercise: async (
+        exerciseId: number,
+        payload?: { student_answer?: string; response_style?: string }
+    ): Promise<ExerciseExplanationResponse> => {
+        const { data } = await api.post(`/ai/exercises/${exerciseId}/explanation`, payload ?? {});
+        return data;
+    },
 };
 
 export default aiApi;

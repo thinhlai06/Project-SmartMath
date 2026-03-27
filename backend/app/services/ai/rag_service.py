@@ -1,9 +1,18 @@
 """
-RAG Service - Retrieves relevant context from ChromaDB using vietnamese-sbert embeddings.
-Uses lazy initialization so the server starts even without the model downloaded.
+RAG Service - Retrieves relevant context from per-grade ChromaDB collections.
+
+Architecture:
+  - grade_1_db  →  collection "grade_1_db"
+  - grade_2_db  →  collection "grade_2_db"
+  - grade_3_db  →  collection "grade_3_db"
+
+Each grade's Chroma connection is lazy-loaded on first use and cached for the
+lifetime of the server. Switching between grades is safe: all three connections
+can coexist simultaneously in _dbs without interfering with each other.
 """
 import logging
 import os
+from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -13,95 +22,176 @@ BACKEND_DIR = os.path.dirname(os.path.dirname(CURRENT_DIR))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 DB_PATH = os.path.join(PROJECT_ROOT, "vector_db")
 
+# Ánh xạ grade int → (collection_name, sub_dir)
+GRADE_COLLECTION_MAP: Dict[int, tuple] = {
+    1: ("grade_1_db", "grade_1_db"),
+    2: ("grade_2_db", "grade_2_db"),
+    3: ("grade_3_db", "grade_3_db"),
+}
+
 
 class RAGService:
-    """Retrieves relevant SGK/SGV context using the vietnamese-sbert embedding model.
+    """
+    Retrieves relevant SGK/SGV context from per-grade ChromaDB collections.
 
-    Initialization is lazy: the HuggingFace model is only downloaded / loaded
-    the first time *retrieve()* is called, not when the service is instantiated.
-    This prevents the FastAPI startup from blocking while Torch / sentence-
-    transformers are initialised.
+    Lazy-load:
+    - Embedding model: loaded once on first retrieve() call.
+    - Per-grade Chroma: loaded on first retrieve() call for that grade.
+      Subsequent calls for the same grade reuse the cached connection instantly.
+
+    Switching grades (e.g. grade 1 → grade 3 → grade 1) is fully safe:
+    all connections accumulate in _dbs and never overwrite each other.
     """
 
     _instance = None
     _embedding_model = None
-    _db = None
-    _initialized = False
+    _dbs: Dict[int, object] = {}   # grade_int → Chroma object
+    _model_initialized = False
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    # __init__ intentionally left empty – see _lazy_init()
     def __init__(self):
-        pass
+        pass  # lazy init only
 
-    def _lazy_init(self):
-        """Load embedding model and ChromaDB on first use."""
-        if RAGService._initialized:
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _init_embedding_model(self):
+        """Load embedding model once. Thread-safe for read-mostly workloads."""
+        if RAGService._model_initialized:
             return
 
         try:
             from langchain_huggingface import HuggingFaceEmbeddings
-            from langchain_community.vectorstores import Chroma
-
-            logger.info("🔄 Initializing RAG Service with DB at: %s", DB_PATH)
+            logger.info("🔄 Loading vietnamese-sbert embedding model...")
             RAGService._embedding_model = HuggingFaceEmbeddings(
                 model_name="keepitreal/vietnamese-sbert",
                 model_kwargs={"device": "cpu"},
             )
-            RAGService._db = Chroma(
-                persist_directory=DB_PATH,
+            RAGService._model_initialized = True
+            logger.info("✅ Embedding model loaded.")
+        except Exception as e:
+            logger.warning("⚠️ Could not load embedding model: %s. RAG will be disabled.", e)
+            RAGService._model_initialized = True  # mark attempted, don't retry
+
+    def _get_db_for_grade(self, grade: int):
+        """
+        Return the Chroma collection for the given grade.
+        Loads it from disk on the first call; returns cached object on subsequent calls.
+        Returns None if the collection directory does not exist.
+        """
+        if grade in RAGService._dbs:
+            return RAGService._dbs[grade]  # already loaded — instant return
+
+        if RAGService._embedding_model is None:
+            return None
+
+        collection_info = GRADE_COLLECTION_MAP.get(grade)
+        if collection_info is None:
+            logger.warning("RAGService: unknown grade %s", grade)
+            return None
+
+        collection_name, sub_dir = collection_info
+        persist_dir = os.path.join(DB_PATH, sub_dir)
+
+        if not os.path.exists(persist_dir):
+            logger.info(
+                "RAGService: collection '%s' not found at %s. Run ingest.py first.",
+                collection_name, persist_dir
+            )
+            return None
+
+        try:
+            from langchain_community.vectorstores import Chroma
+            logger.info("🔄 Loading collection '%s' for grade %s...", collection_name, grade)
+            db = Chroma(
+                persist_directory=persist_dir,
+                collection_name=collection_name,
                 embedding_function=RAGService._embedding_model,
             )
-            RAGService._initialized = True
-            logger.info("✅ RAG Service initialized successfully")
+            RAGService._dbs[grade] = db
+            count = db._collection.count()
+            logger.info("✅ Grade %s collection loaded: %d chunks.", grade, count)
+            return db
         except Exception as e:
-            logger.warning("⚠️ RAG Service could not initialize: %s. Continuing without RAG.", e)
-            RAGService._initialized = True  # mark as attempted so we don't retry every call
+            logger.warning("⚠️ Failed to load collection for grade %s: %s", grade, e)
+            return None
 
-    def is_available(self) -> bool:
-        """Return True if the vector DB is loaded and has data."""
-        self._lazy_init()
-        if RAGService._db is None:
-            return False
-        try:
-            count = RAGService._db._collection.count()
-            return count > 0
-        except Exception:
-            return False
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def is_available(self, grade: int = None) -> bool:
+        """
+        Return True if at least one collection (or the specified grade's collection)
+        is loaded and contains data.
+        """
+        self._init_embedding_model()
+
+        if grade is not None:
+            db = self._get_db_for_grade(grade)
+            if db is None:
+                return False
+            try:
+                return db._collection.count() > 0
+            except Exception:
+                return False
+
+        # Check any grade
+        for g in GRADE_COLLECTION_MAP:
+            if self.is_available(grade=g):
+                return True
+        return False
 
     def retrieve(self, query: str, grade: int = None, k: int = 5) -> list:
-        """Retrieve relevant chunks from SGK/SGV.
-
-        Returns an empty list (instead of raising) when the service is not
-        available or the vector DB contains no documents.
         """
-        self._lazy_init()
-        if RAGService._db is None:
-            logger.info("RAG not available – skipping retrieval for query: %s", query[:50])
+        Retrieve relevant chunks from the collection of the specified grade.
+
+        STRICT: only queries the collection of that grade.
+        Returns [] if grade is invalid, collection missing, or error occurs.
+        """
+        self._init_embedding_model()
+
+        if RAGService._embedding_model is None:
+            logger.info("RAG disabled (embedding model not available).")
+            return []
+
+        if grade not in GRADE_COLLECTION_MAP:
+            logger.warning(
+                "RAGService.retrieve: grade=%s is not valid (must be 1, 2, or 3). "
+                "Skipping retrieval.", grade
+            )
+            return []
+
+        db = self._get_db_for_grade(grade)
+        if db is None:
+            logger.info("RAGService: no collection for grade %s. Skipping.", grade)
             return []
 
         try:
-            filter_dict = None
-            if grade:
-                grade_str = f"Lop{grade}"
-                filter_dict = {"grade": grade_str}
-
-            # Check collection size before querying to avoid Chroma error
-            count = RAGService._db._collection.count()
+            count = db._collection.count()
             if count == 0:
-                logger.info("Vector DB is empty – skipping RAG retrieval")
+                logger.info("Grade %s collection is empty.", grade)
                 return []
 
-            logger.info("🔍 RAG: '%s...' | Grade: %s", query[:50], grade)
-            results = RAGService._db.similarity_search(
-                query,
-                k=min(k, count),
-                filter=filter_dict,
-            )
-            return results
+            logger.info("🔍 RAG grade=%s | query='%s...' | k=%d", grade, query[:50], k)
+            results = db.similarity_search(query, k=min(k, count))
+            # Safety: discard any doc that somehow has a mismatched grade in metadata
+            expected_grade = f"Lop{grade}"
+            safe_results = [
+                d for d in results
+                if d.metadata.get("grade", expected_grade) == expected_grade
+            ]
+            if len(safe_results) < len(results):
+                logger.warning(
+                    "RAGService: discarded %d docs with mismatched grade metadata.",
+                    len(results) - len(safe_results)
+                )
+            return safe_results
         except Exception as e:
-            logger.warning("RAG retrieval failed: %s", e)
+            logger.warning("RAG retrieval failed for grade %s: %s", grade, e)
             return []
