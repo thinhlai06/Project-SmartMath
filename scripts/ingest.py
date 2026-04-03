@@ -24,6 +24,30 @@ GRADE_COLLECTION_MAP = {
 KNOWN_PUBLISHERS = ["CanhDieu", "KetNoiTriThuc", "ChanTroiSangTao"]
 KNOWN_TYPES = ["SGK", "SGV", "SBT"]
 
+TOPIC_HINTS = [
+    ("phep_cong_20", ["cộng", "cong", "thêm", "them", "tổng", "tong"]),
+    ("phep_tru_20", ["trừ", "tru", "bớt", "bot", "hiệu", "hieu"]),
+    ("hinh_hoc_co_ban", ["hình", "hinh", "tam giác", "vuông", "tròn", "tron", "cạnh", "canh"]),
+    ("bang_nhan_2_5", ["bảng nhân", "bang nhan", "gấp", "gap"]),
+    ("phep_cong_co_nho_100", ["có nhớ", "co nho", "trong phạm vi 100", "pham vi 100"]),
+    ("do_do_dai", ["độ dài", "do dai", "cm", "mét", "met", "thước", "thuoc"]),
+    ("dien_tich_hinh_chu_nhat", ["diện tích", "dien tich", "hình chữ nhật", "hinh chu nhat"]),
+    ("phep_chia_co_du", ["chia có dư", "chia co du", "số dư", "so du"]),
+    ("bai_toan_nhieu_buoc", ["nhiều bước", "nhieu buoc", "bài toán", "bai toan", "sau đó", "sau do"]),
+]
+
+OPERATION_BY_TOPIC = {
+    "phep_cong_20": "cong",
+    "phep_tru_20": "tru",
+    "hinh_hoc_co_ban": "hinh_hoc",
+    "bang_nhan_2_5": "nhan",
+    "phep_cong_co_nho_100": "cong",
+    "do_do_dai": "do_luong",
+    "dien_tich_hinh_chu_nhat": "hinh_hoc",
+    "phep_chia_co_du": "chia",
+    "bai_toan_nhieu_buoc": "tong_hop",
+}
+
 # -------------------------------------------------------------------
 # Problem-Boundary Chunker
 # Mỗi chunk = 1 bài toán hoàn chỉnh.
@@ -171,6 +195,64 @@ def get_metadata_from_path(file_path: str) -> dict:
     return metadata
 
 
+def infer_pedagogical_metadata(text: str, source_name: str) -> dict:
+    """Infer pedagogical metadata for template-first retrieval."""
+    raw = f"{source_name} {text}".lower()
+
+    topic_slug = "tong_hop"
+    for slug, keywords in TOPIC_HINTS:
+        if any(keyword in raw for keyword in keywords):
+            topic_slug = slug
+            break
+
+    representation = "abstract"
+    if any(keyword in raw for keyword in ["hình", "hinh", "sơ đồ", "so do", "vẽ", "ve"]):
+        representation = "pictorial"
+    elif any(keyword in raw for keyword in ["quả", "qua", "kẹo", "keo", "con", "bạn", "ban"]):
+        representation = "concrete"
+
+    template_type = "loi_van"
+    if any(keyword in raw for keyword in ["điền", "dien", "điền số", "dien so"]):
+        template_type = "dien_so"
+    elif any(keyword in raw for keyword in ["nhìn hình", "nhin hinh", "khoanh", "nối", "noi"]):
+        template_type = "nhan_dien_mau"
+    elif any(keyword in raw for keyword in ["tính", "tinh", "đặt tính", "dat tinh"]):
+        template_type = "tinh_truc_tiep"
+
+    skill = "nhan_biet"
+    if any(keyword in raw for keyword in ["vì sao", "vi sao", "giải thích", "giai thich", "lập luận", "lap luan"]):
+        skill = "suy_luan"
+    elif any(keyword in raw for keyword in ["2 bước", "2 buoc", "3 bước", "3 buoc"]):
+        skill = "loi_van_2_buoc"
+    elif "bài toán" in raw or "bai toan" in raw:
+        skill = "loi_van_1_buoc"
+
+    difficulty_band = "foundation"
+    if any(keyword in raw for keyword in ["nâng cao", "nang cao", "vận dụng cao", "van dung cao"]):
+        difficulty_band = "advanced"
+    elif any(keyword in raw for keyword in ["vận dụng", "van dung"]):
+        difficulty_band = "extension"
+    elif any(keyword in raw for keyword in ["thông hiểu", "thong hieu"]):
+        difficulty_band = "standard"
+
+    answer_type = "so"
+    if "hinh_hoc" in OPERATION_BY_TOPIC.get(topic_slug, ""):
+        answer_type = "ten_hinh"
+    elif "do_luong" == OPERATION_BY_TOPIC.get(topic_slug):
+        answer_type = "don_vi"
+
+    return {
+        "topic_slug": topic_slug,
+        "subtopic": topic_slug,
+        "skill": skill,
+        "representation": representation,
+        "operation": OPERATION_BY_TOPIC.get(topic_slug, "tong_hop"),
+        "answer_type": answer_type,
+        "template_type": template_type,
+        "difficulty_band": difficulty_band,
+    }
+
+
 def ingest_data():
     print("🚀 Bắt đầu nạp dữ liệu (Problem-Boundary Chunker + Per-Grade Collections)...")
 
@@ -208,21 +290,34 @@ def ingest_data():
 
                 if use_llm_extractor:
                     md_text = pymupdf4llm.to_markdown(file_path)
-                    normalized = normalize_extracted_text(md_text)
+                    if isinstance(md_text, str):
+                        extracted = md_text
+                    else:
+                        extracted = "\n".join([str(item) for item in md_text])
+                    normalized = normalize_extracted_text(extracted)
                     if normalized:
+                        pedagogical = infer_pedagogical_metadata(normalized, filename)
                         raw_docs_by_grade[meta["grade"]].append(Document(
                             page_content=normalized,
-                            metadata={**meta, "source_file": filename},
+                            metadata={**meta, **pedagogical, "source_file": filename},
                         ))
                 else:
                     import fitz
                     doc = fitz.open(file_path)
-                    for page_num, page in enumerate(doc):
-                        text = page.get_text()
-                        if text and text.strip():
+                    for page_num in range(doc.page_count):
+                        page = doc.load_page(page_num)
+                        text_raw = page.get_text()
+                        if isinstance(text_raw, str):
+                            text = text_raw
+                        else:
+                            text = str(text_raw)
+
+                        if text.strip():
+                            cleaned = text.replace("\n", " ").strip()
+                            pedagogical = infer_pedagogical_metadata(cleaned, filename)
                             raw_docs_by_grade[meta["grade"]].append(Document(
-                                page_content=text.replace("\n", " ").strip(),
-                                metadata={**meta, "source_file": filename, "page": page_num + 1},
+                                page_content=cleaned,
+                                metadata={**meta, **pedagogical, "source_file": filename, "page": page_num + 1},
                             ))
                     doc.close()
 

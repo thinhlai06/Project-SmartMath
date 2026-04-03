@@ -198,3 +198,78 @@ class RAGService:
         except Exception as e:
             logger.warning("RAG retrieval failed for grade %s: %s", grade, e)
             return []
+
+    def retrieve_with_filter(
+        self,
+        query: str,
+        grade: Optional[int] = None,
+        k: int = 5,
+        metadata_filter: Optional[Dict[str, Any]] = None,
+        allow_filter_fallback: bool = True,
+    ) -> list:
+        """
+        Retrieve chunks with optional metadata filtering.
+
+        The filter is applied inside the selected grade collection only.
+        If filter returns no rows and allow_filter_fallback=True, it retries
+        without metadata filter while still constrained to the grade DB.
+        """
+        self._init_embedding_model()
+
+        if RAGService._embedding_model is None:
+            logger.info("RAG disabled (embedding model not available).")
+            return []
+
+        if grade not in GRADE_COLLECTION_MAP:
+            logger.warning(
+                "RAGService.retrieve_with_filter: grade=%s is not valid (must be 1, 2, or 3).",
+                grade,
+            )
+            return []
+
+        db = self._get_db_for_grade(grade)
+        if db is None:
+            logger.info("RAGService: no collection for grade %s. Skipping.", grade)
+            return []
+
+        active_filter: Dict[str, Any] = {}
+        if metadata_filter:
+            active_filter = {k: v for k, v in metadata_filter.items() if v not in (None, "", [], {})}
+
+        try:
+            count = db._collection.count()
+            if count == 0:
+                logger.info("Grade %s collection is empty.", grade)
+                return []
+
+            logger.info(
+                "🔍 RAG filtered grade=%s | query='%s...' | k=%d | filter=%s",
+                grade,
+                query[:50],
+                k,
+                active_filter,
+            )
+
+            if active_filter:
+                results = db.similarity_search(query, k=min(k, count), filter=active_filter)
+            else:
+                results = db.similarity_search(query, k=min(k, count))
+
+            if not results and active_filter and allow_filter_fallback:
+                logger.info("RAG filtered retrieval empty. Falling back to grade-only retrieval.")
+                results = db.similarity_search(query, k=min(k, count))
+
+            expected_grade = f"Lop{grade}"
+            safe_results = [
+                d for d in results
+                if d.metadata.get("grade", expected_grade) == expected_grade
+            ]
+            if len(safe_results) < len(results):
+                logger.warning(
+                    "RAGService: discarded %d docs with mismatched grade metadata.",
+                    len(results) - len(safe_results)
+                )
+            return safe_results
+        except Exception as e:
+            logger.warning("Filtered RAG retrieval failed for grade %s: %s", grade, e)
+            return []

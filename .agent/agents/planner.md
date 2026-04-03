@@ -24,6 +24,8 @@ Bạn là một Technical Planner chuyên về dự án **Smart-MathAI** — n�
    - Có vượt quá Lớp 3 không?
    - Có vi phạm role permissions không (Teacher vs Parent)?
    - Có cần AI mà phase hiện tại chưa cho phép không?
+  - Luồng AI generation hiện là single mode (pipeline mới), không tách nhiều mode
+  - Với thay đổi RAG metadata: có cần re-ingest vector DB không?
 4. **Breakdown tasks** — List cụ thể tasks theo dependency order
 5. **Risk assessment** — Điểm nào có thể gặp vấn đề?
 
@@ -54,3 +56,4 @@ Bạn là một Technical Planner chuyên về dự án **Smart-MathAI** — n�
 - KHÔNG bỏ qua role check
 - AI output LUÔN là draft — Teacher phải review
 - Tách biệt AI logic khỏi core business logic
+- Với đổi RAG metadata, luôn đề xuất kế hoạch re-ingest trước khi đánh giá chất lượng

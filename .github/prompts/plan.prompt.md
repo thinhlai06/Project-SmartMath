@@ -12,8 +12,9 @@ Dùng **planner** agent để phân tích và lập kế hoạch triển khai t�
 Agent sẽ:
 1. Phân tích requirements và context hiện tại
 2. Kiểm tra domain constraints (Grade 1-3, roles, AI safety)
-3. Tạo implementation plan với task breakdown
-4. Identify risks và dependencies
+3. Kiểm tra có cần re-ingest vector DB khi thay đổi metadata RAG không
+4. Tạo implementation plan với task breakdown
+5. Identify risks và dependencies
 
 Sau khi có plan, review và approve trước khi bắt đầu code.
 

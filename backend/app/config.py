@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     OLLAMA_TIMEOUT: int = 180
     OLLAMA_KEEP_ALIVE: str = "3m"
 
+    # AI generation controls (single mode: new pipeline only)
+    AI_GEN_ENABLE_TEMPLATE_FILTER: bool = True
+    AI_GEN_ENABLE_DIFFICULTY_VALIDATOR: bool = True
+    AI_GEN_MAX_REPAIR_ROUNDS: int = 2
+
     # Legacy LMStudio (deprecated, kept for backward compatibility)
     LMSTUDIO_API_BASE: str = "http://localhost:1234/v1"
     LMSTUDIO_TEXT_MODEL: str = "qwen2.5-1.5b-instruct"
