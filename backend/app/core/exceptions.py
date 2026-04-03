@@ -17,10 +17,10 @@ class SmartMathException(Exception):
 
 
 class AIServiceUnavailableError(SmartMathException):
-    """Raised when AI service (LMStudio) is not available."""
-    def __init__(self, service_name: str = "LMStudio"):
+    """Raised when AI service (Ollama) is not available."""
+    def __init__(self, service_name: str = "Ollama"):
         super().__init__(
-            message=f"Dịch vụ AI ({service_name}) không khả dụng. Vui lòng kiểm tra LMStudio đang chạy.",
+            message=f"Dich vu AI ({service_name}) khong kha dung. Vui long kiem tra Ollama daemon dang chay.",
             status_code=503
         )
 

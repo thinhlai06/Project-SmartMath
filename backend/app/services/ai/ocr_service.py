@@ -1,18 +1,17 @@
 """
-OCR Service using LMStudio Vision API (PaddleOCR-VL model).
-Replaces direct PaddleOCR Python library usage.
+OCR Service using Ollama Vision API (glm-ocr:latest model).
 """
 import logging
 import json
 import re
 from typing import Any, Dict, List
-from .lmstudio_service import LMStudioService
+from .ollama_service import OllamaService
 
 logger = logging.getLogger(__name__)
 
 
 class OCRService:
-    """OCR service that uses LMStudio Vision model for text recognition."""
+    """OCR service that uses Ollama Vision model for text recognition."""
 
     def recognize(self, image_content: bytes) -> str:
         payload = self.recognize_with_confidence(image_content)
@@ -20,8 +19,8 @@ class OCRService:
 
     def recognize_with_confidence(self, image_content: bytes) -> Dict[str, Any]:
         """
-        Recognize text from an image using LMStudio Vision API.
-        Sends the image to PaddleOCR-VL model running in LMStudio.
+        Recognize text from an image using Ollama Vision API.
+        Sends the image to glm-ocr:latest model running in Ollama.
         """
         if not image_content:
             raise ValueError("Empty image data")
@@ -41,7 +40,7 @@ class OCRService:
         )
 
         try:
-            result = LMStudioService.vision_recognize(
+            result = OllamaService.vision_recognize(
                 image_content=image_content,
                 prompt=prompt
             )

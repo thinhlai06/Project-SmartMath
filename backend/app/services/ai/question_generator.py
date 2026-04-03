@@ -1,11 +1,11 @@
 """
-Question Generator - Generates CPA-style math questions using RAG + Qwen2.5.
+Question Generator - Generates CPA-style math questions using RAG + Qwen3.
 """
 import json
 import logging
 import re
-from typing import Dict, List
-from .lmstudio_service import LMStudioService
+from typing import Dict, List, Optional
+from .ollama_service import OllamaService
 from .rag_service import RAGService
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ class QuestionGenerator:
         topic: str,
         grade: int,
         objective: str,
-        counts: Dict[str, int] = None
+        counts: Optional[Dict[str, int]] = None
     ) -> Dict:
         """Generate CPA worksheet questions with RAG patterns from SGK."""
         if counts is None:
@@ -78,7 +78,7 @@ class QuestionGenerator:
             )
 
             logger.info("[AI] Generating %d %s questions (CPA Sync)...", count, level)
-            response = LMStudioService.generate(prompt, system=system, temperature=0.3)
+            response = OllamaService.generate(prompt, system=system, temperature=0.3)
             questions = self._parse_json(response)
             result[level] = questions
 
@@ -89,7 +89,7 @@ class QuestionGenerator:
         topic: str,
         grade: int,
         objective: str,
-        tiers: List[str] = None
+        tiers: Optional[List[str]] = None
     ) -> Dict:
         """Generate differentiated questions with RAG context used as structural patterns."""
         if not tiers:
@@ -121,7 +121,7 @@ class QuestionGenerator:
             )
             
             logger.info("[AI] Generating %d %s questions (Refined RAG)...", count, tier)
-            response = LMStudioService.generate(prompt, system=system, temperature=0.3)
+            response = OllamaService.generate(prompt, system=system, temperature=0.3)
             questions = self._parse_json(response)
             result["content"][tier] = questions
 

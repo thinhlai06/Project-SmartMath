@@ -4,7 +4,7 @@ from fastapi import HTTPException
 
 from app.application.ports.question_generation_port import QuestionGenerationPort
 from app.domain.repositories.topic_repository import TopicRepository
-from app.services.ai.lmstudio_service import LMStudioService
+from app.services.ai.ollama_service import OllamaService
 
 
 class GenerateDifferentiationDraftUseCase:
@@ -25,8 +25,11 @@ class GenerateDifferentiationDraftUseCase:
         objective: str,
         tiers: list[str] | None,
     ) -> dict:
-        if not LMStudioService.is_running():
-            raise HTTPException(status_code=503, detail="LMStudio khong kha dung")
+        if grade not in (1, 2, 3):
+            raise HTTPException(status_code=400, detail="Chi ho tro lop 1, 2, hoac 3")
+
+        if not OllamaService.is_running():
+            raise HTTPException(status_code=503, detail="Ollama khong kha dung")
 
         topic = self.topic_repository.get_by_id(topic_id)
         if not topic:
@@ -42,4 +45,7 @@ class GenerateDifferentiationDraftUseCase:
         except HTTPException:
             raise
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"Generation failed: {str(exc)}") from exc
+            raise HTTPException(
+                status_code=500,
+                detail="Sinh noi dung AI that bai. Vui long thu lai sau.",
+            ) from exc

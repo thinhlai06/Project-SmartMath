@@ -17,12 +17,13 @@ from app.bootstrap.container import (
 from app.database import get_db
 from app.core.dependencies import get_current_teacher
 from app.models.user import User
-from app.services.ai.lmstudio_service import LMStudioService
+from app.services.ai.ollama_service import OllamaService
 from app.schemas.ai import (
     AIStatusResponse,
     CPAGenerationRequest,
     DifferentiationRequest,
     DifferentiationResponse,
+    GradingReportExportRequest,
     GradeImageResponse,
     ClassAnalyticsResponse,
     ExerciseExplanationRequest,
@@ -40,8 +41,8 @@ router = APIRouter(prefix="/ai", tags=["AI"])
 @router.get("/status", response_model=AIStatusResponse)
 async def get_ai_status(teacher: User = Depends(get_current_teacher)):
     """Check AI services status (Teacher only)."""
-    lmstudio_status = "running" if LMStudioService.is_running() else "stopped"
-    loaded_models = LMStudioService.get_loaded_models() if lmstudio_status == "running" else []
+    ollama_status = "running" if OllamaService.is_running() else "stopped"
+    loaded_models = OllamaService.get_loaded_models() if ollama_status == "running" else []
     
     # Check vector DB
     try:
@@ -58,7 +59,7 @@ async def get_ai_status(teacher: User = Depends(get_current_teacher)):
         db_status = f"error: {str(e)[:50]}"
     
     return {
-        "lmstudio": lmstudio_status,
+        "ollama": ollama_status,
         "model": ", ".join(loaded_models) if loaded_models else "no models loaded",
         "vector_db": db_status
     }
@@ -110,6 +111,10 @@ async def grade_image_endpoint(
     If not, uses AI to self-solve.
     """
     try:
+        allowed_types = {"image/png", "image/jpeg", "image/jpg", "image/webp"}
+        if file.content_type not in allowed_types:
+            raise HTTPException(status_code=400, detail="Chi chap nhan anh PNG/JPEG/WEBP")
+
         correct_answers: Optional[List[Dict[str, Any]]] = None
         if correct_answers_json:
             try:
@@ -122,6 +127,9 @@ async def grade_image_endpoint(
                 raise HTTPException(status_code=400, detail="Invalid JSON for correct_answers")
 
         image_content = await file.read()
+        max_size_bytes = 5 * 1024 * 1024
+        if len(image_content) > max_size_bytes:
+            raise HTTPException(status_code=400, detail="Kich thuoc anh vuot qua 5MB")
         
         from app.services.ai.grading_service import GradingService
         grader = GradingService()
@@ -147,6 +155,13 @@ async def get_class_analytics(
     teacher: User = Depends(get_current_teacher)
 ):
     """Get error analytics for a specific class (Teacher only)."""
+    owned_class = db.query(MathClass).filter(
+        MathClass.id == class_id,
+        MathClass.teacher_id == teacher.id,
+    ).first()
+    if not owned_class:
+        raise HTTPException(status_code=403, detail="Ban khong co quyen xem thong ke lop nay")
+
     service = AnalyticsService(db)
     return service.analyze_class_errors(class_id)
 
@@ -193,7 +208,7 @@ Yeu cau dau ra:
 """
 
     try:
-        explanation = LMStudioService.generate(
+        explanation = OllamaService.generate(
             prompt=prompt,
             system="Ban la tro ly su pham, giai thich ngan gon, chinh xac, phu hop hoc sinh tieu hoc.",
             temperature=0.2,
@@ -208,7 +223,7 @@ Yeu cau dau ra:
 
 @router.post("/grading-report/export")
 async def export_grading_report(
-    request: dict,
+    request: GradingReportExportRequest,
     db: Session = Depends(get_db),
     teacher: User = Depends(get_current_teacher)
 ):
@@ -220,15 +235,22 @@ async def export_grading_report(
     
     try:
         service = ReportService(db)
+        owned_class = db.query(MathClass).filter(
+            MathClass.id == request.class_id,
+            MathClass.teacher_id == teacher.id,
+        ).first()
+        if not owned_class:
+            raise HTTPException(status_code=403, detail="Ban khong co quyen tao bao cao cho lop nay")
+
         report = service.generate_report(
             teacher_id=cast(int, teacher.id),
-            class_id=request.get("class_id", 0),
-            student_name=request.get("student_name", "Học sinh"),
-            worksheet_title=request.get("worksheet_title", "Bài kiểm tra"),
-            total_score=request.get("total_score", 0),
-            max_score=request.get("max_score", 0),
-            results=request.get("results", []),
-            raw_text=request.get("raw_text", "")
+            class_id=request.class_id,
+            student_name=request.student_name,
+            worksheet_title=request.worksheet_title,
+            total_score=request.total_score,
+            max_score=request.max_score,
+            results=request.results,
+            raw_text=request.raw_text,
         )
         
         return {
@@ -236,6 +258,8 @@ async def export_grading_report(
             "file_url": f"/api/ai/grading-report/{report.id}/download",
             "message": "Báo cáo đã được tạo thành công!"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Tạo báo cáo thất bại: {str(e)}")
 
@@ -243,7 +267,8 @@ async def export_grading_report(
 @router.get("/grading-report/{report_id}/download")
 async def download_grading_report(
     report_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    teacher: User = Depends(get_current_teacher),
 ):
     """Download a generated grading report file."""
     from app.services.report_service import ReportService
@@ -254,6 +279,9 @@ async def download_grading_report(
     
     if not report:
         raise HTTPException(status_code=404, detail="Báo cáo không tồn tại")
+
+    if report.teacher_id != teacher.id:
+        raise HTTPException(status_code=403, detail="Ban khong co quyen tai bao cao nay")
     
     import os
     if not os.path.exists(str(report.file_path)):
@@ -274,6 +302,13 @@ async def list_class_reports(
 ):
     """List all grading reports for a class (Teacher only)."""
     from app.services.report_service import ReportService
+
+    owned_class = db.query(MathClass).filter(
+        MathClass.id == class_id,
+        MathClass.teacher_id == teacher.id,
+    ).first()
+    if not owned_class:
+        raise HTTPException(status_code=403, detail="Ban khong co quyen xem bao cao lop nay")
     
     service = ReportService(db)
     reports = service.get_reports_for_class(class_id)

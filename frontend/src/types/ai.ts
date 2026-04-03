@@ -59,7 +59,7 @@ export interface AnalyticsResponse {
 }
 
 export interface AIStatusResponse {
-    lmstudio: string;
+    ollama: string;
     model: string;
     vector_db: string;
 }

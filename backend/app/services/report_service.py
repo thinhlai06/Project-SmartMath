@@ -4,6 +4,7 @@ Report Service - Generates PDF error analysis reports for grading results.
 import os
 import json
 import logging
+import re
 from datetime import datetime
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
@@ -41,9 +42,12 @@ class ReportService:
         """
         # Generate filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_name = student_name.replace(" ", "_")[:20]
+        safe_name = self._sanitize_filename_part(student_name)
         filename = f"report_{safe_name}_{timestamp}.txt"
-        filepath = os.path.join(REPORTS_DIR, filename)
+        filepath = os.path.abspath(os.path.join(REPORTS_DIR, filename))
+        reports_dir_abs = os.path.abspath(REPORTS_DIR)
+        if not filepath.startswith(reports_dir_abs):
+            raise ValueError("Invalid report file path")
         
         # Generate report content
         content = self._build_report_content(
@@ -73,8 +77,13 @@ class ReportService:
         self.db.commit()
         self.db.refresh(report)
         
-        logger.info(f"Report generated: {filename} for student {student_name}")
+        logger.info("Report generated: %s", filename)
         return report
+
+    def _sanitize_filename_part(self, value: str) -> str:
+        normalized = re.sub(r"[^A-Za-z0-9_-]", "_", (value or "").strip())
+        normalized = re.sub(r"_+", "_", normalized).strip("_")
+        return (normalized or "hoc_sinh")[:24]
     
     def get_reports_for_class(self, class_id: int) -> List[GradingReport]:
         """Get all reports for a specific class."""

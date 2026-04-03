@@ -1,8 +1,8 @@
 """
 AI Schemas - Pydantic models for AI API requests/responses.
 """
-from pydantic import BaseModel
-from typing import List, Dict, Optional
+from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Literal, Optional
 
 
 class QuestionItem(BaseModel):
@@ -13,7 +13,7 @@ class QuestionItem(BaseModel):
 
 class CPAGenerationRequest(BaseModel):
     topic_id: int
-    grade: int
+    grade: Literal[1, 2, 3]
     objective: str
     counts: Optional[Dict[str, int]] = None
 
@@ -26,16 +26,26 @@ class CPAGenerationResponse(BaseModel):
 
 
 class AIStatusResponse(BaseModel):
-    lmstudio: str
+    ollama: str
     model: str
     vector_db: str
 
 
 class DifferentiationRequest(BaseModel):
     topic_id: int
-    grade: int
+    grade: Literal[1, 2, 3]
     objective: str
-    tiers: Optional[List[str]] = ["foundation", "standard", "extension", "advanced"]
+    tiers: List[str] = Field(default_factory=lambda: ["foundation", "standard", "extension", "advanced"])
+
+
+class GradingReportExportRequest(BaseModel):
+    class_id: int
+    student_name: str = "Hoc sinh"
+    worksheet_title: str = "Bai kiem tra"
+    total_score: float = 0
+    max_score: float = 0
+    results: List[Dict[str, Any]] = Field(default_factory=list)
+    raw_text: str = ""
 
 
 class DifferentiationResponse(BaseModel):
