@@ -10,6 +10,30 @@ from .rag_service import RAGService
 
 logger = logging.getLogger(__name__)
 
+VOCABULARY_SUGGESTIONS = """
+TỪ VỰNG TẠO BÀI TOÁN (Hãy chọn ngẫu nhiên để bài toán đa dạng, tự nhiên):
+- Đồ vật: quả táo, cái kẹo, quyển vở, viên bi, đồ chơi, quả bóng, hộp sữa...
+- Con vật: con chó, con mèo, con gà, con thỏ, con bò...
+- Nhân vật: bạn An, bạn Bình, bạn Lan, bé Nam, mẹ, bố, cô giáo...
+- Bối cảnh: trong lớp học, ở nhà, ngoài sân trường, trong cửa hàng...
+- Hình học & Đo lường: hình vuông, hình tròn, tam giác, cạnh, góc, cm, kg, lít...
+"""
+
+TOPIC_RULES = {
+    # Lớp 1
+    "Phép cộng trong phạm vi 20": "[DÀNH CHO LỚP 1] Tuân thủ tư duy của học sinh Lớp 1 mới vào trường. Bắt buộc sinh tình huống: gộp lại, thêm vào, tất cả có bao nhiêu. Không được phép hỏi bớt đi.",
+    "Phép trừ trong phạm vi 20": "[DÀNH CHO LỚP 1] Tuân thủ tư duy của Lớp 1. Bắt buộc sinh tình huống: bớt đi, cho đi, còn lại bao nhiêu, ít hơn.",
+    "Hình học cơ bản": "[DÀNH CHO LỚP 1] Kiến thức rất cơ bản của Lớp 1. TUYỆT ĐỐI KHÔNG sinh bài đếm đồ vật hay tính toán. CHỈ yêu cầu nhận biết, phân biệt: hình vuông, hình tròn, tam giác trong đồ vật thực tế.",
+    # Lớp 2
+    "Bảng nhân 2, 5": "[DÀNH CHO LỚP 2] Phù hợp năng lực Lớp 2. Tình huống rành mạch: các nhóm đồ vật có số lượng bằng nhau được lặp lại. KHÔNG dùng kiến thức đo lường phức tạp.",
+    "Phép cộng có nhớ trong phạm vi 100": "[DÀNH CHO LỚP 2] Các con số phải thiết kế để chắc chắn ra phép cộng CÓ NHỚ (tổng ở hàng đơn vị từ 10 trở lên). Cấm dùng số liệu quá 100.",
+    "Đo độ dài (cm, m)": "[DÀNH CHO LỚP 2] BẮT BUỘC có nhắc đến đơn vị đo cm hoặc m. Đưa ra tình huống đo chiều dài vật dụng quen thuộc, hoặc độ dài quãng đường ngắn.",
+    # Lớp 3
+    "Diện tích hình chữ nhật": "[DÀNH CHO LỚP 3] BẮT BUỘC hỏi về tính diện tích hình chữ nhật (chiều dài x chiều rộng). Gắn với thực tế sinh động: phòng học, cái sân, bồn hoa. Văn phong Lớp 3.",
+    "Phép chia có dư": "[DÀNH CHO LỚP 3] BẮT BUỘC số bị chia và số chia do AI chọn phải tạo ra SỐ DƯ (chia lớn nhưng không hết). Câu hỏi xoay quanh việc: chia đều được mấy phần và còn thừa/còn dư bao nhiêu chiếc.",
+    "Bài toán nhiều bước": "[DÀNH CHO LỚP 3] Cốt lõi của Lớp 3 là tư duy giải quyết vấn đề. TUYỆT ĐỐI KHÔNG sinh bài giải bằng 1 bước/1 phép tính. BẮT BUỘC phải đòi hỏi từ 2 đến 3 phép tính liên tiếp mới ra đáp án."
+}
+
 
 class QuestionGenerator:
     def __init__(self):
@@ -194,6 +218,8 @@ class QuestionGenerator:
         rag_context = (context or "").strip()
         if not rag_context or "Không tìm thấy" in rag_context:
             rag_context = "Dùng kiến thức chuẩn SGK lớp %s. Sinh bài cơ bản, mẫu mực." % grade
+            
+        topic_rule = TOPIC_RULES.get(topic, f"Bám sát nội dung Mẫu SGK được cung cấp. Phải phù hợp tuyệt đối với trình độ nhận thức Lớp {grade}.")
 
         return f"""NHIỆM VỤ: Sinh {count} bài toán phân hóa mức độ "{tier_label}" cho Lớp {grade}.
 
@@ -208,6 +234,7 @@ YÊU CẦU PHÂN HÓA MỨC ĐỘ "{tier_label}":
 - Cách biến đổi từ mẫu SGK: {tier_cfg['transformation']}
 
 QUY TẮC NGÔN NGỮ & KIẾN THỨC (LỚP {grade}):
+- Ràng buộc Trình độ & Chủ đề: {topic_rule}
 - Giới hạn: {grade_cfg['limit']}
 - Cấm: {grade_cfg['forbidden']}
 - Văn phong: Giống hệt sách giáo khoa (ngắn gọn, trong sáng, dùng từ gần gũi: kẹo, bi, bạn Lan, nhà em...).
@@ -218,7 +245,9 @@ QUY TẮC NGÔN NGỮ & KIẾN THỨC (LỚP {grade}):
 - Không kèm bất kỳ lời giải thích nào ngoài JSON.
 
 HƯỚNG DẪN SINH BÀI:
-Hãy chọn một cấu trúc bài trong phần "DANH SÁCH MẪU" rồi thực hiện "Cách biến đổi" để tạo ra bài mới cho mức độ {tier_label}. Đảm bảo bài sinh ra tự nhiên như trong sách bài tập.
+Hãy chọn một cấu trúc bài trong phần "DANH SÁCH MẪU" rồi thực hiện "Cách biến đổi" để tạo ra bài mới cho mức độ {tier_label}. Đảm bảo bài sinh ra tự nhiên, đa dạng bối cảnh và KHÔNG lặp lại nếu sinh nhiều bài.
+
+{VOCABULARY_SUGGESTIONS}
 """
 
     def _build_prompt(self, level: str, topic: str, grade: int, objective: str, count: int, context: str) -> str:
@@ -236,7 +265,9 @@ Hãy chọn một cấu trúc bài trong phần "DANH SÁCH MẪU" rồi thực 
         # Extract math operator constraints from the topic
         topic_lower = topic.lower()
         operator_rule = "Sinh phép tính phù hợp với chủ đề."
-        if "cộng" in topic_lower or "tổng" in topic_lower or "thêm" in topic_lower:
+        if any(word in topic_lower for word in ["hình", "đo ", "dài", "rộng", "đoạn", "thời gian", "đồng hồ", "cm", "kg", "lít", "chu vi", "diện tích"]):
+            operator_rule = "Chủ đề Hình học / Đo lường: KHÔNG bắt buộc phải có phép toán cộng trừ nhân chia. Tập trung vào nhận biết hình, đo lường."
+        elif "cộng" in topic_lower or "tổng" in topic_lower or "thêm" in topic_lower:
             operator_rule = "TUYỆT ĐỐI CHỈ DÙNG PHÉP CỘNG. KHÔNG được sử dụng phép trừ, nhân, chia."
         elif "trừ" in topic_lower or "hiệu" in topic_lower or "bớt" in topic_lower:
             operator_rule = "TUYỆT ĐỐI CHỈ DÙNG PHÉP TRỪ. KHÔNG được sử dụng phép cộng, nhân, chia."
@@ -270,46 +301,10 @@ Hãy chọn một cấu trúc bài trong phần "DANH SÁCH MẪU" rồi thực 
         rag_context = (context or "").strip()
         if not rag_context or "Không tìm thấy" in rag_context:
             rag_context = "Dùng kiến thức chuẩn SGK lớp %s. Tự động sinh dựa trên kiến thức chuẩn Tiểu học Bộ GDĐT." % grade
+            
+        topic_rule = TOPIC_RULES.get(topic, f"Bám sát nội dung Mẫu SGK được cung cấp. Phải phù hợp tuyệt đối với trình độ nhận thức Lớp {grade}.")
 
-        # Template ví dụ động (Dynamic Few-shot Example) theo Khối lớp và Phép tính
-        topic_lower = topic.lower()
-        ex_num1, ex_num2 = (8, 3) if grade == 1 else ((45, 23) if grade == 2 else (150, 25))
-        ex_obj = "quả táo" if grade == 1 else ("viên bi" if grade == 2 else "quyển vở")
-        
-        ex_op = "+"
-        if "trừ" in topic_lower or "hiệu" in topic_lower or "bớt" in topic_lower:
-            ex_op = "-"
-        elif "nhân" in topic_lower or "tích" in topic_lower or "gấp" in topic_lower:
-            ex_op = "x"
-        elif "chia" in topic_lower or "thương" in topic_lower or "giảm" in topic_lower:
-            ex_op = ":"
-
-        # Logic tính ví dụ
-        if ex_op == "+":
-            ex_q = f"Lan có {ex_num1} {ex_obj}, mẹ mua thêm {ex_num2} {ex_obj}. Hỏi Lan có tất cả bao nhiêu {ex_obj}?"
-            ex_a = f"{ex_num1} + {ex_num2} = {ex_num1 + ex_num2} ({ex_obj})"
-            ex_h = f"Thực hiện phép tính cộng giữa số {ex_obj} ban đầu và số được mua thêm."
-        elif ex_op == "-":
-            ex_q = f"Lan có {ex_num1} {ex_obj}, Lan cho bạn {ex_num2} {ex_obj}. Hỏi Lan còn lại bao nhiêu {ex_obj}?"
-            ex_a = f"{ex_num1} - {ex_num2} = {ex_num1 - ex_num2} ({ex_obj})"
-            ex_h = f"Thực hiện phép tính trừ để tìm số {ex_obj} còn lại."
-        elif ex_op == "x":
-            ex_q = f"Mỗi hộp có {ex_num2} {ex_obj}. Hỏi {ex_num1} hộp như thế có tất cả bao nhiêu {ex_obj}?"
-            ex_a = f"{ex_num1} x {ex_num2} = {ex_num1 * ex_num2} ({ex_obj})"
-            ex_h = f"Sử dụng phép nhân để tính tổng số {ex_obj}."
-        else: # chia
-            safe_num2 = ex_num2 if ex_num2 != 0 else 1
-            ex_q = f"Có {ex_num1} {ex_obj} chia đều vào {safe_num2} hộp. Hỏi mỗi hộp có bao nhiêu {ex_obj}?"
-            ex_a = f"{ex_num1} : {safe_num2} = {ex_num1 // safe_num2} ({ex_obj})"
-            ex_h = f"Sử dụng phép chia để tìm số {ex_obj} trong mỗi hộp."
-
-        if "abstract" in level or "foundation" in level:
-            # Nhận biết / Trừu tượng chỉ cần phép tính
-            ex_q = f"Tính: {ex_num1} {ex_op} {ex_num2} = ?"
-            ex_a = f"{ex_num1 + ex_num2 if ex_op == '+' else (ex_num1 - ex_num2 if ex_op == '-' else (ex_num1 * ex_num2 if ex_op == 'x' else ex_num1 // (ex_num2 if ex_num2!=0 else 1)))}"
-            ex_h = f"Thực hiện phép tính {ex_op}."
-
-        example = f'[{{"question": "{ex_q}", "answer": "{ex_a}", "hint": "{ex_h}"}}]'
+        example = '[{"question": "<Nội dung câu hỏi phù hợp với Chủ đề và RAG...>", "answer": "<Đáp án và phép tính (nếu có)...>", "hint": "<Gợi ý cách làm...>"}]'
 
         return f"""NHIỆM VỤ: Sinh {count} bài toán dạng {desc} cho Lớp {grade}.
 
@@ -323,7 +318,8 @@ TIÊU CHUẨN CPA RIÊNG CHO BÀI NÀY:
 - {desc}
 
 QUY TẮC BẮT BUỘC:
-- {operator_rule}
+- Ràng buộc Toán tử: {operator_rule}
+- Ràng buộc Trình độ & Chủ đề: {topic_rule}
 - {positive_rule}
 - {negative_rule}
 - Văn phong: Ngắn gọn, trong sáng, đúng kiểu SGK Việt Nam. Không giải thích bên ngoài JSON.
@@ -335,7 +331,9 @@ MẪU VÍ DỤ PHẢI HỌC THEO VỀ MẶT CẤU TRÚC JSON:
 
 HƯỚNG DẪN SINH:
 Dựa trên phong cách ngôn ngữ và bối cảnh (context) từ DANH SÁCH MẪU SGK bên trên, hãy tạo ra {count} bài mới phù hợp với mục tiêu {objective} và tiêu chuẩn {desc}. 
-Đảm bảo bài toán tự nhiên, gần gũi như trong sách giáo khoa Lớp {grade}.
+Đảm bảo bài toán tự nhiên, gần gũi như trong sách giáo khoa Lớp {grade}, đa dạng bối cảnh và KHÔNG lặp lại nếu sinh nhiều bài.
+
+{VOCABULARY_SUGGESTIONS}
 
 ĐỊNH DẠNG ĐẦU RA:
 JSON array duy nhất: [{{"question": "...", "answer": "...", "hint": "..."}}]
