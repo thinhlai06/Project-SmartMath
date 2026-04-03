@@ -20,7 +20,7 @@ class QuestionGeneratorAdapter(QuestionGenerationPort):
         counts: Dict[str, int] | None = None,
     ) -> Dict:
         normalized_counts = counts if counts is not None else {"concrete": 3, "pictorial": 3, "abstract": 3}
-        return self.generator.generate_cpa_questions(
+        return self.generator.generate_cpa_questions_new(
             topic=topic,
             grade=grade,
             objective=objective,
@@ -35,7 +35,7 @@ class QuestionGeneratorAdapter(QuestionGenerationPort):
         tiers: List[str] | None = None,
     ) -> Dict:
         normalized_tiers = tiers if tiers is not None else ["foundation", "standard", "extension", "advanced"]
-        return self.generator.generate_differentiation_questions(
+        return self.generator.generate_differentiation_questions_new(
             topic=topic,
             grade=grade,
             objective=objective,

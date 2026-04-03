@@ -23,6 +23,9 @@ class CPAGenerationResponse(BaseModel):
     pictorial: List[QuestionItem]
     abstract: List[QuestionItem]
     rag_sources: Optional[List[str]] = None
+    generation_mode: Optional[str] = None
+    template_seed_count: Optional[Dict[str, int]] = None
+    retrieval_filter_applied: Optional[Dict[str, Any]] = None
 
 
 class AIStatusResponse(BaseModel):
@@ -35,7 +38,9 @@ class DifferentiationRequest(BaseModel):
     topic_id: int
     grade: Literal[1, 2, 3]
     objective: str
-    tiers: List[str] = Field(default_factory=lambda: ["foundation", "standard", "extension", "advanced"])
+    tiers: List[Literal["foundation", "standard", "extension", "advanced"]] = Field(
+        default_factory=lambda: ["foundation", "standard", "extension", "advanced"]
+    )
 
 
 class GradingReportExportRequest(BaseModel):
@@ -51,6 +56,10 @@ class GradingReportExportRequest(BaseModel):
 class DifferentiationResponse(BaseModel):
     content: Dict[str, List[QuestionItem]]
     rag_sources: Optional[List[str]] = None
+    generation_mode: Optional[str] = None
+    template_seed_count: Optional[int] = None
+    retrieval_filter_applied: Optional[Dict[str, Any]] = None
+    validation_summary: Optional[Dict[str, Any]] = None
 
 
 class OCRTokenConfidence(BaseModel):

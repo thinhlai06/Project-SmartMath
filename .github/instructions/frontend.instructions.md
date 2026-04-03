@@ -2,8 +2,8 @@
 name: Frontend React Rules
 description: "Use when editing React TypeScript frontend code. Enforce role-based UI, immutable state, grade 1-3 boundaries, and Vietnamese UX text."
 applyTo:
-	- frontend/src/**/*.ts
-	- frontend/src/**/*.tsx
+  - frontend/src/**/*.ts
+  - frontend/src/**/*.tsx
 ---
 # TypeScript/React Patterns — Smart-MathAI
 

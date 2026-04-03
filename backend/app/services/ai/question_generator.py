@@ -4,7 +4,10 @@ Question Generator - Generates CPA-style math questions using RAG + Qwen3.
 import json
 import logging
 import re
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
+
+from app.config import settings
+
 from .ollama_service import OllamaService
 from .rag_service import RAGService
 
@@ -34,12 +37,100 @@ TOPIC_RULES = {
     "Bài toán nhiều bước": "[DÀNH CHO LỚP 3] Cốt lõi của Lớp 3 là tư duy giải quyết vấn đề. TUYỆT ĐỐI KHÔNG sinh bài giải bằng 1 bước/1 phép tính. BẮT BUỘC phải đòi hỏi từ 2 đến 3 phép tính liên tiếp mới ra đáp án."
 }
 
+TOPIC_METADATA_PROFILES = {
+    "Phép cộng trong phạm vi 20": {
+        "topic_slug": "phep_cong_20",
+        "operation": "cong",
+        "forbidden": ["tru", "nhan", "chia"],
+    },
+    "Phép trừ trong phạm vi 20": {
+        "topic_slug": "phep_tru_20",
+        "operation": "tru",
+        "forbidden": ["cong", "nhan", "chia"],
+    },
+    "Hình học cơ bản": {
+        "topic_slug": "hinh_hoc_co_ban",
+        "operation": "hinh_hoc",
+        "forbidden": ["cong", "tru", "nhan", "chia"],
+    },
+    "Bảng nhân 2, 5": {
+        "topic_slug": "bang_nhan_2_5",
+        "operation": "nhan",
+        "forbidden": ["cong", "tru", "chia"],
+    },
+    "Phép cộng có nhớ trong phạm vi 100": {
+        "topic_slug": "phep_cong_co_nho_100",
+        "operation": "cong",
+        "forbidden": ["tru", "nhan", "chia"],
+    },
+    "Đo độ dài (cm, m)": {
+        "topic_slug": "do_do_dai",
+        "operation": "do_luong",
+        "forbidden": [],
+    },
+    "Diện tích hình chữ nhật": {
+        "topic_slug": "dien_tich_hinh_chu_nhat",
+        "operation": "hinh_hoc",
+        "forbidden": [],
+    },
+    "Phép chia có dư": {
+        "topic_slug": "phep_chia_co_du",
+        "operation": "chia",
+        "forbidden": ["nhan"],
+    },
+    "Bài toán nhiều bước": {
+        "topic_slug": "bai_toan_nhieu_buoc",
+        "operation": "tong_hop",
+        "forbidden": [],
+    },
+}
+
+TIER_ORDER = ["foundation", "standard", "extension", "advanced"]
+
+TIER_GUIDE = {
+    "foundation": "Yeu cau truc tiep, 1 buoc, du kien ro rang.",
+    "standard": "Yeu cau van la truc tiep, co the can 1-2 buoc.",
+    "extension": "Yeu cau xu ly du kien truoc khi tinh, 2 buoc tro len.",
+    "advanced": "Yeu cau suy luan gian tiep hoac dao bai, khong trung voi extension.",
+}
+
 
 class QuestionGenerator:
     def __init__(self):
         self.rag = RAGService()
 
+    # ------------------------------------------------------------------
+    # Backward-compatible entrypoints
+    # ------------------------------------------------------------------
+
     def generate_cpa_questions(
+        self,
+        topic: str,
+        grade: int,
+        objective: str,
+        counts: Optional[Dict[str, int]] = None,
+    ) -> Dict:
+        return self.generate_cpa_questions_new(topic=topic, grade=grade, objective=objective, counts=counts)
+
+    def generate_differentiation_questions(
+        self,
+        topic: str,
+        grade: int,
+        objective: str,
+        tiers: Optional[List[str]] = None,
+    ) -> Dict:
+        return self.generate_differentiation_questions_new(
+            topic=topic,
+            grade=grade,
+            objective=objective,
+            tiers=tiers,
+        )
+
+    # ------------------------------------------------------------------
+    # Legacy pipeline (kept for safe rollout)
+    # ------------------------------------------------------------------
+
+    def generate_cpa_questions_legacy(
         self,
         topic: str,
         grade: int,
@@ -84,7 +175,7 @@ class QuestionGenerator:
 
         return result
 
-    def generate_differentiation_questions(
+    def generate_differentiation_questions_legacy(
         self,
         topic: str,
         grade: int,
@@ -126,6 +217,542 @@ class QuestionGenerator:
             result["content"][tier] = questions
 
         return result
+
+    # ------------------------------------------------------------------
+    # New pipeline: template-first retrieval + ladder generation
+    # ------------------------------------------------------------------
+
+    def generate_cpa_questions_new(
+        self,
+        topic: str,
+        grade: int,
+        objective: str,
+        counts: Optional[Dict[str, int]] = None,
+    ) -> Dict:
+        if counts is None:
+            counts = {"concrete": 3, "pictorial": 3, "abstract": 3}
+
+        result: Dict[str, Any] = {
+            "concrete": [],
+            "pictorial": [],
+            "abstract": [],
+            "rag_sources": [],
+            "generation_mode": "new",
+            "template_seed_count": {},
+            "retrieval_filter_applied": {},
+        }
+
+        all_sources: set[str] = set()
+        for level in ["concrete", "pictorial", "abstract"]:
+            count = counts.get(level, 3)
+            if count <= 0:
+                result["template_seed_count"][level] = 0
+                continue
+
+            seeds, sources, filter_applied = self._retrieve_template_seeds(
+                topic=topic,
+                grade=grade,
+                objective=objective,
+                representation=level,
+                tier=None,
+                k=4,
+            )
+            all_sources.update(sources)
+
+            result["template_seed_count"][level] = len(seeds)
+            result["retrieval_filter_applied"][level] = filter_applied
+
+            prompt = self._build_cpa_seed_prompt(
+                level=level,
+                topic=topic,
+                grade=grade,
+                objective=objective,
+                count=count,
+                seeds=seeds,
+            )
+            system = (
+                "Ban la chuyen gia giao duc Toan tieu hoc Viet Nam. "
+                "Chi sinh bai moi trong bien topic duoc khoa. Tra ve JSON array."
+            )
+            response = OllamaService.generate(prompt, system=system, temperature=0.2, model="qwen3:1.7b")
+            result[level] = self._parse_json(response)
+
+        result["rag_sources"] = sorted(list(all_sources))
+        return result
+
+    def generate_differentiation_questions_new(
+        self,
+        topic: str,
+        grade: int,
+        objective: str,
+        tiers: Optional[List[str]] = None,
+    ) -> Dict:
+        if not tiers:
+            tiers = ["foundation", "standard", "extension", "advanced"]
+
+        normalized_tiers = [t for t in TIER_ORDER if t in tiers]
+        if not normalized_tiers:
+            normalized_tiers = TIER_ORDER.copy()
+
+        seeds, sources, filter_applied = self._retrieve_template_seeds(
+            topic=topic,
+            grade=grade,
+            objective=objective,
+            representation=None,
+            tier=normalized_tiers[0],
+            k=5,
+        )
+
+        prompt = self._build_ladder_prompt(
+            topic=topic,
+            grade=grade,
+            objective=objective,
+            tiers=normalized_tiers,
+            seeds=seeds,
+            per_tier_count=2,
+        )
+        system = (
+            "Ban la chuyen gia giao duc Toan tieu hoc Viet Nam. "
+            "Tao difficulty ladder tang dan do kho va khong trung dang giua cac muc."
+        )
+        response = OllamaService.generate(prompt, system=system, temperature=0.2, model="qwen3:1.7b")
+        parsed_content = self._parse_ladder_json(response, normalized_tiers)
+
+        validation = {
+            "enabled": bool(settings.AI_GEN_ENABLE_DIFFICULTY_VALIDATOR),
+            "passes": True,
+            "issues": [],
+            "repair_attempts": 0,
+        }
+
+        if settings.AI_GEN_ENABLE_DIFFICULTY_VALIDATOR:
+            validation = self._validate_ladder(
+                content=parsed_content,
+                topic=topic,
+                grade=grade,
+                tiers=normalized_tiers,
+            )
+
+            max_rounds = max(0, int(settings.AI_GEN_MAX_REPAIR_ROUNDS))
+            attempts = 0
+            while not validation.get("passes", False) and attempts < max_rounds:
+                attempts += 1
+                parsed_content = self._repair_ladder(
+                    content=parsed_content,
+                    topic=topic,
+                    grade=grade,
+                    objective=objective,
+                    tiers=normalized_tiers,
+                    seeds=seeds,
+                    issues=validation.get("issues", []),
+                )
+                validation = self._validate_ladder(
+                    content=parsed_content,
+                    topic=topic,
+                    grade=grade,
+                    tiers=normalized_tiers,
+                )
+                validation["repair_attempts"] = attempts
+
+        result: Dict[str, Any] = {
+            "content": {tier: parsed_content.get(tier, []) for tier in normalized_tiers},
+            "rag_sources": sorted(list(set(sources))),
+            "generation_mode": "new",
+            "template_seed_count": len(seeds),
+            "retrieval_filter_applied": filter_applied,
+            "validation_summary": validation,
+        }
+        return result
+
+    # ------------------------------------------------------------------
+    # Template seed helpers
+    # ------------------------------------------------------------------
+
+    def _topic_profile(self, topic: str) -> Dict[str, Any]:
+        return TOPIC_METADATA_PROFILES.get(
+            topic,
+            {
+                "topic_slug": self._slugify(topic),
+                "operation": "tong_hop",
+                "forbidden": [],
+            },
+        )
+
+    def _slugify(self, value: str) -> str:
+        ascii_like = value.lower()
+        replace_map = {
+            "đ": "d",
+            "á": "a", "à": "a", "ả": "a", "ã": "a", "ạ": "a",
+            "ă": "a", "ắ": "a", "ằ": "a", "ẳ": "a", "ẵ": "a", "ặ": "a",
+            "â": "a", "ấ": "a", "ầ": "a", "ẩ": "a", "ẫ": "a", "ậ": "a",
+            "é": "e", "è": "e", "ẻ": "e", "ẽ": "e", "ẹ": "e",
+            "ê": "e", "ế": "e", "ề": "e", "ể": "e", "ễ": "e", "ệ": "e",
+            "í": "i", "ì": "i", "ỉ": "i", "ĩ": "i", "ị": "i",
+            "ó": "o", "ò": "o", "ỏ": "o", "õ": "o", "ọ": "o",
+            "ô": "o", "ố": "o", "ồ": "o", "ổ": "o", "ỗ": "o", "ộ": "o",
+            "ơ": "o", "ớ": "o", "ờ": "o", "ở": "o", "ỡ": "o", "ợ": "o",
+            "ú": "u", "ù": "u", "ủ": "u", "ũ": "u", "ụ": "u",
+            "ư": "u", "ứ": "u", "ừ": "u", "ử": "u", "ữ": "u", "ự": "u",
+            "ý": "y", "ỳ": "y", "ỷ": "y", "ỹ": "y", "ỵ": "y",
+        }
+        for src, dst in replace_map.items():
+            ascii_like = ascii_like.replace(src, dst)
+        ascii_like = re.sub(r"[^a-z0-9]+", "_", ascii_like).strip("_")
+        return ascii_like or "topic"
+
+    def _retrieve_template_seeds(
+        self,
+        topic: str,
+        grade: int,
+        objective: str,
+        representation: Optional[str],
+        tier: Optional[str],
+        k: int,
+    ) -> tuple[list[dict], list[str], dict]:
+        profile = self._topic_profile(topic)
+        metadata_filter: Dict[str, Any] = {}
+
+        if settings.AI_GEN_ENABLE_TEMPLATE_FILTER:
+            metadata_filter["topic_slug"] = profile["topic_slug"]
+            if representation:
+                metadata_filter["representation"] = representation
+            if tier:
+                metadata_filter["difficulty_band"] = tier
+
+        query = f"{topic} {objective}".strip()
+        docs = self.rag.retrieve_with_filter(
+            query=query,
+            grade=grade,
+            k=k,
+            metadata_filter=metadata_filter,
+            allow_filter_fallback=True,
+        )
+
+        seeds = [self._doc_to_seed(d, profile, representation) for d in docs[:3]]
+        if not seeds:
+            seeds = [self._fallback_seed(topic, grade, representation)]
+
+        sources = [d.metadata.get("source_file", "SGK") for d in docs]
+        return seeds, sources, metadata_filter
+
+    def _doc_to_seed(
+        self,
+        doc: Any,
+        profile: Dict[str, Any],
+        representation: Optional[str],
+    ) -> Dict[str, str]:
+        text = (doc.page_content or "").strip()
+        lines = [ln.strip() for ln in text.split("\n") if ln.strip()]
+        sample = lines[0] if lines else text[:120]
+        sample = sample[:220]
+        template_type = doc.metadata.get("template_type") or "loi_van"
+        skill = doc.metadata.get("skill") or "nhan_biet"
+        return {
+            "dang_bai": template_type,
+            "kien_thuc_loi": profile["topic_slug"],
+            "hanh_dong": "tinh/nhan_dien/dien_so theo yeu cau",
+            "gioi_han": f"Chi trong topic {profile['topic_slug']} va lop {doc.metadata.get('grade', '')}",
+            "dieu_cam": ", ".join(profile.get("forbidden", [])) or "khong vuot topic",
+            "mau_cau": sample,
+            "skill": skill,
+            "representation": representation or doc.metadata.get("representation", "abstract"),
+        }
+
+    def _fallback_seed(self, topic: str, grade: int, representation: Optional[str]) -> Dict[str, str]:
+        profile = self._topic_profile(topic)
+        return {
+            "dang_bai": "co_ban",
+            "kien_thuc_loi": profile["topic_slug"],
+            "hanh_dong": "lam theo dung yeu cau cau hoi",
+            "gioi_han": f"Chi dung kien thuc toan lop {grade}",
+            "dieu_cam": ", ".join(profile.get("forbidden", [])) or "khong vuot topic",
+            "mau_cau": f"Bai toan ve {topic} cho lop {grade}",
+            "skill": "nhan_biet",
+            "representation": representation or "abstract",
+        }
+
+    # ------------------------------------------------------------------
+    # Prompt builders for new pipeline
+    # ------------------------------------------------------------------
+
+    def _build_cpa_seed_prompt(
+        self,
+        level: str,
+        topic: str,
+        grade: int,
+        objective: str,
+        count: int,
+        seeds: List[Dict[str, str]],
+    ) -> str:
+        seed_lines = []
+        for idx, seed in enumerate(seeds, 1):
+            seed_lines.append(
+                f"Seed {idx}: dang_bai={seed['dang_bai']}; kien_thuc_loi={seed['kien_thuc_loi']}; "
+                f"hanh_dong={seed['hanh_dong']}; gioi_han={seed['gioi_han']}; dieu_cam={seed['dieu_cam']}; "
+                f"mau_cau={seed['mau_cau']}"
+            )
+
+        level_hint = {
+            "concrete": "Dung ngu canh vat that gan gui, tranh phep tinh tran trai neu khong can.",
+            "pictorial": "Mo ta bang hinh anh/so do don gian.",
+            "abstract": "Bieu dien bang so va phep tinh ro rang.",
+        }.get(level, "Bam sat dang bai da khoa.")
+
+        return f"""NHIEM VU: Sinh {count} cau hoi CPA cho lop {grade}.
+CHU DE: {topic}
+MUC TIEU: {objective}
+CAP DO CPA: {level}
+
+TEMPLATE SEEDS (KHONG VUOT RA NGOAI):
+{chr(10).join(seed_lines)}
+
+RANG BUOC:
+- Chi sinh trong topic da khoa.
+- {level_hint}
+- Neu seed co dieu_cam thi bat buoc tuan thu.
+- Cau hoi day du nghia, khong cat cụt.
+
+DINH DANG DAU RA:
+- JSON array duy nhat: [{{"question":"...","answer":"...","hint":"..."}}]
+- Khong tra ve van ban ngoai JSON.
+"""
+
+    def _build_ladder_prompt(
+        self,
+        topic: str,
+        grade: int,
+        objective: str,
+        tiers: List[str],
+        seeds: List[Dict[str, str]],
+        per_tier_count: int,
+    ) -> str:
+        seed_lines = []
+        for idx, seed in enumerate(seeds, 1):
+            seed_lines.append(
+                f"Seed {idx}: dang_bai={seed['dang_bai']}; kien_thuc_loi={seed['kien_thuc_loi']}; "
+                f"hanh_dong={seed['hanh_dong']}; dieu_cam={seed['dieu_cam']}; mau_cau={seed['mau_cau']}"
+            )
+
+        tier_rules = [f"- {tier}: {TIER_GUIDE.get(tier, '')}" for tier in tiers]
+        profile = self._topic_profile(topic)
+
+        return f"""NHIEM VU: Tao bo difficulty ladder cho Toan lop {grade}.
+CHU DE: {topic}
+MUC TIEU: {objective}
+TIER BAT BUOC: {', '.join(tiers)}
+SO CAU MOI TIER: {per_tier_count}
+
+TEMPLATE SEEDS (CHI DUOC BIEN DOI TU CAC SEED NAY):
+{chr(10).join(seed_lines)}
+
+RUBRIC TANG DO KHO:
+{chr(10).join(tier_rules)}
+
+RANG BUOC TOPIC:
+- topic_slug: {profile['topic_slug']}
+- operation: {profile['operation']}
+- dieu_cam: {', '.join(profile.get('forbidden', [])) or 'khong vuot topic'}
+
+YEU CAU CHAT LUONG:
+- Moi cau phai day du ngu nghia, du du kien de tra loi.
+- Extension va Advanced KHONG duoc trung cau truc.
+- Advanced phai kho hon Extension ve suy luan, khong chi tang so.
+
+DINH DANG DAU RA:
+JSON object duy nhat theo mau:
+{{
+  "content": {{
+    "foundation": [{{"question":"...","answer":"...","hint":"..."}}],
+    "standard": [{{"question":"...","answer":"...","hint":"..."}}],
+    "extension": [{{"question":"...","answer":"...","hint":"..."}}],
+    "advanced": [{{"question":"...","answer":"...","hint":"..."}}]
+  }}
+}}
+"""
+
+    # ------------------------------------------------------------------
+    # Validator & repair for ladder
+    # ------------------------------------------------------------------
+
+    def _parse_ladder_json(self, text: str, tiers: List[str]) -> Dict[str, List[Dict[str, str]]]:
+        content = {tier: [] for tier in tiers}
+        clean = re.sub(r"^```json?|```$", "", (text or "").strip(), flags=re.MULTILINE).strip()
+        try:
+            loaded = json.loads(clean)
+            if isinstance(loaded, dict) and isinstance(loaded.get("content"), dict):
+                for tier in tiers:
+                    tier_val = loaded["content"].get(tier, [])
+                    content[tier] = tier_val if isinstance(tier_val, list) else []
+                return content
+            if isinstance(loaded, dict):
+                for tier in tiers:
+                    tier_val = loaded.get(tier, [])
+                    content[tier] = tier_val if isinstance(tier_val, list) else []
+                return content
+        except Exception:
+            pass
+        return content
+
+    def _validate_ladder(
+        self,
+        content: Dict[str, List[Dict[str, str]]],
+        topic: str,
+        grade: int,
+        tiers: List[str],
+    ) -> Dict[str, Any]:
+        issues: List[Dict[str, str]] = []
+
+        for tier in tiers:
+            questions = content.get(tier, [])
+            if not questions:
+                issues.append({"tier": tier, "reason": "Tier khong co cau hoi."})
+                continue
+
+            for idx, item in enumerate(questions, 1):
+                question = str(item.get("question", "")).strip()
+                answer = str(item.get("answer", "")).strip()
+                if not question or len(question) < 8:
+                    issues.append({"tier": tier, "reason": f"Cau {idx} bi cut hoac qua ngan."})
+                if not answer:
+                    issues.append({"tier": tier, "reason": f"Cau {idx} thieu dap an."})
+                if not self._is_question_topic_compliant(question=question, answer=answer, topic=topic):
+                    issues.append({"tier": tier, "reason": f"Cau {idx} lech topic da khoa."})
+                if not self._is_grade_compliant(question=question, grade=grade):
+                    issues.append({"tier": tier, "reason": f"Cau {idx} vuot muc do lop {grade}."})
+
+        if "extension" in content and "advanced" in content:
+            ext_q = " ".join([str(i.get("question", "")) for i in content.get("extension", [])]).lower()
+            adv_q = " ".join([str(i.get("question", "")) for i in content.get("advanced", [])]).lower()
+            if self._normalize_text(ext_q) == self._normalize_text(adv_q):
+                issues.append({"tier": "advanced", "reason": "Advanced trung cau truc voi Extension."})
+
+        complexity_by_tier = []
+        for tier in tiers:
+            tier_questions = content.get(tier, [])
+            if not tier_questions:
+                complexity_by_tier.append(0.0)
+                continue
+            avg = sum(self._complexity_score(str(q.get("question", ""))) for q in tier_questions) / len(tier_questions)
+            complexity_by_tier.append(avg)
+
+        for i in range(1, len(complexity_by_tier)):
+            if complexity_by_tier[i] + 0.1 < complexity_by_tier[i - 1]:
+                issues.append({
+                    "tier": tiers[i],
+                    "reason": "Do kho khong tang dan theo ladder.",
+                })
+
+        return {
+            "enabled": True,
+            "passes": len(issues) == 0,
+            "issues": issues,
+        }
+
+    def _repair_ladder(
+        self,
+        content: Dict[str, List[Dict[str, str]]],
+        topic: str,
+        grade: int,
+        objective: str,
+        tiers: List[str],
+        seeds: List[Dict[str, str]],
+        issues: List[Dict[str, str]],
+    ) -> Dict[str, List[Dict[str, str]]]:
+        issue_text = "\n".join([f"- {it.get('tier')}: {it.get('reason')}" for it in issues])
+        seed_text = "\n".join([
+            f"Seed {idx}: dang_bai={seed['dang_bai']}; mau_cau={seed['mau_cau']}; dieu_cam={seed['dieu_cam']}"
+            for idx, seed in enumerate(seeds, 1)
+        ])
+
+        prompt = f"""HAY SUA BO CAU HOI PHAN HOA.
+CHU DE: {topic}
+LOP: {grade}
+MUC TIEU: {objective}
+
+LOI CAN SUA:
+{issue_text}
+
+TEMPLATE SEEDS (KHONG DUOC VUOT TOPIC):
+{seed_text}
+
+NOI DUNG HIEN TAI:
+{json.dumps({'content': content}, ensure_ascii=False)}
+
+YEU CAU:
+- Chi sua cac cau bi loi.
+- Giu nguyen tier va cau dung.
+- Khong duoc doi topic.
+- Tra ve duy nhat JSON object theo key 'content'.
+"""
+        response = OllamaService.generate(
+            prompt=prompt,
+            system="Ban la giao vien sua bai, sua dung loi va giu nguyen chu de.",
+            temperature=0.1,
+            model="qwen3:1.7b",
+        )
+        return self._parse_ladder_json(response, tiers)
+
+    def _is_question_topic_compliant(self, question: str, answer: str, topic: str) -> bool:
+        q = self._normalize_for_checks(question)
+        a = self._normalize_for_checks(answer)
+        topic_norm = self._normalize_for_checks(topic)
+        if topic_norm == "hinh hoc co ban":
+            return not any(op in q for op in ["+", "-", "x", ":", "nhan", "chia"]) and "hinh" in q
+        if topic_norm == "phep chia co du":
+            return ("du" in q) or ("du" in a)
+        if "phep cong" in topic_norm:
+            return "+" in q or "cong" in q or "+" in a
+        if "phep tru" in topic_norm:
+            return "-" in q or "tru" in q or "-" in a
+        return True
+
+    def _is_grade_compliant(self, question: str, grade: int) -> bool:
+        q = self._normalize_for_checks(question)
+        if grade == 1:
+            if any(token in q for token in ["phan so", "%", "thap phan"]):
+                return False
+        if grade in (1, 2):
+            if any(token in q for token in ["phuong trinh", "lap luan chung minh"]):
+                return False
+        return True
+
+    def _complexity_score(self, question: str) -> float:
+        q = (question or "").lower()
+        score = 0.0
+        score += len(q) / 120.0
+        score += q.count("?") * 0.2
+        score += sum(q.count(op) for op in ["+", "-", "x", ":", "nhan", "chia"]) * 0.3
+        for kw in ["vi sao", "giai thich", "con lai", "sau do", "tim so", "neu"]:
+            if kw in q:
+                score += 0.4
+        return score
+
+    def _normalize_text(self, text: str) -> str:
+        txt = re.sub(r"\s+", " ", (text or "").lower()).strip()
+        txt = re.sub(r"\d+", "#", txt)
+        return txt
+
+    def _normalize_for_checks(self, text: str) -> str:
+        raw = (text or "").lower()
+        replace_map = {
+            "đ": "d",
+            "á": "a", "à": "a", "ả": "a", "ã": "a", "ạ": "a",
+            "ă": "a", "ắ": "a", "ằ": "a", "ẳ": "a", "ẵ": "a", "ặ": "a",
+            "â": "a", "ấ": "a", "ầ": "a", "ẩ": "a", "ẫ": "a", "ậ": "a",
+            "é": "e", "è": "e", "ẻ": "e", "ẽ": "e", "ẹ": "e",
+            "ê": "e", "ế": "e", "ề": "e", "ể": "e", "ễ": "e", "ệ": "e",
+            "í": "i", "ì": "i", "ỉ": "i", "ĩ": "i", "ị": "i",
+            "ó": "o", "ò": "o", "ỏ": "o", "õ": "o", "ọ": "o",
+            "ô": "o", "ố": "o", "ồ": "o", "ổ": "o", "ỗ": "o", "ộ": "o",
+            "ơ": "o", "ớ": "o", "ờ": "o", "ở": "o", "ỡ": "o", "ợ": "o",
+            "ú": "u", "ù": "u", "ủ": "u", "ũ": "u", "ụ": "u",
+            "ư": "u", "ứ": "u", "ừ": "u", "ử": "u", "ữ": "u", "ự": "u",
+            "ý": "y", "ỳ": "y", "ỷ": "y", "ỹ": "y", "ỵ": "y",
+        }
+        for src, dst in replace_map.items():
+            raw = raw.replace(src, dst)
+        raw = re.sub(r"\s+", " ", raw).strip()
+        return raw
 
     def _build_differentiation_prompt(
         self,

@@ -9,6 +9,8 @@ Phân tích yêu cầu và lập kế hoạch implementation:
    - Tính năng có vượt quá Lớp 1-3 không?
    - Có vi phạm Teacher/Parent permissions không?
    - Có cần AI mà chưa được phép trong phase hiện tại không?
+   - Luồng AI generation hiện là single mode (pipeline mới), không tách nhiều mode
+   - Nếu thay đổi metadata RAG: có cần re-ingest vector DB không?
 3. Xác định files bị ảnh hưởng và dependencies
 4. Tạo implementation plan theo format:
 

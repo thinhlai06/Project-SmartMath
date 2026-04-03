@@ -27,6 +27,27 @@ Teacher → [Chọn Grade/Topic/Difficulty]
                               → [Reject] → Discard
 ```
 
+## Current Runtime Mode (single mode)
+
+Question generation hiện chạy **một mode duy nhất**: luồng mới (Template-first RAG + Difficulty Ladder).
+
+Flags sử dụng:
+
+- `AI_GEN_ENABLE_TEMPLATE_FILTER`
+- `AI_GEN_ENABLE_DIFFICULTY_VALIDATOR`
+- `AI_GEN_MAX_REPAIR_ROUNDS`
+
+## Current Generation Strategy (đã triển khai)
+
+1. **Template-first RAG**: retrieve bằng metadata filter theo `topic_slug`, `representation`, `difficulty_band` trước, sau đó mới similarity search.
+2. **Template seeds**: không nhét nguyên chunk SGK vào prompt; trích ra seed cấu trúc gồm dạng bài, kiến thức lõi, giới hạn, điều cấm, mẫu câu.
+3. **Difficulty ladder**: phân hóa phải sinh theo bộ 4 mức trong một lần thay vì gọi độc lập từng tier.
+4. **Validator + repair loop**: sau sinh, hệ thống chấm lại đúng topic/lớp/tier; câu fail được sửa theo lỗi cụ thể (không rewrite tự do).
+
+## Re-ingest Requirement for New RAG
+
+Khi bật `AI_GEN_ENABLE_TEMPLATE_FILTER=true`, bắt buộc re-ingest vector DB để có metadata sư phạm mới (`topic_slug`, `skill`, `representation`, `template_type`, `difficulty_band`, ...). Nếu chưa ingest lại, hệ thống vẫn có fallback nhưng chất lượng khóa topic giảm.
+
 ### Implementation Pattern
 
 ```python
