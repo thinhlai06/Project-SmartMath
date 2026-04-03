@@ -15,7 +15,7 @@ Smart-MathAI is a strict Role-Based platform comprising exactly two user roles:
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS v4, Shadcn/UI, Recharts.
 - **Backend API**: Python 3.10+, FastAPI (Asynchronous), SQLAlchemy (ORM), SQLite/PostgreSQL.
 - **AI Integration**: Complete isolation of Business Logic (Core MVP) and AI Logic (`app/services/ai`).
-- **AI/Vector DB Tooling**: LMStudio (Local open-source models), LangChain, ChromaDB.
+- **AI/Vector DB Tooling**: Ollama (Local open-source models), LangChain, ChromaDB.
 
 ## Non-Negotiable Rules
 - **Domain Constraint**: Mathematics ONLY. No other subjects.
@@ -43,9 +43,9 @@ Smart-MathAI is a strict Role-Based platform comprising exactly two user roles:
 
 ## AI / RAG Rules
 If an AI feature is required, ONLY use the following three designated models:
-1. **`qwen2.5-1.5b-instruct`**: Used for generating Math questions and explaining solutions step-by-step (CPA Method). Output is strictly Vietnamese, Grade 1-3 level.
+1. **`qwen3:1.7b`**: Used for generating Math questions and explaining solutions step-by-step (CPA Method). Output is strictly Vietnamese, Grade 1-3 level.
 2. **`keepitreal/vietnamese-sbert`**: Used solely for generating Embeddings to query the ChromaDB Vector database (RAG). DO NOT use for text generation. This grounds the AI purely in textbook (SGK/SGV) context.
-3. **`PaddlePaddle/PaddleOCR-VL-1.5-GGUF`**: Used to extract handwritten text from images. The OCR logic does NOT evaluate correct/incorrect; its output is validated against expected text via rule-based logic or AI. A Confidence Threshold must be defined, and Teacher override is required.
+3. **`glm-ocr:latest`**: Used to extract handwritten text from images. The OCR logic does NOT evaluate correct/incorrect; its output is validated against expected text via rule-based logic or AI. A Confidence Threshold must be defined, and Teacher override is required.
 
 ## Allowed Changes vs Forbidden Changes
 - **Allowed**: Extending teacher dashboards, optimizing the AI service layer, implementing additional RAG controls, adding OCR overrides, refactoring internal API responses.

@@ -1,54 +1,77 @@
-# Smart-MathAI Copilot Instructions (VS Code Codex)
+# CLAUDE.md — Smart-MathAI
 
-File nay chi danh cho GitHub Copilot Chat trong VS Code.
+> File cấu hình cho AI agents làm việc với dự án này.
+> Được tạo theo pattern của everything-claude-code.
 
-- Nguon cau hinh Antigravity giu nguyen trong `.agent/`
-- Cau hinh Copilot/Codex nam trong `.github/`
-- Khong sua slash workflows cua Antigravity khi dang lam viec cho Codex
+## Dự án là gì?
 
-## Muc tieu du an
+**Smart-MathAI** — Nền tảng giáo dục toán học tiểu học Việt Nam (Lớp 1–3).  
+Đây là educational SaaS dành cho **giáo viên** (tạo bài tập) và **phụ huynh** (tải bài tập về).
 
-Smart-MathAI la nen tang giao duc toan tieu hoc Viet Nam cho Lop 1-3, phuc vu 2 vai tro:
+## Tech Stack
 
-- Teacher: tao bai tap va review noi dung AI
-- Parent: xem va tai bai tap da duoc publish
+```
+Backend:   Python 3.11+ / FastAPI / SQLAlchemy / SQLite
+Frontend:  TypeScript / React / Vite
+AI:        Ollama (qwen3:1.7b) / ChromaDB + vietnamese-sbert (RAG) / Ollama (glm-ocr:latest)
+```
 
-## Domain Constraints (bat buoc)
+## Domain Constraints (BẮT BUỘC tuân thủ)
 
-1. Chi xu ly toan Lop 1, 2, 3
-2. Chi co 2 role: Teacher va Parent
-3. AI output luon la draft, Teacher review bat buoc truoc khi publish
-4. Chi su dung model duoc duyet:
-   - `qwen3:1.7b` cho tao cau hoi
-   - `glm-ocr:latest` cho OCR
-   - `vietnamese-sbert` cho RAG embeddings
-5. UI va thong bao loi bang tieng Viet
+1. **Chỉ Toán học Lớp 1–3** — Không implement content ngoài phạm vi này
+2. **2 Roles duy nhất**: Teacher và Parent
+3. **AI output = Draft** — Teacher review bắt buộc, không auto-publish
+4. **AI models được duyệt**: `qwen3:1.7b` (câu hỏi), `glm-ocr:latest` (OCR), `vietnamese-sbert` (RAG) — không thêm model khác
+5. **Tiếng Việt** — UI và AI output bằng tiếng Việt
 
-## Backend conventions
+## Khi làm việc với Backend (`backend/`)
 
-- FastAPI + SQLAlchemy ORM, khong dung raw SQL
-- Dung dependency injection cho auth checks
-- Pydantic schema enforce grade voi `Literal[1, 2, 3]`
-- AI logic dat trong `backend/app/services/ai/`, khong tron voi controller
-- Khi test, mock AI calls, khong goi model that
+- Dùng FastAPI dependency injection cho auth checks
+- Pydantic schemas với `grade: Literal[1, 2, 3]` để enforce boundary
+- SQLAlchemy ORM (không raw SQL)
+- Test coverage ≥ 80% với pytest
 
-## Frontend conventions
+```bash
+cd backend
+pytest tests/ -v --cov=app
+```
+
+## Khi làm việc với Frontend (`frontend/`)
 
 - TypeScript strict mode
-- Role-based rendering ro rang (Parent khong thay teacher controls)
+- Role-based rendering: ẩn Teacher features với Parent
+- Error messages bằng tiếng Việt
 - Immutable state updates
-- Error message than thien bang tieng Viet
 
-## Testing and quality
+```bash
+cd frontend
+npm run dev
+```
 
-- Uu tien TDD cho thay doi lon
-- Backend coverage muc tieu >= 80%
-- Neu thay doi auth/permissions, phai bo sung test role mismatch
+## Khi làm việc với AI (`backend/app/services/ai/`)
 
-## Working mode
+- AI logic CÔ LẬP trong `services/ai/` — không mix với controller
+- Mock AI calls trong tests (không gọi model thật khi test)
+- Dynamic model loading với Ollama (load khi cần, unload ngay sau)
+- Log: prompt_input, model, teacher_approval_status, ocr_confidence
 
-- Uu tien thay doi nho, dung tam pham vi
-- Khong pha vo behavior hien co neu khong duoc yeu cau
-- Neu co xung dot giua `.agent/` va `.github/`, uu tien bo cau hinh theo IDE dang dung:
-  - Antigravity -> `.agent/`
-  - VS Code Copilot/Codex -> `.github/`
+## Commands Available
+
+- `/plan "feature"` — Lên kế hoạch và phân tích impact
+- `/tdd "feature"` — Bắt đầu TDD workflow
+- `/python-review` — Review backend code
+- `/code-review` — Review frontend code
+- `/security-scan` — Scan bảo mật
+
+## Agents Available
+
+- `planner` — Feature planning với domain constraint checks
+- `python-reviewer` — Backend code review
+- `typescript-reviewer` — Frontend code review
+- `tdd-guide` — TDD enforcement
+- `security-reviewer` — Security audit
+
+## Architecture Reference
+
+Xem [ARCHITECTURE.md](./ARCHITECTURE.md) để hiểu cấu trúc hexagonal architecture.  
+Xem [.agent/README.md](./.agent/README.md) để hiểu bộ bí kíp được setup.

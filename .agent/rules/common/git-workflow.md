@@ -24,7 +24,7 @@
 ```
 feat: thêm AI generation câu hỏi lớp 2 phép cộng
 
-- Qwen2.5 tạo draft questions với RAG từ SGK
+- qwen3 tạo draft questions với RAG từ SGK
 - Teacher phải review trước khi publish
 - Tuân thủ giới hạn Grade 1-3
 

@@ -1,17 +1,18 @@
----
+﻿---
 name: Backend Python Review
 description: "Review Python/FastAPI backend code theo Smart-MathAI standards"
 argument-hint: "File hoac diff backend can review"
 agent: python-reviewer
 ---
 
-Review backend code sau:
+Dùng **python-reviewer** agent để review Python/FastAPI code:
 
 $ARGUMENTS
 
-Tap trung:
-- Security, authn/authz
-- Grade boundary (`Literal[1, 2, 3]`)
-- Role checks (Teacher/Parent)
-- AI output draft va AI logic isolation
-- Test coverage va edge cases
+Review sẽ kiểm tra:
+- Code quality (functions nhỏ, không deep nesting)
+- Security (auth, authorization, SQL injection)
+- Domain rules (Grade 1-3, Teacher vs Parent access)
+- AI safety (output luôn là draft, không auto-publish)
+- Test coverage
+

@@ -1,16 +1,21 @@
----
+﻿---
 name: Security Scan
 description: "Quet bao mat codebase Smart-MathAI truoc khi merge hoac deploy"
 argument-hint: "Pham vi scan: file, folder, hoac diff"
 agent: security-reviewer
 ---
 
-Thuc hien security scan cho pham vi sau:
+Dùng **security-reviewer** agent để scan bảo mật:
 
 $ARGUMENTS
 
-Tap trung:
-- Secrets va credentials
-- Authentication/authorization checks
-- Input validation, SQL injection prevention
-- Student data safety va AI draft control
+Scan sẽ kiểm tra:
+- Hardcoded secrets trong codebase
+- Authentication/Authorization trên tất cả routes
+- SQL injection và XSS prevention
+- Educational data safety (PII, student images)
+- AI output control (Teacher review mandatory)
+- CORS, rate limiting, error message safety
+
+Chạy trước khi commit hoặc deploy.
+
