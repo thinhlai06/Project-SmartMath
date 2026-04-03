@@ -28,7 +28,7 @@ Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Gi�
     - **CPA Wizard:** Sinh câu hỏi theo quy trình Cụ thể - Hình ảnh - Trừu tượng.
     - **Differentiation:** Sinh bài tập phân hóa 4 cấp độ (Cơ bản -> Nâng cao).
 - **Chấm điểm tự động (AI Grading):**
-    - **OCR:** Nhận diện chữ viết tay tiếng Việt (PaddleOCR).
+    - **OCR:** Nhận diện chữ viết tay tiếng Việt qua model `glm-ocr:latest` (Ollama).
     - **Auto-Grade:** Chấm điểm, nhận xét chi tiết và giải thích lỗi sai.
 - **Phân tích lỗi (Analytics):** Thống kê các chủ đề yếu và lỗi sai phổ biến của cả lớp.
 
@@ -39,10 +39,10 @@ Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Gi�
 - **Backend:** Python (FastAPI), SQLAlchemy (SQLite), LangChain.
 - **Frontend:** React (Vite), Tailwind CSS, Shadcn/UI, Recharts.
 - **AI/ML:**
-    - LLM: `qwen2.5-1.5b-instruct` (chạy qua LMStudio).
+    - LLM: `qwen3:1.7b` (chạy qua Ollama).
     - Embeddings: `keepitreal/vietnamese-sbert`.
     - Vector DB: ChromaDB.
-    - OCR: `PaddleOCR-VL-1.5-GGUF` (chạy qua LMStudio).
+    - OCR: `glm-ocr:latest` (chạy qua Ollama).
 
 ---
 
@@ -51,16 +51,17 @@ Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Gi�
 ### 1. Prerequisites (Yêu cầu)
 - **Python**: 3.10+
 - **Node.js**: 18+
-- **LMStudio**
+- **Ollama**
 - **Visual C++ Build Tools** (để cài đặt các thư viện Python trên Windows).
 
 ### 2. Setup AI Models
-Sử dụng **LMStudio** để chạy các model AI cục bộ:
-1. Tải và cài đặt [LMStudio](https://lmstudio.ai/).
-2. Tìm và tải 2 model sau trong LMStudio:
-   - `qwen2.5-1.5b-instruct`
-   - `PaddleOCR-VL-1.5-GGUF`
-3. Bật **Local Server** trên LMStudio (thường ở cổng 1234) và load các model này.
+Sử dụng **Ollama** để chạy các model AI cục bộ:
+1. Tải và cài đặt [Ollama](https://ollama.com/download).
+2. Pull 2 model sau:
+    - `qwen3:1.7b`
+    - `glm-ocr:latest`
+3. Khởi chạy daemon:
+    - `ollama serve`
 
 ### 3. Setup Backend
 ```powershell
@@ -93,9 +94,11 @@ npm install
 
 Bạn cần mở 3 terminal riêng biệt để chạy toàn bộ hệ thống:
 
-**Terminal 1: LMStudio Server**
-Bật và chạy **Local Server** trên giao diện của phần mềm **LMStudio** (thường ở cổng `1234`).
-*(Đảm bảo đã load model `qwen2.5-1.5b-instruct` và `PaddleOCR-VL-1.5-GGUF` - có thể chạy đồng thời hoặc thay phiên tùy vào dung lượng VRAM của bạn)*
+**Terminal 1: Ollama Daemon**
+```powershell
+ollama serve
+```
+*(Dam bao da pull model `qwen3:1.7b` va `glm-ocr:latest` truoc khi chay backend)*
 
 **Terminal 2: Backend API**
 ```powershell
@@ -146,8 +149,8 @@ c:\project smartstudy\
 
 ## 📝 Ghi chú quan trọng
 
-1. **OCR Data:** Đảm bảo bạn đã tải model `PaddleOCR-VL-1.5-GGUF` trên LMStudio để nhận diện chữ viết tay.
-2. **Performance:** Tốc độ sinh câu hỏi và chấm điểm phụ thuộc vào cấu hình máy (RAM/GPU) khi mô phỏng trên LMStudio.
+1. **OCR Data:** Đảm bảo bạn đã tải model `glm-ocr:latest` trên Ollama để nhận diện chữ viết tay.
+2. **Performance:** Tốc độ sinh câu hỏi và chấm điểm phụ thuộc vào cấu hình máy (RAM/GPU) và chính sách `OLLAMA_KEEP_ALIVE`.
 3. **Restart:** Nếu gặp lỗi "Internal Server Error" sau khi cập nhật code, hãy thử khởi động lại Backend server.
 
 ---

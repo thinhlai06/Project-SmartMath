@@ -3,7 +3,7 @@ import json
 import re
 from typing import List, Dict, Any, Optional
 from .ocr_service import OCRService
-from .lmstudio_service import LMStudioService
+from .ollama_service import OllamaService
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +114,7 @@ YÊU CẦU ĐẦU RA (JSON Array):
 CHỈ TRẢ VỀ JSON, KHÔNG CÓ TEXT KHÁC."""
 
         try:
-            response = LMStudioService.generate(prompt, temperature=0.1)
+            response = OllamaService.generate(prompt, temperature=0.1)
             # Parse JSON
             # Clean markdown code blocks
             clean = re.sub(r"```json|```", "", response).strip()
@@ -191,7 +191,7 @@ Ví dụ JSON:
 CHỈ TRẢ VỀ JSON."""
         
         try:
-            response = LMStudioService.generate(prompt, temperature=0.1)
+            response = OllamaService.generate(prompt, temperature=0.1)
             # Parse JSON
             # Clean markdown code blocks
             clean = re.sub(r"```json|```", "", response).strip()

@@ -149,7 +149,7 @@ export default function AIGradingPage() {
                         <p className="text-slate-500 font-medium mt-2">Tải lên ảnh bài làm và cung cấp đáp án để AI chấm điểm ngoài giờ.</p>
                     </div>
                     <Badge className="bg-purple-100/80 text-purple-700 hover:bg-purple-200 px-4 py-1.5 text-sm font-semibold rounded-xl">
-                        Powered by PaddleOCR
+                        Powered by GLM-OCR
                     </Badge>
                 </div>
 

@@ -8,7 +8,7 @@ Trước khi bắt đầu, hãy đảm bảo máy tính của bạn đã cài đ
 - **Python:** Phiên bản 3.10 trở lên.
 - **Node.js:** Phiên bản 18+ (Kèm theo `npm` hoặc `yarn`).
 - **PostgreSQL:** Server PostgreSQL đã được bật và tạo sẵn một cơ sở dữ liệu trống (Ví dụ: `smartmath`).
-- **LMStudio:** Dùng để chạy mô hình AI nội bộ cung cấp API tương tự OpenAI.
+- **Ollama:** Dùng để chạy mô hình AI nội bộ theo co che on-demand.
 
 ---
 
@@ -48,8 +48,11 @@ Backend được xây dựng bằng **FastAPI** và **SQLAlchemy**.
    SECRET_KEY=yoursecretkey_hoac_random_chuoi_bat_ky
    ALGORITHM=HS256
    
-   # Cấu hình AI thông qua LMStudio
-   LMSTUDIO_API_URL=http://localhost:1234/v1
+   # Cấu hình AI thông qua Ollama
+   OLLAMA_API_BASE=http://localhost:11434/api
+   OLLAMA_TEXT_MODEL=qwen3:1.7b
+   OLLAMA_VISION_MODEL=glm-ocr:latest
+   OLLAMA_KEEP_ALIVE=3m
    ```
 
 5. **Khởi chạy Server:**
@@ -91,15 +94,24 @@ Frontend được phát triển trên **React** cùng công cụ Build tool **Vi
 
 ---
 
-## 🤖 Bước 3: Cấu hình Dịch vụ AI (LMStudio)
+## 🤖 Bước 3: Cấu hình Dịch vụ AI (Ollama)
 
-Dự án hiện đang kết nối trực tiếp với **LMStudio** xử lý cục bộ không dùng Ollama nhằm tính ổn định.
+Du an ket noi truc tiep voi **Ollama** de load model khi can va giai phong tai nguyen theo `keep_alive`.
 
-1. Tải và cài đặt **[LMStudio](https://lmstudio.ai/)**.
-2. Tìm và tải mô hình được cấu hình trong dự án (Ví dụ: `Qwen2.5-1.5B-Instruct` phù hợp với vi điều khiển).
-3. Đổi qua Tab **"Local Server"** trên phần mềm LMStudio (biểu tượng <>).
-4. Thiết lập Port máy chủ ảo là `1234`. Nhấn nút **"Start Server"**.
-5. Server báo thành công khi truy cập qua Web URL: `http://localhost:1234/v1/models` trả về dữ liệu JSON của mô hình.
+1. Tải và cài đặt **[Ollama](https://ollama.com/download)**.
+2. Tải 2 model đã phê duyệt:
+   ```bash
+   ollama pull qwen3:1.7b
+   ollama pull glm-ocr:latest
+   ```
+3. Khởi chạy daemon Ollama (nếu chưa tự chạy nền):
+   ```bash
+   ollama serve
+   ```
+4. Kiểm tra daemon hoạt động:
+   ```bash
+   curl http://localhost:11434/api/tags
+   ```
 
 ---
 
@@ -107,6 +119,7 @@ Dự án hiện đang kết nối trực tiếp với **LMStudio** xử lý cụ
 
 - **Import Errors (Lỗi báo biến đỏ IDE):** Gần đây chúng tôi đã thiết lập `.vscode/settings.json` và `pyrightconfig.json`. Nếu dùng VS Code, bạn cần sử dụng Ctrl+Shift+P -> `Python: Select Interpreter` để chọn trỏ đúng vào thư mục `backend\venv\Scripts\python.exe` hoặc môi trường Conda tương ứng để thoát khỏi lỗi cảnh báo nhập vòng lặp ảo. Mọi đoạn code thực tế lúc chạy Server (`uvicorn`) vẫn hoàn toàn bình thường.
 - Ngôn ngữ mặc định cho các thành phần tạo đề tự động trong AI đã được ràng buộc bằng Prompts (Tiếng Việt lớp 1-3).
+- AI text model dùng `qwen3:1.7b`, OCR model dùng `glm-ocr:latest` thông qua Ollama.
 
 ---
 

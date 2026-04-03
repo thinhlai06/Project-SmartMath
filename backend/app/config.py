@@ -22,7 +22,14 @@ class Settings(BaseSettings):
     AUTH_COOKIE_SAMESITE: str = "lax"
     AUTH_COOKIE_DOMAIN: str | None = None
     
-    # LMStudio AI Configuration
+    # Ollama AI Configuration
+    OLLAMA_API_BASE: str = "http://localhost:11434/api"
+    OLLAMA_TEXT_MODEL: str = "qwen3:1.7b"
+    OLLAMA_VISION_MODEL: str = "glm-ocr:latest"
+    OLLAMA_TIMEOUT: int = 180
+    OLLAMA_KEEP_ALIVE: str = "3m"
+
+    # Legacy LMStudio (deprecated, kept for backward compatibility)
     LMSTUDIO_API_BASE: str = "http://localhost:1234/v1"
     LMSTUDIO_TEXT_MODEL: str = "qwen2.5-1.5b-instruct"
     LMSTUDIO_VISION_MODEL: str = "paddleocr-vl-1.5"
