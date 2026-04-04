@@ -16,6 +16,25 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
+def _emit_info(message: str, *args: Any) -> None:
+    """Emit AI runtime logs robustly across uvicorn, jobs, and direct scripts."""
+    module_logger = logger
+    uvicorn_logger = logging.getLogger("uvicorn.error")
+
+    module_logger.info(message, *args)
+    if uvicorn_logger is not module_logger:
+        uvicorn_logger.info(message, *args)
+
+    # Fallback for contexts without logging handlers (e.g. ad-hoc scripts/jobs).
+    root_logger = logging.getLogger()
+    has_handler = module_logger.hasHandlers() or uvicorn_logger.hasHandlers() or root_logger.hasHandlers()
+    if not has_handler:
+        try:
+            print(message % args)
+        except Exception:
+            print(message)
+
+
 class OllamaService:
     """Client for Ollama native API."""
 
@@ -24,14 +43,14 @@ class OllamaService:
         """Log requested model and currently loaded models for terminal visibility."""
         loaded_models = OllamaService.get_loaded_models()
         if loaded_models:
-            logger.info(
+            _emit_info(
                 "[AI] %s | requested_model=%s | loaded_models=%s",
                 action,
                 target_model,
                 ", ".join(loaded_models),
             )
             return
-        logger.info(
+        _emit_info(
             "[AI] %s | requested_model=%s | loaded_models=none",
             action,
             target_model,
@@ -111,6 +130,12 @@ class OllamaService:
 
         try:
             OllamaService._log_runtime_models("text_generation", target_model)
+            _emit_info(
+                "[AI] sending_request | endpoint=/chat | model=%s | temperature=%.2f | timeout=%ss",
+                target_model,
+                temperature,
+                settings.OLLAMA_TIMEOUT,
+            )
             resp = requests.post(
                 f"{settings.OLLAMA_API_BASE}/chat",
                 json=payload,
@@ -153,6 +178,12 @@ class OllamaService:
             "keep_alive": settings.OLLAMA_KEEP_ALIVE,
             "stream": False,
         }
+        _emit_info(
+            "[AI] fallback_request | endpoint=/generate | model=%s | temperature=%.2f | timeout=%ss",
+            model,
+            temperature,
+            settings.OLLAMA_TIMEOUT,
+        )
         resp = requests.post(
             f"{settings.OLLAMA_API_BASE}/generate",
             json=payload,
@@ -215,6 +246,12 @@ class OllamaService:
             "stream": False,
         }
 
+        _emit_info(
+            "[AI] sending_request | endpoint=/chat(vision) | model=%s | timeout=%ss",
+            model,
+            settings.OLLAMA_TIMEOUT,
+        )
+
         resp = requests.post(
             f"{settings.OLLAMA_API_BASE}/chat",
             json=payload,
@@ -235,6 +272,11 @@ class OllamaService:
             "keep_alive": settings.OLLAMA_KEEP_ALIVE,
             "stream": False,
         }
+        _emit_info(
+            "[AI] fallback_request | endpoint=/generate(vision) | model=%s | timeout=%ss",
+            model,
+            settings.OLLAMA_TIMEOUT,
+        )
         resp = requests.post(
             f"{settings.OLLAMA_API_BASE}/generate",
             json=payload,
