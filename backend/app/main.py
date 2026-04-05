@@ -5,6 +5,7 @@ import logging
 from app.database import engine, Base
 from app.models.student_progress import StudentProgress
 from app.models.grading_report import GradingReport
+from app.models.cpa_bundle import CPABundleRecord
 from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, parent, announcements, dashboard, activities
 from app.core.exceptions import SmartMathException, smartmath_exception_handler
 

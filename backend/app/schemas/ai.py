@@ -4,6 +4,16 @@ AI Schemas - Pydantic models for AI API requests/responses.
 from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Literal, Optional
 
+from app.schemas.cpa_bundle import (
+    CPABundle,
+    CPABundleGenerationRequest,
+    CPABundleGenerationResponse,
+    SaveCPABundlesRequest,
+    SaveCPABundlesResponse,
+    ValidationIssue,
+    ValidationResult,
+)
+
 
 class QuestionItem(BaseModel):
     question: str
