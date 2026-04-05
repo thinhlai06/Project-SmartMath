@@ -8,6 +8,7 @@ from app.models.worksheet_exercise import WorksheetExercise
 from app.models.announcement import Announcement
 from app.models.student_progress import StudentProgress
 from app.models.grading_report import GradingReport
+from app.models.cpa_bundle import CPABundleRecord
 
 __all__ = [
     "User",
@@ -20,5 +21,6 @@ __all__ = [
     "Announcement",
     "StudentProgress",
     "GradingReport",
+    "CPABundleRecord",
 ]
 

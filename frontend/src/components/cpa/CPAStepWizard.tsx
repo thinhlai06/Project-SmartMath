@@ -9,13 +9,20 @@ import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { AlertCircle, Save } from 'lucide-react';
-import { AICreatorPanel, AIReviewWidget, PageHeader } from '@/components/redesign';
+import { AICreatorPanel, PageHeader } from '@/components/redesign';
+import cpaBundleApi from '@/services/cpaBundleApi';
+import type { CPABundle } from '@/types/cpaBundle';
+import { CPABundleReviewPanel } from './CPABundleReviewPanel';
+import type { BundleReviewStatus } from './CPABundleCard';
 
 interface Topic {
     id: number;
     topic_name: string;
     grade: number;
+    category: string;
 }
+
+const bundleKeyOf = (bundle: CPABundle, index: number): string => bundle.bundle_id || `bundle-${index}`;
 
 export function CPAStepWizard() {
     const navigate = useNavigate();
@@ -25,22 +32,33 @@ export function CPAStepWizard() {
     const [saveError, setSaveError] = useState<string | null>(null);
     const [topics, setTopics] = useState<Topic[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [approvedDraft, setApprovedDraft] = useState('');
-    const [draftContent, setDraftContent] = useState('');
+    const [reviewBundles, setReviewBundles] = useState<CPABundle[]>([]);
+    const [bundleReviewStatuses, setBundleReviewStatuses] = useState<Record<string, BundleReviewStatus>>({});
+    const [dirtyBundleMap, setDirtyBundleMap] = useState<Record<string, boolean>>({});
+    const [isDirtySaveConfirmed, setIsDirtySaveConfirmed] = useState(false);
     const [worksheetTitle, setWorksheetTitle] = useState('CPA - Bản nháp mới');
     const [deadline, setDeadline] = useState('');
 
     const [wizardData, setWizardData] = useState({
         topicId: '',
         standard: '',
-        grade: 1,
-        content: {
-            concrete: '',
-            pictorial: '',
-            abstract: '',
-            practice: '',
-        }
+        grade: 1 as 1 | 2 | 3,
     });
+
+    const initializeReviewState = (bundles: CPABundle[]) => {
+        const nextStatuses: Record<string, BundleReviewStatus> = {};
+        const nextDirtyMap: Record<string, boolean> = {};
+
+        bundles.forEach((bundle, index) => {
+            const key = bundleKeyOf(bundle, index);
+            nextStatuses[key] = 'pending';
+            nextDirtyMap[key] = false;
+        });
+
+        setBundleReviewStatuses(nextStatuses);
+        setDirtyBundleMap(nextDirtyMap);
+        setIsDirtySaveConfirmed(false);
+    };
 
     // Fetch classes on mount
     useEffect(() => {
@@ -66,7 +84,8 @@ export function CPAStepWizard() {
                     credentials: 'include'
                 });
                 if (response.ok) {
-                    setTopics(await response.json());
+                    const allTopics = (await response.json()) as Topic[];
+                    setTopics(allTopics);
                 }
             } catch (error) {
                 console.error('Error fetching topics:', error);
@@ -91,55 +110,19 @@ export function CPAStepWizard() {
             setWizardData((prev) => ({
                 ...prev,
                 topicId: selectedTopicId,
-                grade: topic.grade,
+                grade: topic.grade as 1 | 2 | 3,
                 standard: objective,
             }));
 
-            const response = await fetch('/api/ai/generate-cpa', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                    topic_id: topic.id,
-                    grade: topic.grade,
-                    objective,
-                    counts: {
-                        concrete: 2,
-                        pictorial: 2,
-                        abstract: 2,
-                    },
-                }),
+            const result = await cpaBundleApi.generateBundles({
+                topic_id: topic.id,
+                grade: topic.grade as 1 | 2 | 3,
+                objective,
+                bundle_count: 3,
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Không thể tạo nội dung AI');
-            }
-
-            const result = await response.json();
-            const toSection = (items: Array<{ question: string; answer: string }>) =>
-                items.map((item, index) => `Câu ${index + 1}: ${item.question}\n(Đáp án: ${item.answer})`).join('\n\n');
-
-            const nextContent = {
-                concrete: toSection(result.concrete ?? []),
-                pictorial: toSection(result.pictorial ?? []),
-                abstract: toSection(result.abstract ?? []),
-                practice: toSection(result.abstract ?? []),
-            };
-
-            setWizardData((prev) => ({ ...prev, content: nextContent }));
-            setDraftContent([
-                'Concrete:',
-                nextContent.concrete,
-                '',
-                'Pictorial:',
-                nextContent.pictorial,
-                '',
-                'Abstract:',
-                nextContent.abstract,
-            ].join('\n'));
+            setReviewBundles(result.bundles);
+            initializeReviewState(result.bundles);
         } catch (error: any) {
             setSaveError(error.message || 'Đã xảy ra lỗi khi tạo nội dung AI');
         } finally {
@@ -147,13 +130,77 @@ export function CPAStepWizard() {
         }
     };
 
-    const handleApproveDraft = async (content: string) => {
-        setApprovedDraft(content);
+    const handleBundleStatusChange = (bundleKey: string, nextStatus: BundleReviewStatus) => {
+        setBundleReviewStatuses((prev) => ({
+            ...prev,
+            [bundleKey]: nextStatus,
+        }));
+    };
+
+    const handleBundleChange = (index: number, nextBundle: CPABundle) => {
+        setReviewBundles((prev) =>
+            prev.map((bundle, bundleIndex) => (bundleIndex === index ? nextBundle : bundle))
+        );
+
+        const bundleKey = bundleKeyOf(nextBundle, index);
+        setDirtyBundleMap((prev) => ({ ...prev, [bundleKey]: true }));
+        setIsDirtySaveConfirmed(false);
+    };
+
+    const handleApproveAll = () => {
+        setBundleReviewStatuses((prev) => {
+            const next = { ...prev };
+            reviewBundles.forEach((bundle, index) => {
+                next[bundleKeyOf(bundle, index)] = 'approved';
+            });
+            return next;
+        });
+    };
+
+    const handleResetAllReviewStates = () => {
+        setBundleReviewStatuses((prev) => {
+            const next = { ...prev };
+            reviewBundles.forEach((bundle, index) => {
+                next[bundleKeyOf(bundle, index)] = 'pending';
+            });
+            return next;
+        });
     };
 
     const handleSave = async () => {
         if (!selectedClassId) {
             setSaveError('Vui lòng chọn lớp học');
+            return;
+        }
+
+        if (reviewBundles.length === 0) {
+            setSaveError('Vui lòng tạo CPA bundles trước khi lưu.');
+            return;
+        }
+
+        const approvedEntries = reviewBundles
+            .map((bundle, index) => ({ bundle, key: bundleKeyOf(bundle, index) }))
+            .filter((item) => bundleReviewStatuses[item.key] === 'approved');
+        const approvedBundles = approvedEntries.map((item) => item.bundle);
+
+        if (approvedBundles.length === 0) {
+            setSaveError('Vui lòng duyệt ít nhất 1 bundle trước khi lưu.');
+            return;
+        }
+
+        const hasFailedApprovedBundle = approvedBundles.some((bundle) => bundle.validation_status === 'failed');
+        if (hasFailedApprovedBundle) {
+            setSaveError('Có bundle đang ở trạng thái failed. Vui lòng chỉnh sửa hoặc từ chối bundle đó.');
+            return;
+        }
+
+        const dirtyApprovedCount = approvedEntries.filter((item) => Boolean(dirtyBundleMap[item.key])).length;
+
+        if (dirtyApprovedCount > 0 && !isDirtySaveConfirmed) {
+            setSaveError(
+                `Có ${dirtyApprovedCount} bundle đã chỉnh sửa. Bấm Lưu thêm 1 lần để xác nhận re-validate khi lưu.`
+            );
+            setIsDirtySaveConfirmed(true);
             return;
         }
 
@@ -189,33 +236,42 @@ export function CPAStepWizard() {
 
             const worksheet = await worksheetResponse.json();
 
-            if (!approvedDraft.trim()) {
-                throw new Error('Vui lòng duyệt nội dung AI trước khi lưu.');
-            }
+            await cpaBundleApi.saveBundles(worksheet.id, approvedBundles);
 
-            const approvedLines = approvedDraft.trim();
-
-            // Add exercises from approved CPA content
-            const exercises = [
-                { question: wizardData.content?.concrete || approvedLines, exercise_type: 'concrete', order_index: 0 },
-                { question: wizardData.content?.pictorial || approvedLines, exercise_type: 'pictorial', order_index: 1 },
-                { question: wizardData.content?.abstract || approvedLines, exercise_type: 'abstract', order_index: 2 }
-            ];
+            const exercises = approvedBundles.flatMap((bundle, bundleIndex) => {
+                const baseIndex = bundleIndex * 3;
+                return [
+                    {
+                        question: `${bundle.concrete.action_instruction}\n${bundle.concrete.result_prompt}`,
+                        answer: bundle.concrete.answer,
+                        exercise_type: 'concrete',
+                        order_index: baseIndex,
+                    },
+                    {
+                        question: `${bundle.pictorial.question_text}\n[Sơ đồ: ${bundle.pictorial.diagram_type}]`,
+                        answer: bundle.pictorial.answer,
+                        exercise_type: 'pictorial',
+                        order_index: baseIndex + 1,
+                    },
+                    {
+                        question: bundle.abstract.expression,
+                        answer: bundle.abstract.answer,
+                        hint: bundle.abstract.hint,
+                        exercise_type: 'abstract',
+                        order_index: baseIndex + 2,
+                    },
+                ];
+            });
 
             for (const exercise of exercises) {
-                if (exercise.question) {
-                    await fetch(
-                        `/api/worksheets/${worksheet.id}/exercises`,
-                        {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            credentials: 'include',
-                            body: JSON.stringify(exercise)
-                        }
-                    );
-                }
+                await fetch(`/api/worksheets/${worksheet.id}/exercises`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(exercise),
+                });
             }
 
             // Success - navigate to worksheets page
@@ -231,6 +287,18 @@ export function CPAStepWizard() {
 
     const selectedClass = classes.find((item) => item.id === selectedClassId);
     const selectedTopic = topics.find((t) => t.id.toString() === wizardData.topicId);
+    const approvedCount = reviewBundles.filter(
+        (bundle, index) => bundleReviewStatuses[bundleKeyOf(bundle, index)] === 'approved'
+    ).length;
+    const rejectedCount = reviewBundles.filter(
+        (bundle, index) => bundleReviewStatuses[bundleKeyOf(bundle, index)] === 'rejected'
+    ).length;
+    const pendingCount = Math.max(0, reviewBundles.length - approvedCount - rejectedCount);
+    const dirtyApprovedCount = reviewBundles.filter(
+        (bundle, index) =>
+            bundleReviewStatuses[bundleKeyOf(bundle, index)] === 'approved' &&
+            Boolean(dirtyBundleMap[bundleKeyOf(bundle, index)])
+    ).length;
 
     return (
         <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans">
@@ -303,6 +371,10 @@ export function CPAStepWizard() {
                                 onGenerate={handleGenerateDraft}
                                 isLoading={isGenerating}
                             />
+
+                            <div className="rounded-2xl border border-sky-200/70 bg-sky-50/80 p-4 text-xs font-semibold text-sky-700 shadow-sm">
+                                CPA bundle đã mở rộng family theo chủ đề: Số học, Hình học, Đo lường. Các family khác sẽ được mở theo roadmap.
+                            </div>
                         </section>
 
                         {/* Center Pane */}
@@ -324,23 +396,15 @@ export function CPAStepWizard() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-6 p-6 flex-1 flex flex-col">
-                                    <AIReviewWidget
-                                        draftContent={draftContent}
-                                        onApprove={handleApproveDraft}
-                                        onReject={() => {
-                                            setDraftContent('');
-                                            setApprovedDraft('');
-                                        }}
+                                    <CPABundleReviewPanel
+                                        bundles={reviewBundles}
+                                        reviewStatuses={bundleReviewStatuses}
+                                        dirtyBundleMap={dirtyBundleMap}
+                                        onBundleChange={handleBundleChange}
+                                        onStatusChange={handleBundleStatusChange}
+                                        onApproveAll={handleApproveAll}
+                                        onResetAll={handleResetAllReviewStates}
                                     />
-
-                                    <div className="rounded-2xl border border-slate-200/60 bg-white/60 p-5 shadow-sm flex-1 flex flex-col">
-                                        <p className="mb-3 text-base font-bold text-slate-800 flex items-center gap-2">
-                                            <span className="text-green-500">✓</span> Nội dung đã duyệt
-                                        </p>
-                                        <pre className="flex-1 min-h-[280px] whitespace-pre-wrap break-words rounded-xl bg-slate-50 p-4 text-sm font-medium text-slate-700 border border-slate-100 shadow-inner">
-                                            {approvedDraft || 'Chưa có nội dung được duyệt.'}
-                                        </pre>
-                                    </div>
                                 </CardContent>
                             </Card>
                         </section>
@@ -388,18 +452,38 @@ export function CPAStepWizard() {
                                         />
                                     </div>
 
+                                    <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold">
+                                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-2 text-emerald-700">
+                                            Duyệt: {approvedCount}
+                                        </div>
+                                        <div className="rounded-xl border border-slate-200 bg-slate-100 p-2 text-slate-700">
+                                            Chờ: {pendingCount}
+                                        </div>
+                                        <div className="rounded-xl border border-rose-200 bg-rose-50 p-2 text-rose-700">
+                                            Từ chối: {rejectedCount}
+                                        </div>
+                                    </div>
+
                                     <Button
                                         className="w-full h-12 mt-4 text-base font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition-all btn-bounce"
                                         onClick={handleSave}
-                                        disabled={isSaving || !selectedClassId || !approvedDraft.trim()}
+                                        disabled={isSaving || !selectedClassId || approvedCount === 0}
                                     >
                                         <Save className="h-5 w-5 mr-2" />
                                         {isSaving ? 'Đang lưu…' : 'Lưu vào kho học liệu'}
                                     </Button>
-                                    {!approvedDraft.trim() && (
+                                    {approvedCount === 0 && (
                                         <div className="bg-amber-50/80 rounded-xl p-3 border border-amber-200/50 mt-3">
                                             <p className="text-xs font-semibold text-amber-700 text-center flex items-center justify-center gap-1">
-                                                <span>⚠️</span> Vui lòng duyệt nội dung AI trước khi lưu.
+                                                <span>⚠️</span> Vui lòng duyệt ít nhất 1 bundle trước khi lưu.
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {dirtyApprovedCount > 0 && (
+                                        <div className="bg-amber-50/80 rounded-xl p-3 border border-amber-200/50">
+                                            <p className="text-xs font-semibold text-amber-700 text-center">
+                                                Có {dirtyApprovedCount} bundle đã chỉnh sửa. Hệ thống sẽ re-validate khi lưu.
                                             </p>
                                         </div>
                                     )}
