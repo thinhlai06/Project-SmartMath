@@ -124,3 +124,18 @@ const handlePublish = () => {
 }
 ```
 
+## Class Detail Student UX (Epic 1)
+
+- Trong trang chi tiết lớp, cần có nút `Import Excel` gắn với input file ẩn (`accept=.xlsx`).
+- Khi import, hiển thị toast trạng thái đang xử lý và toast kết quả thành công/thất bại bằng tiếng Việt.
+- API client nên expose hàm import Excel tại lớp service quản lý class/students.
+- Hàng học sinh trong danh sách cần click được để mở profile card (`Dialog`/`Sheet`) thay vì chỉ hiển thị tĩnh.
+- Profile card học sinh cần hiển thị tối thiểu:
+  - Họ tên
+  - Ngày sinh
+  - Họ tên phụ huynh
+  - SĐT phụ huynh
+  - Điểm trung bình
+  - Tier hiện tại
+- Điểm trung bình nên có màu điều kiện để giáo viên nhận diện nhanh nhóm học sinh.
+

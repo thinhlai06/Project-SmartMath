@@ -1,7 +1,9 @@
 # Everything Claude Code — Smart-MathAI Setup
 
-> Luu y: Thu muc `.agent/` chi danh cho Antigravity IDE.
-> Neu dung VS Code Copilot/Codex, su dung bo cau hinh tai `.github/copilot-instructions.md` va `.github/instructions/`.
+> Luu y:
+> - Thu muc `.agent/` danh cho Antigravity IDE.
+> - VS Code Copilot/Codex uu tien `.github/copilot-instructions.md`, `.github/instructions/` va co the nap skills tu `.agents/skills/`.
+> - De tranh drift, nen coi `.github/` + `.agents/skills/` la nguon su that cho VS Code workflow.
 
 Bộ bí kíp tối ưu hóa AI agent được tùy chỉnh cho **Smart-MathAI**.  
 Nguồn: [affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) → Adapted for **Antigravity IDE**

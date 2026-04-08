@@ -230,6 +230,7 @@ export function DifferentiationWizard() {
                     <DiffStep2Assignment
                         onNext={handleStep2Submit}
                         onBack={() => setCurrentStep(1)}
+                        currentClassId={selectedClassId}
                         initialAssignments={wizardData.assignments}
                     />
                 )}

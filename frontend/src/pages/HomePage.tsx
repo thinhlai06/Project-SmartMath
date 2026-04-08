@@ -180,6 +180,16 @@ function TeacherHome() {
     const classCount = stats?.total_classes ?? 0;
     const studentCount = stats?.total_students ?? 0;
     const worksheetCount = stats?.total_worksheets ?? 0;
+    const avgScore = stats?.avg_score;
+    const hasAvgScore = avgScore !== undefined && avgScore !== null;
+    const formattedAvgScore = hasAvgScore ? avgScore.toFixed(1) : '-';
+    const avgScoreColor = hasAvgScore
+        ? avgScore > 8
+            ? 'text-emerald-500'
+            : avgScore < 6
+                ? 'text-orange-500'
+                : 'text-indigo-500'
+        : 'text-slate-500';
 
     return (
         <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans">
@@ -272,10 +282,14 @@ function TeacherHome() {
                         <p className="text-slate-600 font-medium mt-1 relative z-10">Bài tập</p>
                         <p className="text-sm font-semibold text-orange-500 mt-4 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">Xem chi tiết &rarr;</p>
                     </div>
-                    <div className="glass-panel rounded-3xl p-6 relative overflow-hidden opacity-70">
-                        <p className="text-4xl font-black text-slate-800 drop-shadow-sm">-</p>
+                    <div className="glass-panel card-hover rounded-3xl p-6 relative overflow-hidden group">
+                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-100 rounded-full opacity-50 transition-transform group-hover:scale-150" />
                         <p className="text-slate-600 font-medium mt-1">Điểm TB</p>
-                        <p className="text-sm font-semibold text-slate-400 mt-4 bg-slate-100 w-fit px-2 py-0.5 rounded-md">Coming soon</p>
+                        {isLoading ? (
+                            <div className="h-9 w-12 bg-slate-200 rounded animate-pulse mt-2"></div>
+                        ) : (
+                            <p className={`text-4xl font-black drop-shadow-sm mt-2 ${avgScoreColor}`}>{formattedAvgScore}</p>
+                        )}
                     </div>
                 </div>
 
