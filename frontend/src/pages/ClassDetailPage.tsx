@@ -1,6 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Users, Plus, Trash2, Edit2, RefreshCw, Copy, UserCircle, FileText, CheckCircle, Upload } from 'lucide-react';
+import { ArrowLeft, Users, Plus, Trash2, Edit2, RefreshCw, Copy, UserCircle, FileText, CheckCircle, Upload, AlertTriangle } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { classApi, studentApi } from '../services/classApi';
 import { worksheetApi } from '../services/worksheetApi';
 import type { MathClass, Student, StudentCreate, ClassUpdate } from '../services/classApi';
@@ -48,6 +58,11 @@ export function ClassDetailPage() {
     const [isDeletingClass, setIsDeletingClass] = useState(false);
     const pageLimit = 10;
     const excelFileInputRef = useRef<HTMLInputElement | null>(null);
+
+    // AlertDialog states
+    const [showDeleteClassAlert, setShowDeleteClassAlert] = useState(false);
+    const [showGradeChangeAlert, setShowGradeChangeAlert] = useState(false);
+    const [pendingGradeSubmit, setPendingGradeSubmit] = useState(false);
 
     // New student form
     const [newStudent, setNewStudent] = useState<StudentCreate>({
@@ -268,15 +283,16 @@ export function ClassDetailPage() {
             return;
         }
 
-        if (editClassForm.grade !== classData.grade) {
-            const confirmGradeChange = confirm(
-                `Bạn sắp đổi khối lớp từ Lớp ${classData.grade} sang Lớp ${editClassForm.grade}. Các luồng chọn chủ đề và thống kê có thể bị ảnh hưởng. Tiếp tục?`
-            );
-            if (!confirmGradeChange) {
-                return;
-            }
+        if (editClassForm.grade !== classData.grade && !pendingGradeSubmit) {
+            setShowGradeChangeAlert(true);
+            return;
         }
 
+        await doUpdateClass();
+    };
+
+    const doUpdateClass = async () => {
+        if (!classData || !editClassForm.class_name?.trim()) return;
         try {
             setIsUpdatingClass(true);
             const updated = await classApi.updateClass(classData.id, {
@@ -285,6 +301,7 @@ export function ClassDetailPage() {
             });
             setClassData(updated);
             setShowEditClass(false);
+            setPendingGradeSubmit(false);
             toast('Đã cập nhật lớp học', 'success');
         } catch (err) {
             setError('Không thể cập nhật lớp học');
@@ -295,16 +312,13 @@ export function ClassDetailPage() {
         }
     };
 
-    const handleDeleteClass = async () => {
-        if (!classData) {
-            return;
-        }
+    const handleDeleteClass = () => {
+        if (!classData) return;
+        setShowDeleteClassAlert(true);
+    };
 
-        const isConfirmed = confirm(`Bạn có chắc muốn xóa lớp ${classData.class_name}?`);
-        if (!isConfirmed) {
-            return;
-        }
-
+    const confirmDeleteClass = async () => {
+        if (!classData) return;
         try {
             setIsDeletingClass(true);
             await classApi.deleteClass(classData.id);
@@ -316,6 +330,7 @@ export function ClassDetailPage() {
             console.error(err);
         } finally {
             setIsDeletingClass(false);
+            setShowDeleteClassAlert(false);
         }
     };
 
@@ -380,6 +395,7 @@ export function ClassDetailPage() {
     }
 
     return (
+        <>
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 relative overflow-hidden font-sans p-6">
             <div className="absolute top-0 right-0 w-[30%] h-[30%] bg-indigo-300/30 rounded-full blur-[120px] -z-0 pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-[30%] h-[30%] bg-purple-300/30 rounded-full blur-[120px] -z-0 pointer-events-none" />
@@ -510,17 +526,22 @@ export function ClassDetailPage() {
                             Danh sách học sinh ({students.length})
                         </CardTitle>
                         <div className="flex items-center gap-2">
+                            {/* Excel Import: use label for reliable file picker trigger */}
                             <input
                                 ref={excelFileInputRef}
+                                id="excel-file-input"
                                 type="file"
                                 accept=".xlsx"
                                 className="hidden"
                                 onChange={handleExcelImport}
                             />
-                            <Button variant="outline" size="sm" onClick={() => excelFileInputRef.current?.click()}>
+                            <label
+                                htmlFor="excel-file-input"
+                                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer transition-all"
+                            >
                                 <Upload className="w-4 h-4" />
                                 Import Excel
-                            </Button>
+                            </label>
                             <Button onClick={() => setShowAddStudent(true)} size="sm">
                                 <Plus className="w-4 h-4" />
                                 Thêm học sinh
@@ -870,6 +891,54 @@ export function ClassDetailPage() {
                 )}
             </div>
         </div>
+
+        {/* Delete Class Confirmation */}
+        <AlertDialog open={showDeleteClassAlert} onOpenChange={setShowDeleteClassAlert}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>⚠️ Xóa lớp học</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Bạn sắp xóa lớp <strong>{classData?.class_name}</strong>. Tất cả học sinh, bài tập và dữ liệu liên quan sẽ bị xóa vĩnh viễn và không thể khôi phục.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setShowDeleteClassAlert(false)}>Hủy</AlertDialogCancel>
+                    <AlertDialogAction variant="destructive" onClick={confirmDeleteClass} disabled={isDeletingClass}>
+                        {isDeletingClass ? 'Đang xóa...' : 'Xóa vĩnh viễn'}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Grade Change Confirmation */}
+        <AlertDialog open={showGradeChangeAlert} onOpenChange={setShowGradeChangeAlert}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 text-amber-500" />
+                        Cảnh báo: Đổi khối lớp
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Bạn sắp đổi khối lớp từ <strong>Lớp {classData?.grade}</strong> sang <strong>Lớp {editClassForm.grade}</strong>.
+                        <br /><br />
+                        Điều này có thể ảnh hưởng đến: danh sách chủ đề, thống kê học sinh, và các bài tập đã tạo. Tiếp tục?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setShowGradeChangeAlert(false)}>Hủy</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={() => {
+                            setShowGradeChangeAlert(false);
+                            setPendingGradeSubmit(true);
+                            setTimeout(() => doUpdateClass(), 50);
+                        }}
+                    >
+                        Xác nhận đổi khối
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        </>
     );
 }
 

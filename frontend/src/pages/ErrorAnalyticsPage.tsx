@@ -35,10 +35,13 @@ export default function ErrorAnalyticsPage() {
     const [selectedClassId, setSelectedClassId] = useState<string>("");
     const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
     const [loading, setLoading] = useState(false);
+    const [classLoading, setClassLoading] = useState(true);
+    const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
     // Fetch Classes
     useEffect(() => {
         const fetchClasses = async () => {
+            setClassLoading(true);
             try {
                 const data = await classApi.getClasses();
                 setClasses(data);
@@ -47,6 +50,8 @@ export default function ErrorAnalyticsPage() {
                 }
             } catch (error) {
                 console.error("Failed to fetch classes", error);
+            } finally {
+                setClassLoading(false);
             }
         };
         fetchClasses();
@@ -58,15 +63,17 @@ export default function ErrorAnalyticsPage() {
 
         const fetchAnalytics = async () => {
             setLoading(true);
+            setAnalyticsError(null);
             try {
                 const res = await fetch(`/api/ai/analytics/${selectedClassId}`, {
                     credentials: 'include',
                 });
-                if (!res.ok) throw new Error("Failed to fetch analytics");
+                if (!res.ok) throw new Error(`Lỗi tải thống kê: HTTP ${res.status}`);
                 const data = await res.json();
                 setAnalytics(data);
-            } catch (error) {
+            } catch (error: any) {
                 console.error(error);
+                setAnalyticsError(error?.message || 'Không thể tải dữ liệu phân tích.');
             } finally {
                 setLoading(false);
             }
@@ -75,8 +82,12 @@ export default function ErrorAnalyticsPage() {
         fetchAnalytics();
     }, [selectedClassId]);
 
-    if (!classes.length) {
-        return <div className="p-8 text-center text-gray-500">Đang tải danh sách lớp học...</div>;
+    if (classLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
     }
 
     return (
@@ -109,11 +120,18 @@ export default function ErrorAnalyticsPage() {
                     </div>
                 </div>
 
+                {analyticsError && (
+                    <div className="rounded-2xl border border-red-200 bg-red-50/80 p-4 text-sm font-semibold text-red-700 flex items-center gap-3">
+                        <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                        {analyticsError}
+                    </div>
+                )}
+
                 {loading ? (
                     <div className="h-[400px] flex items-center justify-center">
                         <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin drop-shadow-sm"></div>
                     </div>
-            ) : analytics ? (
+            ) : analytics && (analytics.weak_topics.length > 0 || analytics.common_mistakes.length > 0 || analytics.student_performance.length > 0) ? (
                 <div className="space-y-6">
                     {/* Top Row: Weak Topics & Mistakes */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -234,11 +252,20 @@ export default function ErrorAnalyticsPage() {
                         </CardContent>
                     </Card>
                 </div>
-            ) : (
-                <div className="text-center py-16 text-slate-500 font-medium glass-panel border-white/50 rounded-3xl shadow-sm">
-                    Chọn lớp học để xem phân tích
+            ) : analytics && !analyticsError ? (
+                <div className="flex flex-col items-center justify-center py-20 px-4 text-center glass-panel border-white/50 rounded-3xl shadow-sm">
+                    <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-6">
+                        <TrendingUp className="h-10 w-10 text-indigo-400" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-800 tracking-tight mb-2">Chưa có dữ liệu thống kê</h3>
+                    <p className="text-slate-500 font-medium max-w-md mx-auto mb-6">
+                        Lớp học này chưa có dữ liệu phân tích lỗi. Hãy sử dụng tính năng Chấm điểm AI và lưu kết quả duyệt để bắt đầu theo dõi.
+                    </p>
+                    <a href="/ai-grading" className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 transition-colors">
+                        Đến trang Chấm điểm AI
+                    </a>
                 </div>
-            )}
+            ) : null}
             </div>
         </div>
     );

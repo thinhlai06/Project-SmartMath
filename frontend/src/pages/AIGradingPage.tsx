@@ -96,6 +96,7 @@ export default function AIGradingPage() {
     }, []);
 
     const handleUploadClick = () => {
+        // kept for compatibility but primary trigger is the label below
         fileInputRef.current?.click();
     };
 
@@ -278,16 +279,24 @@ export default function AIGradingPage() {
                             <Label className="text-slate-700 font-bold mb-3 block text-base">1. Ảnh bài làm</Label>
 
                             {!previewUrl ? (
-                                <button
-                                    type="button"
-                                    onClick={handleUploadClick}
+                                <label
+                                    htmlFor="grading-file-input"
                                     onDragOver={(e) => {
                                         e.preventDefault();
                                         setIsDragging(true);
                                     }}
                                     onDragLeave={() => setIsDragging(false)}
-                                    onDrop={handleDrop}
-                                    className={`w-full rounded-2xl border-2 border-dashed p-10 text-center transition-all duration-300 [touch-action:manipulation] select-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+                                    onDrop={(e) => {
+                                        e.preventDefault();
+                                        setIsDragging(false);
+                                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                                            const selectedFile = e.dataTransfer.files[0];
+                                            setFile(selectedFile);
+                                            setPreviewUrl(URL.createObjectURL(selectedFile));
+                                            setError(null);
+                                        }
+                                    }}
+                                    className={`w-full rounded-2xl border-2 border-dashed p-10 text-center cursor-pointer transition-all duration-300 block select-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
                                         isDragging ? 'border-indigo-400 bg-indigo-50/50 scale-105' : 'border-slate-300 hover:border-indigo-400 hover:bg-white/50'
                                     }`}
                                     aria-label="Tải ảnh bài làm"
@@ -296,7 +305,7 @@ export default function AIGradingPage() {
                                         <Upload className="h-6 w-6" />
                                     </div>
                                     <p className="text-sm font-medium text-slate-600">Kéo thả hoặc click để chọn ảnh</p>
-                                </button>
+                                </label>
                             ) : (
                                 <div className="relative border rounded-lg overflow-hidden">
                                     <img src={previewUrl} alt="Preview" className="w-full h-auto object-contain max-h-[300px]" />
@@ -312,6 +321,7 @@ export default function AIGradingPage() {
                             )}
                             <input
                                 type="file"
+                                id="grading-file-input"
                                 ref={fileInputRef}
                                 className="hidden"
                                 accept="image/*"

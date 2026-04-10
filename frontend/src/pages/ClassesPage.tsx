@@ -1,5 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Plus, Copy, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Copy, Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 import { classApi } from '../services/classApi';
 import type { MathClass, ClassCreate, ClassUpdate } from '../services/classApi';
 import { Button } from '../components/ui/button';
@@ -23,6 +33,12 @@ export function ClassesPage() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingClass, setEditingClass] = useState<MathClass | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
+
+    // AlertDialog states
+    const [deleteTarget, setDeleteTarget] = useState<MathClass | null>(null);
+    const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+    const [showGradeChangeAlert, setShowGradeChangeAlert] = useState(false);
+    const [pendingGradeSubmit, setPendingGradeSubmit] = useState(false);
 
     // Form state for creating new class
     const [newClass, setNewClass] = useState<ClassCreate>({
@@ -98,15 +114,17 @@ export function ClassesPage() {
             return;
         }
 
-        if (editClassForm.grade !== editingClass.grade) {
-            const confirmGradeChange = confirm(
-                `Bạn sắp đổi khối lớp từ Lớp ${editingClass.grade} sang Lớp ${editClassForm.grade}. Các luồng chọn chủ đề và thống kê có thể bị ảnh hưởng. Tiếp tục?`
-            );
-            if (!confirmGradeChange) {
-                return;
-            }
+        // If grade is changing, show strong confirmation dialog first
+        if (editClassForm.grade !== editingClass.grade && !pendingGradeSubmit) {
+            setShowGradeChangeAlert(true);
+            return;
         }
 
+        await doUpdateClass();
+    };
+
+    const doUpdateClass = async () => {
+        if (!editingClass || !editClassForm.class_name?.trim()) return;
         try {
             setIsUpdating(true);
             const updated = await classApi.updateClass(editingClass.id, {
@@ -117,6 +135,7 @@ export function ClassesPage() {
             setClasses((prev) => prev.map((cls) => (cls.id === updated.id ? updated : cls)));
             setShowEditModal(false);
             setEditingClass(null);
+            setPendingGradeSubmit(false);
             toast('Đã cập nhật lớp học', 'success');
         } catch (err) {
             setError('Không thể cập nhật lớp học');
@@ -127,20 +146,26 @@ export function ClassesPage() {
         }
     };
 
-    const handleDeleteClass = async (targetClass: MathClass) => {
-        const isConfirmed = confirm(`Bạn có chắc muốn xóa lớp ${targetClass.class_name}?`);
-        if (!isConfirmed) {
-            return;
-        }
+    const handleDeleteClass = (targetClass: MathClass, e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        e?.preventDefault();
+        setDeleteTarget(targetClass);
+        setShowDeleteAlert(true);
+    };
 
+    const confirmDeleteClass = async () => {
+        if (!deleteTarget) return;
         try {
-            await classApi.deleteClass(targetClass.id);
-            setClasses((prev) => prev.filter((cls) => cls.id !== targetClass.id));
+            await classApi.deleteClass(deleteTarget.id);
+            setClasses((prev) => prev.filter((cls) => cls.id !== deleteTarget.id));
             toast('Đã xóa lớp học', 'success');
         } catch (err) {
             setError('Không thể xóa lớp học');
             toast('Không thể xóa lớp học', 'error');
             console.error(err);
+        } finally {
+            setShowDeleteAlert(false);
+            setDeleteTarget(null);
         }
     };
 
@@ -160,6 +185,7 @@ export function ClassesPage() {
     }
 
     return (
+        <>
         <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans">
             <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-indigo-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-[40%] h-[40%] bg-emerald-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
@@ -239,7 +265,7 @@ export function ClassesPage() {
                                                     type="button"
                                                     size="sm"
                                                     variant="ghost"
-                                                    onClick={() => handleDeleteClass(cls)}
+                                                    onClick={(e) => handleDeleteClass(cls, e)}
                                                     className="h-7 px-2 text-slate-500 hover:text-red-600"
                                                     aria-label={`Xóa lớp ${cls.class_name}`}
                                                 >
@@ -381,6 +407,52 @@ export function ClassesPage() {
                     </div>
                 )}
         </div>
+
+        {/* Delete Class Confirmation */}
+        <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>⚠️ Xóa lớp học</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Bạn sắp xóa lớp <strong>{deleteTarget?.class_name}</strong>. Tất cả học sinh, bài tập và dữ liệu liên quan sẽ bị xóa vĩnh viễn và không thể khôi phục.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setShowDeleteAlert(false)}>Hủy</AlertDialogCancel>
+                    <AlertDialogAction variant="destructive" onClick={confirmDeleteClass}>Xóa vĩnh viễn</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Grade Change Confirmation */}
+        <AlertDialog open={showGradeChangeAlert} onOpenChange={setShowGradeChangeAlert}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 text-amber-500" />
+                        Cảnh báo: Đổi khối lớp
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Bạn sắp đổi khối lớp từ <strong>Lớp {editingClass?.grade}</strong> sang <strong>Lớp {editClassForm.grade}</strong>.
+                        <br /><br />
+                        Điều này có thể ảnh hưởng đến: danh sách chủ đề, thống kê học sinh, và các bài tập đã tạo. Tiếp tục?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setShowGradeChangeAlert(false)}>Hủy</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={() => {
+                            setShowGradeChangeAlert(false);
+                            setPendingGradeSubmit(true);
+                            setTimeout(() => doUpdateClass(), 50);
+                        }}
+                    >
+                        Xác nhận đổi khối
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        </>
     );
 }
 

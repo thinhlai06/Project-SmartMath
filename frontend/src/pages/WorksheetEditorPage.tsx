@@ -158,7 +158,8 @@ export function WorksheetEditorPage() {
     };
 
     const handlePrintWorksheet = () => {
-        window.print();
+        // Give DOM a moment to update before opening browser print dialog
+        setTimeout(() => window.print(), 200);
     };
 
 

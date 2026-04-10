@@ -62,6 +62,14 @@ npm run dev
 - `/python-review` — Review backend code
 - `/code-review` — Review frontend code
 - `/security-scan` — Scan bảo mật
+- `/update-skills` — Tự động quét và cập nhật file `SKILL.md` theo rules mới nhất của dự án
+
+## BMad Skills & Workflows Auto-Discovery (Dành cho VSCode AI / Roo / Cline)
+
+Để đồng bộ với hệ thống Antigravity, phần mềm AI trong VSCode NẾU đang thực thi một tác vụ, **BẮT BUỘC** phải:
+1. Quét nội dung thư mục `.agents/skills/`, `.agent/skills/` và `.agent/workflows/`.
+2. Đọc file `SKILL.md` hoặc `workflow.md` tương ứng NẾU nhiệm vụ khớp với mô tả của skill đó (VD: thấy yêu cầu review code thì đọc skill code-review).
+3. Tuân thủ 100% các bước hướng dẫn bên trong `SKILL.md` trước khi trực tiếp viết code.
 
 ## Agents Available
 

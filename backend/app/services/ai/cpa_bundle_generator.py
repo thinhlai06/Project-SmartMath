@@ -83,6 +83,9 @@ class CPABundleGenerator:
         if topic_metadata.content_family == "measurement":
             return self._generate_measurement_bundles(topic_metadata, grade, count), rag_sources
 
+        if topic_metadata.content_family == "number_sense":
+            return self._generate_number_sense_bundles(topic_metadata, grade, count), rag_sources
+
         raise ValueError(f"bundle-v2 has no generator for family '{topic_metadata.content_family}'")
 
     def _generate_geometry_bundles(
@@ -217,6 +220,126 @@ class CPABundleGenerator:
                         "object": object_name,
                         "primary_numbers": [value],
                         "expected_answer": str(value),
+                    },
+                    concrete=concrete,
+                    pictorial=pictorial,
+                    abstract=abstract,
+                )
+            )
+
+        return bundles
+
+    def _generate_number_sense_bundles(
+        self,
+        topic_metadata: TopicGenerationMetadata,
+        grade: int,
+        count: int,
+    ) -> List[CPABundle]:
+        """Generate CPA bundles for number sense topics (e.g. 'Cac so den 10', 'Doc viet so')."""
+        rng = random.Random(abs(hash(f"ns|{topic_metadata.topic_slug}|{grade}|{count}")) % 100000)
+        bundles: List[CPABundle] = []
+
+        slug = topic_metadata.topic_slug
+        if "100" in slug:
+            max_num = 100
+        elif "20" in slug:
+            max_num = 20
+        else:
+            max_num = 10
+
+        tasks = ["count_objects", "order_numbers", "compare_numbers"]
+
+        for index in range(count):
+            task = tasks[index % len(tasks)]
+            target = rng.randint(2, min(max_num, 10 if grade == 1 else 20))
+
+            if task == "count_objects":
+                answer = str(target)
+                concrete = ConcreteSpec(
+                    manipulative_type="khoi_vuong",
+                    groups=[ConcreteGroup(label=f"Nhom {target} vat", count=target, color="#6366F1")],
+                    action_instruction=f"Lay {target} khoi vuong, dat thanh 1 nhom va dem lai.",
+                    result_prompt="Co bao nhieu khoi vuong?",
+                    answer=answer,
+                )
+                pictorial = PictorialSpec(
+                    diagram_type="dot_array",
+                    groups=[PictorialGroup(count=target, color="#6366F1", shape="circle")],
+                    question_text="Nhin vao hinh va dem so cham tron.",
+                    answer=answer,
+                    layout="horizontal",
+                )
+                abstract = AbstractSpec(
+                    expression="Co ? vat",
+                    answer=answer,
+                    hint="Dem tung vat mot.",
+                    show_blank=True,
+                )
+
+            elif task == "order_numbers":
+                sample_max = min(max_num, 20 if grade >= 2 else 10)
+                nums = sorted(rng.sample(range(1, sample_max + 1), 3))
+                answer = str(nums[-1])
+                concrete = ConcreteSpec(
+                    manipulative_type="khoi_vuong",
+                    groups=[ConcreteGroup(label=f"So {n}", count=n, color="#F59E0B") for n in nums],
+                    action_instruction=f"Lay {len(nums)} nhom khoi co so luong khac nhau, sap xep tu it den nhieu.",
+                    result_prompt="So lon nhat la so nao?",
+                    answer=answer,
+                )
+                pictorial = PictorialSpec(
+                    diagram_type="bar_model",
+                    groups=[PictorialGroup(count=n, color="#F59E0B", shape="bar") for n in nums],
+                    question_text=f"Nhin so do thanh, so nao lon nhat trong {', '.join(str(n) for n in nums)}?",
+                    answer=answer,
+                    layout="horizontal",
+                )
+                abstract = AbstractSpec(
+                    expression=f"So lon nhat trong {nums} la ?",
+                    answer=answer,
+                    hint="So sanh tung so de tim so lon nhat.",
+                    show_blank=True,
+                )
+
+            else:  # compare_numbers
+                a = rng.randint(1, max(1, min(max_num - 1, 9)))
+                b = rng.randint(a + 1, min(max_num, a + 5))
+                answer = "lon hon"
+                concrete = ConcreteSpec(
+                    manipulative_type="khoi_vuong",
+                    groups=[
+                        ConcreteGroup(label=f"So {a}", count=a, color="#10B981"),
+                        ConcreteGroup(label=f"So {b}", count=b, color="#EF4444"),
+                    ],
+                    action_instruction=f"Lay {a} khoi xanh va {b} khoi do. Nhom nao nhieu hon?",
+                    result_prompt=f"So {b} so voi so {a} la?",
+                    answer=answer,
+                )
+                pictorial = PictorialSpec(
+                    diagram_type="dot_array",
+                    groups=[
+                        PictorialGroup(count=a, color="#10B981", shape="circle"),
+                        PictorialGroup(count=b, color="#EF4444", shape="circle"),
+                    ],
+                    question_text=f"Nhin 2 hang cham. {b} so voi {a} la?",
+                    answer=answer,
+                    layout="horizontal",
+                )
+                abstract = AbstractSpec(
+                    expression=f"{b} ... {a}",
+                    answer=answer,
+                    hint="So sanh hai so bang cach dem so du.",
+                    show_blank=True,
+                )
+
+            bundles.append(
+                CPABundle(
+                    content_family="number_sense",
+                    family_payload={
+                        "task": task,
+                        "target_number": target,
+                        "max_number": max_num,
+                        "expected_answer": answer,
                     },
                     concrete=concrete,
                     pictorial=pictorial,
