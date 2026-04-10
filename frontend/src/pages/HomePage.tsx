@@ -6,7 +6,7 @@ import type { MathClass } from '../services/classApi';
 import { GraduationCap, BookOpen, BarChart3, FileDown, Camera, Users, ChevronRight, Settings } from 'lucide-react';
 import { QuickActionCard } from '../components/dashboard/QuickActionCard';
 import { RecentActivityList } from '../components/dashboard/RecentActivityList';
-import { mockErrorStats } from '../mockData/mockErrorData';
+import aiApi from '../services/aiApi';
 
 export function HomePage() {
     const { user, isAuthenticated } = useAuth();
@@ -150,6 +150,15 @@ function TeacherHome() {
         avg_score: number | null;
     } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [analyticsSummary, setAnalyticsSummary] = useState({
+        totalErrors: 0,
+        mostCommonType: 'Chưa có dữ liệu',
+        criticalStudents: 0,
+    });
+
+    const formatMistakeLabel = (mistakeType: string): string => {
+        return mistakeType.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+    };
 
     // Fetch dashboard stats and classes on mount
     useEffect(() => {
@@ -167,6 +176,60 @@ function TeacherHome() {
                 // Still need classes for navigation
                 const classesData = await classApi.getClasses();
                 setClasses(classesData);
+
+                if (classesData.length > 0) {
+                    const analyticsResults = await Promise.all(
+                        classesData.map(async (mathClass) => {
+                            try {
+                                return await aiApi.getAnalytics(mathClass.id);
+                            } catch (analyticsError) {
+                                console.error(`Error fetching analytics for class ${mathClass.id}:`, analyticsError);
+                                return null;
+                            }
+                        })
+                    );
+
+                    const mistakeCounter: Record<string, number> = {};
+                    let totalErrors = 0;
+                    let criticalStudents = 0;
+
+                    analyticsResults.forEach((analyticsData) => {
+                        if (!analyticsData) {
+                            return;
+                        }
+
+                        const commonMistakes = Array.isArray(analyticsData.common_mistakes)
+                            ? analyticsData.common_mistakes
+                            : [];
+                        const studentPerformance = Array.isArray(analyticsData.student_performance)
+                            ? analyticsData.student_performance
+                            : [];
+
+                        commonMistakes.forEach((item) => {
+                            totalErrors += item.count;
+                            mistakeCounter[item.type] = (mistakeCounter[item.type] || 0) + item.count;
+                        });
+
+                        criticalStudents += studentPerformance.filter((student) => student.average_score < 5).length;
+                    });
+
+                    const sortedMistakes = Object.entries(mistakeCounter).sort((a, b) => b[1] - a[1]);
+                    const mostCommonType = sortedMistakes.length > 0
+                        ? formatMistakeLabel(sortedMistakes[0][0])
+                        : 'Chưa có dữ liệu';
+
+                    setAnalyticsSummary({
+                        totalErrors,
+                        mostCommonType,
+                        criticalStudents,
+                    });
+                } else {
+                    setAnalyticsSummary({
+                        totalErrors: 0,
+                        mostCommonType: 'Chưa có dữ liệu',
+                        criticalStudents: 0,
+                    });
+                }
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
             } finally {
@@ -180,6 +243,16 @@ function TeacherHome() {
     const classCount = stats?.total_classes ?? 0;
     const studentCount = stats?.total_students ?? 0;
     const worksheetCount = stats?.total_worksheets ?? 0;
+    const avgScore = stats?.avg_score;
+    const hasAvgScore = avgScore !== undefined && avgScore !== null;
+    const formattedAvgScore = hasAvgScore ? avgScore.toFixed(1) : '-';
+    const avgScoreColor = hasAvgScore
+        ? avgScore > 8
+            ? 'text-emerald-500'
+            : avgScore < 6
+                ? 'text-orange-500'
+                : 'text-indigo-500'
+        : 'text-slate-500';
 
     return (
         <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans">
@@ -272,10 +345,14 @@ function TeacherHome() {
                         <p className="text-slate-600 font-medium mt-1 relative z-10">Bài tập</p>
                         <p className="text-sm font-semibold text-orange-500 mt-4 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">Xem chi tiết &rarr;</p>
                     </div>
-                    <div className="glass-panel rounded-3xl p-6 relative overflow-hidden opacity-70">
-                        <p className="text-4xl font-black text-slate-800 drop-shadow-sm">-</p>
+                    <div className="glass-panel card-hover rounded-3xl p-6 relative overflow-hidden group">
+                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-100 rounded-full opacity-50 transition-transform group-hover:scale-150" />
                         <p className="text-slate-600 font-medium mt-1">Điểm TB</p>
-                        <p className="text-sm font-semibold text-slate-400 mt-4 bg-slate-100 w-fit px-2 py-0.5 rounded-md">Coming soon</p>
+                        {isLoading ? (
+                            <div className="h-9 w-12 bg-slate-200 rounded animate-pulse mt-2"></div>
+                        ) : (
+                            <p className={`text-4xl font-black drop-shadow-sm mt-2 ${avgScoreColor}`}>{formattedAvgScore}</p>
+                        )}
                     </div>
                 </div>
 
@@ -330,11 +407,19 @@ function TeacherHome() {
                         <div className="grid sm:grid-cols-2 gap-6 mb-8">
                             <div className="p-6 bg-rose-50/50 rounded-2xl border border-rose-100/50 shadow-sm">
                                 <p className="text-slate-500 font-medium mb-1">Tổng số lỗi tuần này</p>
-                                <p className="text-3xl font-black text-rose-600 drop-shadow-sm">{mockErrorStats.totalErrors.toLocaleString()}</p>
+                                {isLoading ? (
+                                    <div className="h-9 w-20 bg-rose-100 rounded animate-pulse"></div>
+                                ) : (
+                                    <p className="text-3xl font-black text-rose-600 drop-shadow-sm">{analyticsSummary.totalErrors.toLocaleString()}</p>
+                                )}
                             </div>
                             <div className="p-6 bg-orange-50/50 rounded-2xl border border-orange-100/50 shadow-sm">
                                 <p className="text-slate-500 font-medium mb-1">Lỗi xuất hiện nhiều nhất</p>
-                                <p className="text-xl font-bold text-orange-600 mt-2">{mockErrorStats.mostCommonType}</p>
+                                {isLoading ? (
+                                    <div className="h-7 w-40 bg-orange-100 rounded animate-pulse mt-2"></div>
+                                ) : (
+                                    <p className="text-xl font-bold text-orange-600 mt-2">{analyticsSummary.mostCommonType}</p>
+                                )}
                             </div>
                         </div>
 
@@ -344,7 +429,7 @@ function TeacherHome() {
                                 <div>
                                     <p className="font-bold text-indigo-900 mb-1">Gợi ý sư phạm AI</p>
                                     <p className="text-sm text-indigo-700/80 leading-relaxed font-medium">
-                                        Phát hiện <span className="font-bold text-rose-600">{mockErrorStats.criticalStudents}</span> học sinh đang gặp khó khăn với các khái niệm cốt lõi. Hệ thống đề xuất tạo Worksheet phụ đạo chuyên đề môn Phân số tập trung vào biểu diễn hình học.
+                                        Phát hiện <span className="font-bold text-rose-600">{analyticsSummary.criticalStudents}</span> học sinh đang gặp khó khăn với các khái niệm cốt lõi. Hệ thống đề xuất tạo Worksheet phụ đạo theo nhóm lỗi phổ biến của lớp.
                                     </p>
                                 </div>
                             </div>

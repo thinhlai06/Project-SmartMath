@@ -27,13 +27,20 @@ export interface Student {
     id: number;
     full_name: string;
     tier: string;
+    dob?: string | null;
+    parent_name?: string | null;
+    parent_phone?: string | null;
+    avg_score?: number | null;
     class_id: number;
     created_at: string;
 }
 
 export interface StudentCreate {
     full_name: string;
-    tier?: 'foundation' | 'standard' | 'extension' | 'advanced';
+    dob: string;
+    parent_name: string;
+    parent_phone: string;
+    tier: 'foundation' | 'standard' | 'extension' | 'advanced';
 }
 
 export interface MathTopic {
@@ -77,6 +84,23 @@ export const classApi = {
     // Regenerate class code
     regenerateCode: async (classId: number): Promise<MathClass> => {
         const response = await api.post<MathClass>(`/classes/${classId}/regenerate-code`);
+        return response.data;
+    },
+
+    // Upload students from Excel template
+    uploadStudentsExcel: async (classId: number, file: File): Promise<Student[]> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post<Student[]>(`/classes/${classId}/students/upload`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data;
+    },
+
+    // Get all students in a class
+    getStudents: async (classId: number, tier?: string, skip: number = 0, limit: number = 100): Promise<Student[]> => {
+        const params = tier ? { tier, skip, limit } : { skip, limit };
+        const response = await api.get<Student[]>(`/classes/${classId}/students`, { params });
         return response.data;
     },
 };

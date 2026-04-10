@@ -58,6 +58,26 @@ export interface AnalyticsResponse {
     common_mistakes: MistakePattern[];
 }
 
+export interface AnalyticsTagItem {
+    error_type: string;
+    count: number;
+    question_id?: string;
+    ocr_confidence?: number;
+}
+
+export interface AnalyticsSubmitRequest {
+    class_id: number;
+    student_id?: number;
+    worksheet_id?: number;
+    source?: 'ai_grading' | 'teacher_review';
+    error_tags: AnalyticsTagItem[];
+}
+
+export interface AnalyticsSubmitResponse {
+    message: string;
+    records_created: number;
+}
+
 export interface AIStatusResponse {
     ollama: string;
     model: string;

@@ -15,9 +15,7 @@ test.beforeEach(async ({ page }) => {
       body: JSON.stringify(teacherUser),
     });
   });
-});
 
-test('CPA wizard can generate AI draft content', async ({ page }) => {
   await page.route('**/api/classes**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -33,7 +31,9 @@ test('CPA wizard can generate AI draft content', async ({ page }) => {
       ]),
     });
   });
+});
 
+test('CPA wizard can generate AI draft content', async ({ page }) => {
   await page.route('**/api/topics**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -45,6 +45,19 @@ test('CPA wizard can generate AI draft content', async ({ page }) => {
           grade: 1,
         },
       ]),
+    });
+  });
+
+  await page.route('**/api/ai/generate-cpa-bundle', async (route) => {
+    await route.fulfill({
+      status: 422,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        detail: {
+          error_code: 'unsupported_bundle_family',
+          message: 'Unsupported operation family for bundle-v1',
+        },
+      }),
     });
   });
 
@@ -66,8 +79,9 @@ test('CPA wizard can generate AI draft content', async ({ page }) => {
   await expect(page.getByText('Thiết kế bài tập CPA')).toBeVisible();
   await page.getByRole('button', { name: 'Tạo nội dung nháp' }).click();
 
-  await expect(page.getByText('Nội dung AI cần duyệt')).toBeVisible();
-  await expect(page.getByText('2 + 3 = ?')).toBeVisible();
+  await expect(page.getByText('Bundle Review Panel')).toBeVisible();
+  await expect(page.getByText('Chu de chua ho tro bundle-v2', { exact: false }).first()).toBeVisible();
+  await expect(page.getByText('2 + 3 = ?').first()).toBeVisible();
 });
 
 test('AI grading page can upload and show grading results', async ({ page }) => {

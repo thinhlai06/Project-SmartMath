@@ -7,6 +7,7 @@ from app.models.worksheet import Worksheet
 from app.models.worksheet_exercise import WorksheetExercise
 from app.models.announcement import Announcement
 from app.models.student_progress import StudentProgress
+from app.models.student_analytics import StudentAnalytics
 from app.models.grading_report import GradingReport
 from app.models.cpa_bundle import CPABundleRecord
 
@@ -20,6 +21,7 @@ __all__ = [
     "WorksheetExercise",
     "Announcement",
     "StudentProgress",
+    "StudentAnalytics",
     "GradingReport",
     "CPABundleRecord",
 ]

@@ -1,7 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Plus, Copy } from 'lucide-react';
+import { Plus, Copy, Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 import { classApi } from '../services/classApi';
-import type { MathClass, ClassCreate } from '../services/classApi';
+import type { MathClass, ClassCreate, ClassUpdate } from '../services/classApi';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -20,9 +30,22 @@ export function ClassesPage() {
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
     const [skip, setSkip] = useState(0);
     const [limit] = useState(9);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingClass, setEditingClass] = useState<MathClass | null>(null);
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    // AlertDialog states
+    const [deleteTarget, setDeleteTarget] = useState<MathClass | null>(null);
+    const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+    const [showGradeChangeAlert, setShowGradeChangeAlert] = useState(false);
+    const [pendingGradeSubmit, setPendingGradeSubmit] = useState(false);
 
     // Form state for creating new class
     const [newClass, setNewClass] = useState<ClassCreate>({
+        class_name: '',
+        grade: 1,
+    });
+    const [editClassForm, setEditClassForm] = useState<ClassUpdate>({
         class_name: '',
         grade: 1,
     });
@@ -75,6 +98,77 @@ export function ClassesPage() {
         setTimeout(() => setCopiedCode(null), 2000);
     };
 
+    const handleOpenEditClass = (targetClass: MathClass) => {
+        setEditingClass(targetClass);
+        setEditClassForm({
+            class_name: targetClass.class_name,
+            grade: targetClass.grade,
+        });
+        setShowEditModal(true);
+    };
+
+    const handleUpdateClass = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!editingClass || !editClassForm.class_name?.trim()) {
+            return;
+        }
+
+        // If grade is changing, show strong confirmation dialog first
+        if (editClassForm.grade !== editingClass.grade && !pendingGradeSubmit) {
+            setShowGradeChangeAlert(true);
+            return;
+        }
+
+        await doUpdateClass();
+    };
+
+    const doUpdateClass = async () => {
+        if (!editingClass || !editClassForm.class_name?.trim()) return;
+        try {
+            setIsUpdating(true);
+            const updated = await classApi.updateClass(editingClass.id, {
+                class_name: editClassForm.class_name.trim(),
+                grade: editClassForm.grade,
+            });
+
+            setClasses((prev) => prev.map((cls) => (cls.id === updated.id ? updated : cls)));
+            setShowEditModal(false);
+            setEditingClass(null);
+            setPendingGradeSubmit(false);
+            toast('Đã cập nhật lớp học', 'success');
+        } catch (err) {
+            setError('Không thể cập nhật lớp học');
+            toast('Không thể cập nhật lớp học', 'error');
+            console.error(err);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleDeleteClass = (targetClass: MathClass, e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        e?.preventDefault();
+        setDeleteTarget(targetClass);
+        setShowDeleteAlert(true);
+    };
+
+    const confirmDeleteClass = async () => {
+        if (!deleteTarget) return;
+        try {
+            await classApi.deleteClass(deleteTarget.id);
+            setClasses((prev) => prev.filter((cls) => cls.id !== deleteTarget.id));
+            toast('Đã xóa lớp học', 'success');
+        } catch (err) {
+            setError('Không thể xóa lớp học');
+            toast('Không thể xóa lớp học', 'error');
+            console.error(err);
+        } finally {
+            setShowDeleteAlert(false);
+            setDeleteTarget(null);
+        }
+    };
+
     if (isLoading && classes.length === 0) {
         return (
             <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans p-6">
@@ -91,6 +185,7 @@ export function ClassesPage() {
     }
 
     return (
+        <>
         <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans">
             <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-indigo-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-[40%] h-[40%] bg-emerald-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
@@ -155,6 +250,28 @@ export function ClassesPage() {
                                                     <span className="text-xs text-green-600">Đã sao chép!</span>
                                                 )}
                                             </button>
+                                            <div className="flex items-center gap-1">
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => handleOpenEditClass(cls)}
+                                                    className="h-7 px-2 text-slate-500 hover:text-indigo-600"
+                                                    aria-label={`Chỉnh sửa lớp ${cls.class_name}`}
+                                                >
+                                                    <Edit2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={(e) => handleDeleteClass(cls, e)}
+                                                    className="h-7 px-2 text-slate-500 hover:text-red-600"
+                                                    aria-label={`Xóa lớp ${cls.class_name}`}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -233,7 +350,109 @@ export function ClassesPage() {
                         </div>
                     </div>
                 )}
+
+                {showEditModal && editingClass && (
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <div className="glass-panel border-white/50 bg-white/90 rounded-3xl p-8 w-full max-w-md shadow-2xl">
+                            <h2 className="text-xl font-bold mb-4">Chỉnh sửa lớp học</h2>
+                            <form onSubmit={handleUpdateClass}>
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label htmlFor="edit_class_name">Tên lớp</Label>
+                                        <Input
+                                            id="edit_class_name"
+                                            placeholder="Ví dụ: 3A, 2B..."
+                                            value={editClassForm.class_name || ''}
+                                            onChange={(e) => setEditClassForm({ ...editClassForm, class_name: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="edit_grade">Khối lớp</Label>
+                                        <div className="flex gap-2 mt-1">
+                                            {[1, 2, 3].map((g) => (
+                                                <button
+                                                    key={g}
+                                                    type="button"
+                                                    onClick={() => setEditClassForm({ ...editClassForm, grade: g })}
+                                                    className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all duration-300 font-semibold ${editClassForm.grade === g
+                                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
+                                                        : 'border-slate-100 bg-white hover:border-indigo-200 text-slate-600'
+                                                        }`}
+                                                >
+                                                    Lớp {g}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-3 mt-6">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="flex-1 rounded-xl h-12 font-semibold hover:bg-slate-100"
+                                        onClick={() => {
+                                            setShowEditModal(false);
+                                            setEditingClass(null);
+                                        }}
+                                    >
+                                        Hủy
+                                    </Button>
+                                    <Button type="submit" className="flex-1 rounded-xl h-12 font-bold bg-indigo-600 hover:bg-indigo-700 shadow-soft" disabled={isUpdating}>
+                                        {isUpdating ? 'Đang lưu...' : 'Lưu thay đổi'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
         </div>
+
+        {/* Delete Class Confirmation */}
+        <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>⚠️ Xóa lớp học</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Bạn sắp xóa lớp <strong>{deleteTarget?.class_name}</strong>. Tất cả học sinh, bài tập và dữ liệu liên quan sẽ bị xóa vĩnh viễn và không thể khôi phục.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setShowDeleteAlert(false)}>Hủy</AlertDialogCancel>
+                    <AlertDialogAction variant="destructive" onClick={confirmDeleteClass}>Xóa vĩnh viễn</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Grade Change Confirmation */}
+        <AlertDialog open={showGradeChangeAlert} onOpenChange={setShowGradeChangeAlert}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 text-amber-500" />
+                        Cảnh báo: Đổi khối lớp
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Bạn sắp đổi khối lớp từ <strong>Lớp {editingClass?.grade}</strong> sang <strong>Lớp {editClassForm.grade}</strong>.
+                        <br /><br />
+                        Điều này có thể ảnh hưởng đến: danh sách chủ đề, thống kê học sinh, và các bài tập đã tạo. Tiếp tục?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setShowGradeChangeAlert(false)}>Hủy</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={() => {
+                            setShowGradeChangeAlert(false);
+                            setPendingGradeSubmit(true);
+                            setTimeout(() => doUpdateClass(), 50);
+                        }}
+                    >
+                        Xác nhận đổi khối
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        </>
     );
 }
 

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -28,47 +29,41 @@ async def get_dashboard_stats(
             "avg_score": None
         }
     
-    # Count classes owned by teacher
-    total_classes = db.query(MathClass).filter(
-        MathClass.teacher_id == current_user.id
-    ).count()
-    
-    # Get all class IDs for this teacher
-    class_ids = [c.id for c in db.query(MathClass).filter(
-        MathClass.teacher_id == current_user.id
-    ).all()]
-    
-    # Count students in those classes
-    total_students = 0
-    if class_ids:
-        total_students = db.query(Student).filter(
-            Student.class_id.in_(class_ids)
-        ).count()
-    
-    # Count worksheets in those classes
-    total_worksheets = 0
-    if class_ids:
-        total_worksheets = db.query(Worksheet).filter(
-            Worksheet.class_id.in_(class_ids)
-        ).count()
+    # Securely scope every aggregate by classes.teacher_id == current_user.id.
+    total_classes = (
+        db.query(func.count(MathClass.id))
+        .filter(MathClass.teacher_id == current_user.id)
+        .scalar()
+        or 0
+    )
 
-    # Calculate average score (scale 0-10) from student progress of classes owned by teacher
-    avg_score = None
-    if class_ids:
-        progress_rows = (
-            db.query(StudentProgress)
-            .join(Student, StudentProgress.student_id == Student.id)
-            .filter(Student.class_id.in_(class_ids))
-            .all()
+    total_students = (
+        db.query(func.count(Student.id))
+        .join(MathClass, Student.class_id == MathClass.id)
+        .filter(MathClass.teacher_id == current_user.id)
+        .scalar()
+        or 0
+    )
+
+    total_worksheets = (
+        db.query(func.count(Worksheet.id))
+        .join(MathClass, Worksheet.class_id == MathClass.id)
+        .filter(MathClass.teacher_id == current_user.id)
+        .scalar()
+        or 0
+    )
+
+    avg_score_raw = (
+        db.query(func.avg((StudentProgress.correct_count * 10.0) / StudentProgress.total_count))
+        .join(Student, StudentProgress.student_id == Student.id)
+        .join(MathClass, Student.class_id == MathClass.id)
+        .filter(
+            MathClass.teacher_id == current_user.id,
+            StudentProgress.total_count > 0,
         )
-
-        score_values = []
-        for progress in progress_rows:
-            if progress.total_count and progress.total_count > 0:
-                score_values.append(((progress.correct_count or 0) / progress.total_count) * 10)
-
-        if score_values:
-            avg_score = round(sum(score_values) / len(score_values), 1)
+        .scalar()
+    )
+    avg_score = round(float(avg_score_raw), 1) if avg_score_raw is not None else None
     
     return {
         "total_classes": total_classes,

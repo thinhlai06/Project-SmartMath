@@ -46,11 +46,14 @@ export function DifferentiationWizard() {
         fetchClasses();
     }, []);
 
+    const selectedClass = classes.find((item) => item.id === selectedClassId);
+
     // Fetch topics
     useEffect(() => {
         const fetchTopics = async () => {
             try {
-                const response = await fetch('/api/topics', {
+                const gradeParam = selectedClass ? `?grade=${selectedClass.grade}` : '';
+                const response = await fetch(`/api/topics${gradeParam}`, {
                     credentials: 'include'
                 });
                 if (response.ok) {
@@ -61,10 +64,11 @@ export function DifferentiationWizard() {
             }
         };
         fetchTopics();
-    }, []);
+    }, [selectedClass]);
 
     const handleStep1Submit = (data: { topicId: string, strategy: string, grade: number }) => {
-        setWizardData({ ...wizardData, ...data });
+        const lockedGrade = selectedClass?.grade ?? data.grade;
+        setWizardData({ ...wizardData, ...data, grade: lockedGrade });
         setCurrentStep(2);
     };
 
@@ -224,12 +228,14 @@ export function DifferentiationWizard() {
                     <DiffStep1Config
                         onNext={handleStep1Submit}
                         initialData={{ topicId: wizardData.topicId, strategy: wizardData.strategy }}
+                        lockedGrade={selectedClass?.grade}
                     />
                 )}
                 {currentStep === 2 && (
                     <DiffStep2Assignment
                         onNext={handleStep2Submit}
                         onBack={() => setCurrentStep(1)}
+                        currentClassId={selectedClassId}
                         initialAssignments={wizardData.assignments}
                     />
                 )}

@@ -133,3 +133,57 @@
     @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-lg;
   }
 }
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  /* Hide navigation and UI chrome */
+  nav,
+  [data-navigation],
+  .print\:hidden,
+  .navigation {
+    display: none !important;
+  }
+
+  /* Reset body for printing */
+  body {
+    background: white !important;
+    background-image: none !important;
+    color: black !important;
+    font-family: 'Times New Roman', serif !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Hide decorative blurred backgrounds */
+  [class*="blur-"],
+  [class*="absolute"][class*="-z-0"] {
+    display: none !important;
+  }
+
+  /* Page setup */
+  @page {
+    size: A4 portrait;
+    margin: 15mm 15mm 15mm 15mm;
+  }
+
+  /* Anti page-break for question blocks */
+  .question-item,
+  [class*="print:break-inside-avoid"],
+  [class*="print:page-break-inside-avoid"] {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Remove shadows and glassmorphism when printing */
+  .glass-panel {
+    background: white !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  /* Ensure links are printable */
+  a[href]:after {
+    content: none !important;
+  }
+}

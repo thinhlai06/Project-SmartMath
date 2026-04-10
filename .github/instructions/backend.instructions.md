@@ -179,3 +179,19 @@ return ApiResponse(success=False, error="Không tìm thấy bài tập")
 | 404 | Không tìm thấy |
 | 500 | Lỗi server (log chi tiết, trả về message chung) |
 
+## Student Profile & Excel Import (Epic 1)
+
+- Student profile fields chuẩn:
+    - `dob` (nullable Date)
+    - `parent_name` (nullable String(100))
+    - `parent_phone` (nullable String(20))
+- `StudentResponse` nên trả thêm `avg_score` (nullable, thang 0-10) để frontend render profile card.
+- Endpoint import Excel bắt buộc dùng `UploadFile = File(...)` và kiểm tra quyền lớp với teacher trước khi xử lý dữ liệu.
+- File import phải đúng template tiêu đề tiếng Việt theo thứ tự:
+    - `Họ và tên`
+    - `Ngày tháng năm sinh`
+    - `Họ tên bố hoặc mẹ`
+    - `SĐT bố hoặc mẹ`
+- Parse ngày sinh linh hoạt (`dd/mm/yyyy`, `dd-mm-yyyy`, `yyyy-mm-dd`, ...) và trả lỗi rõ dòng khi parse thất bại.
+- Khi import danh sách học sinh phải lưu bulk bằng `session.add_all()` trong một transaction, không commit từng dòng.
+

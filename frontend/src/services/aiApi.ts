@@ -4,6 +4,8 @@
  */
 import api from './api';
 import type {
+    AnalyticsSubmitRequest,
+    AnalyticsSubmitResponse,
     GradingResponse,
     AnalyticsResponse,
     AIStatusResponse,
@@ -57,6 +59,12 @@ export const aiApi = {
     /** Get class analytics */
     getAnalytics: async (classId: number): Promise<AnalyticsResponse> => {
         const { data } = await api.get(`/ai/analytics/${classId}`);
+        return data;
+    },
+
+    /** Submit analytics tags from AI grading workflow */
+    submitAnalytics: async (payload: AnalyticsSubmitRequest): Promise<AnalyticsSubmitResponse> => {
+        const { data } = await api.post('/v1/ai/analytics/submit', payload);
         return data;
     },
 

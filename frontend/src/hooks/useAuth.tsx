@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import type { User } from '../types';
 import { authApi } from '../services/api';
 
+const AUTH_SESSION_FLAG = 'smartmath:auth-session';
+
 interface AuthContextType {
     user: User | null;
     isLoading: boolean;
@@ -20,11 +22,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Cookie-session check on mount
+        // Avoid unnecessary auth check on public visits when there is no known session.
+        const hasKnownSession = window.localStorage.getItem(AUTH_SESSION_FLAG) === '1';
+        const currentPath = window.location.pathname;
+        const isPublicRoute = currentPath === '/' || currentPath === '/login' || currentPath === '/register';
+
+        if (!hasKnownSession && isPublicRoute) {
+            setUser(null);
+            setIsLoading(false);
+            return;
+        }
+
         authApi.getMe()
-            .then(setUser)
+            .then((profile) => {
+                setUser(profile);
+                window.localStorage.setItem(AUTH_SESSION_FLAG, '1');
+            })
             .catch(() => {
                 setUser(null);
+                window.localStorage.removeItem(AUTH_SESSION_FLAG);
             })
             .finally(() => setIsLoading(false));
     }, []);
@@ -33,16 +49,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await authApi.login(email, password);
         const userData = await authApi.getMe();
         setUser(userData);
+        window.localStorage.setItem(AUTH_SESSION_FLAG, '1');
     };
 
     const refreshUser = async () => {
-        const userData = await authApi.getMe();
-        setUser(userData);
+        try {
+            const userData = await authApi.getMe();
+            setUser(userData);
+            window.localStorage.setItem(AUTH_SESSION_FLAG, '1');
+        } catch (error) {
+            setUser(null);
+            window.localStorage.removeItem(AUTH_SESSION_FLAG);
+            throw error;
+        }
     };
 
     const logout = async () => {
         await authApi.logout();
         setUser(null);
+        window.localStorage.removeItem(AUTH_SESSION_FLAG);
     };
 
     const register = async (

@@ -15,10 +15,11 @@ interface Topic {
 interface DiffStep1ConfigProps {
     onNext: (data: { topicId: string, strategy: string, grade: number }) => void;
     initialData?: { topicId: string, strategy: string };
+    lockedGrade?: number;
 }
 
-export function DiffStep1Config({ onNext, initialData }: DiffStep1ConfigProps) {
-    const [selectedGrade, setSelectedGrade] = useState<string>('1');
+export function DiffStep1Config({ onNext, initialData, lockedGrade }: DiffStep1ConfigProps) {
+    const [selectedGrade, setSelectedGrade] = useState<string>(lockedGrade ? String(lockedGrade) : '1');
     const [selectedTopicId, setSelectedTopicId] = useState<string>(initialData?.topicId || '');
     const [selectedStrategy, setSelectedStrategy] = useState<string>(initialData?.strategy || 'tiered');
     const [topics, setTopics] = useState<Topic[]>([]);
@@ -49,12 +50,21 @@ export function DiffStep1Config({ onNext, initialData }: DiffStep1ConfigProps) {
         fetchTopics();
     }, [fetchTopics]);
 
+    useEffect(() => {
+        if (!lockedGrade) {
+            return;
+        }
+
+        setSelectedGrade(String(lockedGrade));
+        setSelectedTopicId('');
+    }, [lockedGrade]);
+
     const handleNext = () => {
         if (selectedTopicId && selectedStrategy) {
             onNext({
                 topicId: selectedTopicId,
                 strategy: selectedStrategy,
-                grade: parseInt(selectedGrade)
+                grade: lockedGrade ?? parseInt(selectedGrade)
             });
         }
     };
@@ -73,6 +83,11 @@ export function DiffStep1Config({ onNext, initialData }: DiffStep1ConfigProps) {
                 {/* Grade Selection */}
                 <div className="space-y-4">
                     <Label className="text-base font-bold text-slate-800">Khối lớp</Label>
+                    {lockedGrade && (
+                        <p className="text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2">
+                            Đang khóa theo lớp đã chọn: Lớp {lockedGrade}
+                        </p>
+                    )}
                     <div className="flex gap-4">
                         {['1', '2', '3'].map((grade) => (
                             <Button
@@ -80,10 +95,14 @@ export function DiffStep1Config({ onNext, initialData }: DiffStep1ConfigProps) {
                                 type="button"
                                 variant={selectedGrade === grade ? 'default' : 'outline'}
                                 onClick={() => {
+                                    if (lockedGrade) {
+                                        return;
+                                    }
                                     setSelectedGrade(grade);
                                     setSelectedTopicId('');
                                 }}
-                                className={`w-24 h-12 text-base font-bold rounded-xl transition-all ${selectedGrade === grade ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md' : 'border-slate-200 bg-white/60 hover:bg-slate-50 text-slate-600'}`}
+                                disabled={Boolean(lockedGrade && Number(grade) !== lockedGrade)}
+                                className={`w-24 h-12 text-base font-bold rounded-xl transition-all ${selectedGrade === grade ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md' : 'border-slate-200 bg-white/60 hover:bg-slate-50 text-slate-600'} disabled:opacity-40`}
                             >
                                 Lớp {grade}
                             </Button>

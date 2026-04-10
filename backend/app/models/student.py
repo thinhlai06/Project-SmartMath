@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Date, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -14,6 +14,9 @@ class Student(Base):
     full_name = Column(String(255), nullable=False)
     class_id = Column(Integer, ForeignKey("math_classes.id"), nullable=False)
     tier = Column(String(20), default="standard")  # foundation, standard, extension, advanced
+    dob = Column(Date, nullable=True)
+    parent_name = Column(String(100), nullable=True)
+    parent_phone = Column(String(20), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships

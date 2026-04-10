@@ -8,7 +8,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { PdfExportModal } from '../components/PdfExportModal';
 import {
     AICreatorPanel,
     AIReviewWidget,
@@ -49,7 +48,6 @@ export function WorksheetEditorPage() {
     const [aiDraft, setAiDraft] = useState('');
     const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
     const [activeSection, setActiveSection] = useState<ExerciseType | DifficultyTier | null>(null);
-    const [showPdfModal, setShowPdfModal] = useState(false);
     const [exerciseExplanations, setExerciseExplanations] = useState<Record<number, string>>({});
     const [explanationLoading, setExplanationLoading] = useState<Record<number, boolean>>({});
 
@@ -159,6 +157,11 @@ export function WorksheetEditorPage() {
         }
     };
 
+    const handlePrintWorksheet = () => {
+        // Give DOM a moment to update before opening browser print dialog
+        setTimeout(() => window.print(), 200);
+    };
+
 
     if (isLoading) {
         return (
@@ -179,29 +182,35 @@ export function WorksheetEditorPage() {
     const sections = worksheet.worksheet_type === 'cpa' ? CPA_SECTIONS : DIFF_TIERS;
 
     return (
-        <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans p-6">
-            <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-indigo-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-[40%] h-[40%] bg-emerald-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
-            <div className="max-w-5xl mx-auto relative z-10">
-                <PageHeader
-                    title={worksheet.title}
-                    breadcrumbs={[
-                        { label: 'Classes', href: '/classes' },
-                        { label: 'Worksheets', href: `/classes/${worksheet.class_id}/worksheets` },
-                        { label: 'Editor' },
-                    ]}
-                    actions={(
-                        <Button
-                            variant="outline"
-                            className="text-orange-600 border-orange-300 hover:bg-orange-50"
-                            onClick={() => setShowPdfModal(true)}
-                        >
-                            <Download className="w-4 h-4" />
-                            Xuất PDF
-                        </Button>
-                    )}
-                    className="mb-3"
-                />
+        <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans p-6 print:min-h-0 print:bg-white print:p-0">
+            <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-indigo-200/40 rounded-full blur-[100px] -z-0 pointer-events-none print:hidden" />
+            <div className="absolute bottom-0 left-0 w-[40%] h-[40%] bg-emerald-200/40 rounded-full blur-[100px] -z-0 pointer-events-none print:hidden" />
+            <div className="max-w-5xl mx-auto relative z-10 print:relative print:z-0 print:w-[210mm] print:h-[297mm] print:max-w-none print:overflow-visible print:bg-white print:text-black print:p-8 print:mx-auto">
+                <div className="print:hidden">
+                    <PageHeader
+                        title={worksheet.title}
+                        breadcrumbs={[
+                            { label: 'Classes', href: '/classes' },
+                            { label: 'Worksheets', href: `/classes/${worksheet.class_id}/worksheets` },
+                            { label: 'Editor' },
+                        ]}
+                        actions={(
+                            <Button
+                                variant="outline"
+                                className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                                onClick={handlePrintWorksheet}
+                            >
+                                <Download className="w-4 h-4" />
+                                In worksheet
+                            </Button>
+                        )}
+                        className="mb-3"
+                    />
+                </div>
+                <div className="hidden print:block mb-6 border-b border-slate-300 pb-3">
+                    <h1 className="text-2xl font-bold tracking-tight text-black">{worksheet.title}</h1>
+                    <p className="text-sm text-slate-700 mt-1">Lớp {worksheet.grade} • Smart-MathAI</p>
+                </div>
                 <div className="mb-8 flex flex-wrap gap-2">
                     <Badge className={worksheet.worksheet_type === 'cpa' ? 'bg-indigo-100/80 text-indigo-700 hover:bg-indigo-200 px-3 py-1' : 'bg-purple-100/80 text-purple-700 hover:bg-purple-200 px-3 py-1'}>
                         {worksheet.worksheet_type === 'cpa' ? 'CPA' : 'Phân hóa'}
@@ -213,7 +222,7 @@ export function WorksheetEditorPage() {
                 </div>
 
                 {worksheet.status !== 'published' && (
-                    <div className="mb-6 grid gap-4 lg:grid-cols-2">
+                    <div className="mb-6 grid gap-4 lg:grid-cols-2 print:hidden">
                         <AICreatorPanel
                             topics={['Phép cộng', 'Phép trừ', 'So sánh số', 'Bài toán lời văn']}
                             onGenerate={handleGenerateDraft}
@@ -229,7 +238,7 @@ export function WorksheetEditorPage() {
 
                 {/* Error */}
                 {error && (
-                    <div className="glass-panel bg-red-50/80 border-red-200 text-red-600 p-4 rounded-2xl mb-6 shadow-sm flex items-center justify-between font-medium">
+                    <div className="glass-panel bg-red-50/80 border-red-200 text-red-600 p-4 rounded-2xl mb-6 shadow-sm flex items-center justify-between font-medium print:hidden">
                         {error}
                         <button onClick={() => setError(null)} className="ml-4 underline hover:text-red-800 transition-colors">Đóng</button>
                     </div>
@@ -237,7 +246,7 @@ export function WorksheetEditorPage() {
 
                 {/* Published warning */}
                 {worksheet.status === 'published' && (
-                    <div className="glass-panel bg-amber-50/80 border-amber-200 text-amber-700 p-4 rounded-2xl mb-8 shadow-sm flex items-center font-medium gap-2">
+                    <div className="glass-panel bg-amber-50/80 border-amber-200 text-amber-700 p-4 rounded-2xl mb-8 shadow-sm flex items-center font-medium gap-2 print:hidden">
                         <span>⚠️</span> Bài tập đã xuất bản. Hãy hủy xuất bản để chỉnh sửa.
                     </div>
                 )}
@@ -250,8 +259,8 @@ export function WorksheetEditorPage() {
                         const isActive = activeSection === sectionType;
 
                         return (
-                            <Card key={sectionType} className={`glass-panel border-white/50 rounded-3xl overflow-hidden shadow-soft transition-all ${isActive ? 'ring-2 ring-indigo-500/30' : ''}`}>
-                                <CardHeader className={`border-b border-white/40 bg-white/40 p-5`}>
+                            <Card key={sectionType} className={`glass-panel border-white/50 rounded-3xl overflow-hidden shadow-soft transition-all print:rounded-none print:border-slate-300 print:shadow-none print:bg-white ${isActive ? 'ring-2 ring-indigo-500/30 print:ring-0' : ''}`}>
+                                <CardHeader className={`border-b border-white/40 bg-white/40 p-5 print:bg-white print:border-slate-200 print:pb-3`}>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             {'icon' in section && <span className="text-2xl drop-shadow-sm">{section.icon}</span>}
@@ -265,7 +274,7 @@ export function WorksheetEditorPage() {
                                             <Button
                                                 size="sm"
                                                 variant={isActive ? 'default' : 'outline'}
-                                                className={isActive ? 'bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm' : 'rounded-xl hover:bg-slate-100'}
+                                                className={`print:hidden ${isActive ? 'bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm' : 'rounded-xl hover:bg-slate-100'}`}
                                                 onClick={() => setActiveSection(isActive ? null : sectionType)}
                                             >
                                                 <Plus className="w-4 h-4 mr-1" />
@@ -277,24 +286,24 @@ export function WorksheetEditorPage() {
                                         <p className="text-sm font-medium text-slate-500 mt-2">{section.description}</p>
                                     )}
                                 </CardHeader>
-                                <CardContent className="p-5 bg-white/20">
+                                <CardContent className="p-5 bg-white/20 print:bg-white print:p-4">
                                     {/* Existing exercises */}
                                     {exercises.length > 0 ? (
                                         <div className="space-y-4 mb-4">
                                             {exercises.map((ex, idx) => (
-                                                <div key={ex.id} className="flex items-start gap-4 p-4 bg-white/80 backdrop-blur-sm border border-slate-100/50 rounded-2xl shadow-sm hover:shadow-soft transition-all group">
+                                                <div key={ex.id} className="question-item flex items-start gap-4 p-4 bg-white/80 backdrop-blur-sm border border-slate-100/50 rounded-2xl shadow-sm hover:shadow-soft transition-all group print:break-inside-avoid print:page-break-inside-avoid print:[page-break-inside:avoid] print:rounded-lg print:shadow-none print:border-slate-200 print:bg-white">
                                                     <span className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold text-sm shrink-0 mt-0.5">{idx + 1}</span>
                                                     <div className="flex-1 mt-1">
-                                                        <div className="text-slate-800 font-medium">
+                                                        <div className="text-slate-800 font-medium print:text-xl print:font-sans print:leading-loose print:text-black">
                                                             <MathFormattedText text={ex.question} />
                                                         </div>
                                                         {ex.answer && (
-                                                            <p className="text-sm text-emerald-600 mt-2 font-medium bg-emerald-50 inline-block px-2 py-1 rounded-md">Đáp án: {ex.answer}</p>
+                                                            <p className="text-sm text-emerald-600 mt-2 font-medium bg-emerald-50 inline-block px-2 py-1 rounded-md print:text-black print:bg-transparent print:px-0 print:py-0">Đáp án: {ex.answer}</p>
                                                         )}
                                                         {ex.hint && (
-                                                            <p className="text-sm text-indigo-600 mt-2 ml-2 font-medium bg-indigo-50 inline-block px-2 py-1 rounded-md">Gợi ý: {ex.hint}</p>
+                                                            <p className="text-sm text-indigo-600 mt-2 ml-2 font-medium bg-indigo-50 inline-block px-2 py-1 rounded-md print:text-black print:bg-transparent print:px-0 print:py-0">Gợi ý: {ex.hint}</p>
                                                         )}
-                                                        <div className="mt-3 flex items-center gap-2">
+                                                        <div className="mt-3 flex items-center gap-2 print:hidden">
                                                             <Button
                                                                 size="sm"
                                                                 variant="outline"
@@ -308,7 +317,7 @@ export function WorksheetEditorPage() {
                                                         </div>
 
                                                         {exerciseExplanations[ex.id] && (
-                                                            <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50/70 p-3 text-sm text-indigo-900 leading-relaxed whitespace-pre-wrap">
+                                                            <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50/70 p-3 text-sm text-indigo-900 leading-relaxed whitespace-pre-wrap print:hidden">
                                                                 <p className="font-semibold mb-1">Giải thích từng bước:</p>
                                                                 {exerciseExplanations[ex.id]}
                                                             </div>
@@ -318,7 +327,7 @@ export function WorksheetEditorPage() {
                                                         <Button
                                                             size="sm"
                                                             variant="ghost"
-                                                            className="text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all focus:opacity-100"
+                                                            className="text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all focus:opacity-100 print:hidden"
                                                             onClick={() => handleDeleteExercise(ex.id)}
                                                             aria-label={`Xóa câu hỏi ${idx + 1}`}
                                                         >
@@ -336,7 +345,7 @@ export function WorksheetEditorPage() {
 
                                     {/* Add new exercise form */}
                                     {isActive && worksheet.status !== 'published' && (
-                                        <div className="border-t border-slate-200/50 pt-5 mt-5 space-y-4">
+                                        <div className="border-t border-slate-200/50 pt-5 mt-5 space-y-4 print:hidden">
                                             <div>
                                                 <Label className="text-slate-700 font-semibold">Câu hỏi</Label>
                                                 <Input
@@ -387,18 +396,11 @@ export function WorksheetEditorPage() {
                 </div>
 
                 {/* Summary */}
-                <div className="mt-8 glass-panel border-white/50 p-6 rounded-3xl shadow-sm flex items-center justify-between">
+                <div className="mt-8 glass-panel border-white/50 p-6 rounded-3xl shadow-sm flex items-center justify-between print:hidden">
                     <p className="text-slate-600 font-medium text-lg">
                         Tổng số lượng câu hỏi: <strong className="text-indigo-600 text-2xl ml-2">{worksheet.exercises.length}</strong>
                     </p>
                 </div>
-
-                {/* PDF Export Modal */}
-                <PdfExportModal
-                    open={showPdfModal}
-                    onOpenChange={setShowPdfModal}
-                    worksheetTitle={worksheet.title}
-                />
             </div>
         </div>
     );

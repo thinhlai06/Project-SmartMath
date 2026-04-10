@@ -59,7 +59,20 @@ class GenerateCPABundleUseCase:
                 count=bundle_count,
             )
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+            message = str(exc)
+            normalized = message.lower()
+            error_code = (
+                "unsupported_bundle_family"
+                if "unsupported" in normalized or "chua ho tro" in normalized
+                else "bundle_generation_error"
+            )
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error_code": error_code,
+                    "message": message,
+                },
+            ) from exc
 
         for bundle in bundles:
             validation = self.validator.validate(bundle)

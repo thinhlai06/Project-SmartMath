@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, model_validator
 
 ValidationSeverity = Literal["info", "warning", "error"]
 ValidationStatus = Literal["pending", "passed", "warning", "failed"]
-ContentFamily = Literal["arithmetic", "geometry", "measurement", "word_problem", "data_handling"]
+ContentFamily = Literal["arithmetic", "geometry", "measurement", "number_sense", "word_problem", "data_handling"]
 OperationFamily = Literal[
     "addition",
     "subtraction",

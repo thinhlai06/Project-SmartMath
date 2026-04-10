@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { ArrowLeft, Save, RefreshCw, AlertCircle } from 'lucide-react';
-import { MOCK_TIERS } from '../../mockData/differentiationData';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Alert, AlertDescription } from '../ui/alert';
+import { DIFF_TIERS } from './tierConfig';
 
 interface QuestionItem {
     question: string;
@@ -41,7 +41,7 @@ export function DiffStep3Content({ assignments, data, onBack, onSave, isSaving =
                     topic_id: parseInt(data.topicId),
                     grade: data.grade || 1,
                     objective: `Chiến lược: ${data.strategy}`,
-                    tiers: MOCK_TIERS.map(t => t.id)
+                    tiers: DIFF_TIERS.map(t => t.id)
                 })
             });
 
@@ -99,7 +99,7 @@ export function DiffStep3Content({ assignments, data, onBack, onSave, isSaving =
                     <>
                         <Tabs defaultValue="standard" className="w-full">
                             <TabsList className="grid w-full grid-cols-4 mb-8 bg-slate-100/50 p-1 rounded-2xl">
-                                {MOCK_TIERS.map(tier => (
+                                {DIFF_TIERS.map(tier => (
                                     <TabsTrigger 
                                         key={tier.id} 
                                         value={tier.id} 
@@ -119,7 +119,7 @@ export function DiffStep3Content({ assignments, data, onBack, onSave, isSaving =
                                 ))}
                             </TabsList>
 
-                            {MOCK_TIERS.map(tier => (
+                            {DIFF_TIERS.map(tier => (
                                 <TabsContent key={tier.id} value={tier.id} className="space-y-4 animate-in fade-in-50 slide-in-from-bottom-2 duration-300 m-0">
                                     <div className={`p-6 rounded-2xl bg-white/60 border shadow-sm backdrop-blur-sm ${
                                         tier.id === 'foundation' ? 'border-emerald-200/60' :

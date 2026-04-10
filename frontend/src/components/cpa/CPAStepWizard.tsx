@@ -94,14 +94,52 @@ export function CPAStepWizard() {
         fetchTopics();
     }, []);
 
+    useEffect(() => {
+        if (!selectedClassId) {
+            return;
+        }
+
+        const selectedClass = classes.find((item) => item.id === selectedClassId);
+        if (!selectedClass) {
+            return;
+        }
+
+        setWizardData((prev) => ({
+            ...prev,
+            grade: selectedClass.grade as 1 | 2 | 3,
+        }));
+    }, [classes, selectedClassId]);
+
+    useEffect(() => {
+        const selectedClass = classes.find((item) => item.id === selectedClassId);
+        if (!selectedClass || !wizardData.topicId) {
+            return;
+        }
+
+        const topic = topics.find((item) => item.id.toString() === wizardData.topicId);
+        if (topic && topic.grade !== selectedClass.grade) {
+            setWizardData((prev) => ({
+                ...prev,
+                topicId: '',
+            }));
+        }
+    }, [classes, selectedClassId, topics, wizardData.topicId]);
+
     const handleGenerateDraft = async (params: { topic: string; diffLevel: number }) => {
         setIsGenerating(true);
         setSaveError(null);
 
         try {
-            const topic = topics.find((t) => t.topic_name === params.topic);
+            const selectedClass = classes.find((item) => item.id === selectedClassId);
+            if (!selectedClass) {
+                throw new Error('Vui lòng chọn lớp học trước khi tạo bản nháp.');
+            }
+
+            const topic = topics.find(
+                (t) => t.topic_name === params.topic && t.grade === selectedClass.grade
+            );
             if (!topic) {
-                throw new Error('Không tìm thấy chủ đề đã chọn');
+                throw new Error('Chủ đề không thuộc khối lớp đã chọn. Vui lòng chọn lại chủ đề phù hợp.');
             }
 
             const selectedTopicId = topic.id.toString();
@@ -114,12 +152,15 @@ export function CPAStepWizard() {
                 standard: objective,
             }));
 
-            const result = await cpaBundleApi.generateBundles({
+            const request = {
                 topic_id: topic.id,
-                grade: topic.grade as 1 | 2 | 3,
+                grade: selectedClass.grade as 1 | 2 | 3,
                 objective,
                 bundle_count: 3,
-            });
+            };
+
+            // Always try bundle-v2 first; API layer will fallback to legacy if a family is not yet supported.
+            const result = await cpaBundleApi.generateBundles(request);
 
             setReviewBundles(result.bundles);
             initializeReviewState(result.bundles);
@@ -283,10 +324,11 @@ export function CPAStepWizard() {
         }
     };
 
-    const availableTopics = topics.length > 0 ? topics.map((topic) => topic.topic_name) : ['Phép cộng'];
-
     const selectedClass = classes.find((item) => item.id === selectedClassId);
-    const selectedTopic = topics.find((t) => t.id.toString() === wizardData.topicId);
+    const lockedGrade = selectedClass?.grade;
+    const gradeLockedTopics = topics.filter((topic) => (lockedGrade ? topic.grade === lockedGrade : true));
+    const availableTopics = gradeLockedTopics.map((topic) => topic.topic_name);
+    const selectedTopic = gradeLockedTopics.find((t) => t.id.toString() === wizardData.topicId);
     const approvedCount = reviewBundles.filter(
         (bundle, index) => bundleReviewStatuses[bundleKeyOf(bundle, index)] === 'approved'
     ).length;
@@ -360,6 +402,9 @@ export function CPAStepWizard() {
                                             <p className="text-sm font-medium text-indigo-700 flex items-center gap-2">
                                                 <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
                                                 Đang soạn cho: {selectedClass.class_name}
+                                            </p>
+                                            <p className="mt-1 text-xs font-semibold text-indigo-600">
+                                                Chủ đề được khóa theo Lớp {selectedClass.grade}.
                                             </p>
                                         </div>
                                     )}

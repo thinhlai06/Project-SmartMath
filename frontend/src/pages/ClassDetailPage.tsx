@@ -1,9 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Users, Plus, Trash2, Edit2, RefreshCw, Copy, UserCircle, FileText, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Users, Plus, Trash2, Edit2, RefreshCw, Copy, UserCircle, FileText, CheckCircle, Upload, AlertTriangle } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { classApi, studentApi } from '../services/classApi';
 import { worksheetApi } from '../services/worksheetApi';
-import type { MathClass, Student, StudentCreate } from '../services/classApi';
+import type { MathClass, Student, StudentCreate, ClassUpdate } from '../services/classApi';
 import type { Worksheet } from '../services/worksheetApi';
 import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
@@ -11,6 +21,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AnnouncementList } from '../components/AnnouncementList';
 import { useToast } from '@/components/ui/toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -37,12 +48,40 @@ export function ClassDetailPage() {
     const [copiedCode, setCopiedCode] = useState(false);
     const [studentSkip, setStudentSkip] = useState(0);
     const [worksheetSkip, setWorksheetSkip] = useState(0);
+    const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+    const [showStudentProfile, setShowStudentProfile] = useState(false);
+    const [showEditStudent, setShowEditStudent] = useState(false);
+    const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+    const [isUpdatingStudent, setIsUpdatingStudent] = useState(false);
+    const [showEditClass, setShowEditClass] = useState(false);
+    const [isUpdatingClass, setIsUpdatingClass] = useState(false);
+    const [isDeletingClass, setIsDeletingClass] = useState(false);
     const pageLimit = 10;
+    const excelFileInputRef = useRef<HTMLInputElement | null>(null);
+
+    // AlertDialog states
+    const [showDeleteClassAlert, setShowDeleteClassAlert] = useState(false);
+    const [showGradeChangeAlert, setShowGradeChangeAlert] = useState(false);
+    const [pendingGradeSubmit, setPendingGradeSubmit] = useState(false);
 
     // New student form
     const [newStudent, setNewStudent] = useState<StudentCreate>({
         full_name: '',
+        dob: '',
+        parent_name: '',
+        parent_phone: '',
         tier: 'standard',
+    });
+    const [editStudentForm, setEditStudentForm] = useState<StudentCreate>({
+        full_name: '',
+        dob: '',
+        parent_name: '',
+        parent_phone: '',
+        tier: 'standard',
+    });
+    const [editClassForm, setEditClassForm] = useState<ClassUpdate>({
+        class_name: '',
+        grade: 1,
     });
     const [isAdding, setIsAdding] = useState(false);
 
@@ -91,14 +130,30 @@ export function ClassDetailPage() {
 
     const handleAddStudent = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newStudent.full_name.trim()) return;
+        const missingRequiredInfo =
+            !newStudent.full_name.trim() ||
+            !newStudent.dob ||
+            !newStudent.parent_name.trim() ||
+            !newStudent.parent_phone.trim() ||
+            !newStudent.tier;
+
+        if (missingRequiredInfo) {
+            toast('Vui lòng nhập đầy đủ thông tin học sinh', 'error');
+            return;
+        }
 
         try {
             setIsAdding(true);
             const created = await studentApi.createStudent(Number(classId), newStudent);
             setStudents([...students, created]);
             setShowAddStudent(false);
-            setNewStudent({ full_name: '', tier: 'standard' });
+            setNewStudent({
+                full_name: '',
+                dob: '',
+                parent_name: '',
+                parent_phone: '',
+                tier: 'standard',
+            });
             toast('Đã thêm học sinh mới', 'success');
         } catch (err) {
             setError('Không thể thêm học sinh');
@@ -106,6 +161,27 @@ export function ClassDetailPage() {
             console.error(err);
         } finally {
             setIsAdding(false);
+        }
+    };
+
+    const handleExcelImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files?.[0];
+        if (!selectedFile || !classId) {
+            return;
+        }
+
+        toast('Đang import file Excel, vui lòng chờ...', 'info');
+        try {
+            const importedStudents = await classApi.uploadStudentsExcel(Number(classId), selectedFile);
+            await fetchStudents();
+            toast(`Đã import ${importedStudents.length} học sinh`, 'success');
+        } catch (err: any) {
+            const apiMessage = err?.response?.data?.detail;
+            const errorMessage = typeof apiMessage === 'string' ? apiMessage : 'Không thể import file Excel';
+            setError(errorMessage);
+            toast(errorMessage, 'error');
+        } finally {
+            e.target.value = '';
         }
     };
 
@@ -120,6 +196,57 @@ export function ClassDetailPage() {
             setError('Không thể xóa học sinh');
             toast('Không thể xóa học sinh', 'error');
             console.error(err);
+        }
+    };
+
+    const openEditStudentModal = (student: Student) => {
+        setEditingStudent(student);
+        setEditStudentForm({
+            full_name: student.full_name,
+            dob: student.dob || '',
+            parent_name: student.parent_name || '',
+            parent_phone: student.parent_phone || '',
+            tier: (student.tier as StudentCreate['tier']) || 'standard',
+        });
+        setShowEditStudent(true);
+    };
+
+    const handleUpdateStudent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingStudent) {
+            return;
+        }
+
+        const missingRequiredInfo =
+            !editStudentForm.full_name.trim() ||
+            !editStudentForm.dob ||
+            !editStudentForm.parent_name.trim() ||
+            !editStudentForm.parent_phone.trim() ||
+            !editStudentForm.tier;
+
+        if (missingRequiredInfo) {
+            toast('Vui lòng nhập đầy đủ thông tin học sinh', 'error');
+            return;
+        }
+
+        try {
+            setIsUpdatingStudent(true);
+            const updated = await studentApi.updateStudent(editingStudent.id, editStudentForm);
+            setStudents((prev) => prev.map((student) => (student.id === updated.id ? updated : student)));
+
+            if (selectedStudent?.id === updated.id) {
+                setSelectedStudent(updated);
+            }
+
+            setShowEditStudent(false);
+            setEditingStudent(null);
+            toast('Đã cập nhật học sinh', 'success');
+        } catch (err) {
+            setError('Không thể cập nhật học sinh');
+            toast('Không thể cập nhật học sinh', 'error');
+            console.error(err);
+        } finally {
+            setIsUpdatingStudent(false);
         }
     };
 
@@ -138,6 +265,75 @@ export function ClassDetailPage() {
         }
     };
 
+    const handleOpenEditClass = () => {
+        if (!classData) {
+            return;
+        }
+
+        setEditClassForm({
+            class_name: classData.class_name,
+            grade: classData.grade,
+        });
+        setShowEditClass(true);
+    };
+
+    const handleUpdateClass = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!classData || !editClassForm.class_name?.trim()) {
+            return;
+        }
+
+        if (editClassForm.grade !== classData.grade && !pendingGradeSubmit) {
+            setShowGradeChangeAlert(true);
+            return;
+        }
+
+        await doUpdateClass();
+    };
+
+    const doUpdateClass = async () => {
+        if (!classData || !editClassForm.class_name?.trim()) return;
+        try {
+            setIsUpdatingClass(true);
+            const updated = await classApi.updateClass(classData.id, {
+                class_name: editClassForm.class_name.trim(),
+                grade: editClassForm.grade,
+            });
+            setClassData(updated);
+            setShowEditClass(false);
+            setPendingGradeSubmit(false);
+            toast('Đã cập nhật lớp học', 'success');
+        } catch (err) {
+            setError('Không thể cập nhật lớp học');
+            toast('Không thể cập nhật lớp học', 'error');
+            console.error(err);
+        } finally {
+            setIsUpdatingClass(false);
+        }
+    };
+
+    const handleDeleteClass = () => {
+        if (!classData) return;
+        setShowDeleteClassAlert(true);
+    };
+
+    const confirmDeleteClass = async () => {
+        if (!classData) return;
+        try {
+            setIsDeletingClass(true);
+            await classApi.deleteClass(classData.id);
+            toast('Đã xóa lớp học', 'success');
+            navigate('/classes');
+        } catch (err) {
+            setError('Không thể xóa lớp học');
+            toast('Không thể xóa lớp học', 'error');
+            console.error(err);
+        } finally {
+            setIsDeletingClass(false);
+            setShowDeleteClassAlert(false);
+        }
+    };
+
     const copyClassCode = () => {
         if (classData) {
             navigator.clipboard.writeText(classData.class_code);
@@ -145,6 +341,30 @@ export function ClassDetailPage() {
             toast('Đã sao chép mã lớp', 'success');
             setTimeout(() => setCopiedCode(false), 2000);
         }
+    };
+
+    const openStudentProfile = (student: Student) => {
+        setSelectedStudent(student);
+        setShowStudentProfile(true);
+    };
+
+    const formatDate = (value?: string | null) => {
+        if (!value) return 'Chưa cập nhật';
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return value;
+        return parsed.toLocaleDateString('vi-VN');
+    };
+
+    const getAvgScoreLabel = (score?: number | null) => {
+        if (score === undefined || score === null) return '-';
+        return score.toFixed(1);
+    };
+
+    const getAvgScoreColor = (score?: number | null) => {
+        if (score === undefined || score === null) return 'text-slate-500';
+        if (score >= 8) return 'text-emerald-600';
+        if (score < 6) return 'text-orange-500';
+        return 'text-indigo-600';
     };
 
     const filteredStudents = selectedTier === 'all'
@@ -175,6 +395,7 @@ export function ClassDetailPage() {
     }
 
     return (
+        <>
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 relative overflow-hidden font-sans p-6">
             <div className="absolute top-0 right-0 w-[30%] h-[30%] bg-indigo-300/30 rounded-full blur-[120px] -z-0 pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-[30%] h-[30%] bg-purple-300/30 rounded-full blur-[120px] -z-0 pointer-events-none" />
@@ -210,6 +431,14 @@ export function ClassDetailPage() {
                             </div>
                             {copiedCode && <span className="absolute -top-8 right-0 bg-slate-800 text-white text-xs px-2 py-1 rounded shadow-lg animate-fade-in-up">Đã sao chép!</span>}
                         </div>
+                        <Button variant="outline" size="sm" onClick={handleOpenEditClass}>
+                            <Edit2 className="w-4 h-4" />
+                            Sửa lớp
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={handleDeleteClass} disabled={isDeletingClass}>
+                            <Trash2 className="w-4 h-4" />
+                            {isDeletingClass ? 'Đang xóa...' : 'Xóa lớp'}
+                        </Button>
                     </div>
                 </div>
 
@@ -296,10 +525,28 @@ export function ClassDetailPage() {
                             <Users className="w-5 h-5" />
                             Danh sách học sinh ({students.length})
                         </CardTitle>
-                        <Button onClick={() => setShowAddStudent(true)} size="sm">
-                            <Plus className="w-4 h-4" />
-                            Thêm học sinh
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            {/* Excel Import: use label for reliable file picker trigger */}
+                            <input
+                                ref={excelFileInputRef}
+                                id="excel-file-input"
+                                type="file"
+                                accept=".xlsx"
+                                className="hidden"
+                                onChange={handleExcelImport}
+                            />
+                            <label
+                                htmlFor="excel-file-input"
+                                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer transition-all"
+                            >
+                                <Upload className="w-4 h-4" />
+                                Import Excel
+                            </label>
+                            <Button onClick={() => setShowAddStudent(true)} size="sm">
+                                <Plus className="w-4 h-4" />
+                                Thêm học sinh
+                            </Button>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         {/* Tier filter tabs */}
@@ -326,7 +573,8 @@ export function ClassDetailPage() {
                                     {filteredStudents.map((student) => (
                                         <div
                                             key={student.id}
-                                            className="flex items-center justify-between p-4 bg-white/60 backdrop-blur-sm border border-slate-100/50 rounded-2xl hover:bg-white hover:shadow-soft transition-all"
+                                            className="flex items-center justify-between p-4 bg-white/60 backdrop-blur-sm border border-slate-100/50 rounded-2xl hover:bg-white hover:shadow-soft transition-all cursor-pointer"
+                                            onClick={() => openStudentProfile(student)}
                                         >
                                             <div className="flex items-center gap-4">
                                                 <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
@@ -338,12 +586,21 @@ export function ClassDetailPage() {
                                                 </Badge>
                                             </div>
                                             <div className="flex items-center gap-1">
-                                                <button className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors">
+                                                <button
+                                                    className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        openEditStudentModal(student);
+                                                    }}
+                                                >
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                                                    onClick={() => handleDeleteStudent(student.id)}
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        handleDeleteStudent(student.id);
+                                                    }}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
@@ -365,6 +622,190 @@ export function ClassDetailPage() {
                     <AnnouncementList classId={Number(classId)} isTeacher={true} />
                 </div>
 
+                <Dialog open={showStudentProfile} onOpenChange={setShowStudentProfile}>
+                    <DialogContent className="sm:max-w-md rounded-3xl border-white/60 bg-white/95">
+                        <DialogHeader>
+                            <DialogTitle className="text-xl font-extrabold text-slate-800">Hồ sơ học sinh</DialogTitle>
+                            <DialogDescription>Thông tin chi tiết và năng lực hiện tại của học sinh</DialogDescription>
+                        </DialogHeader>
+
+                        {selectedStudent && (
+                            <div className="space-y-4">
+                                <div className="rounded-2xl bg-indigo-50/70 p-4">
+                                    <p className="text-sm font-semibold text-slate-500">Họ và tên</p>
+                                    <p className="text-lg font-bold text-slate-800">{selectedStudent.full_name}</p>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="rounded-xl border border-slate-200 p-3">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ngày sinh</p>
+                                        <p className="mt-1 font-semibold text-slate-800">{formatDate(selectedStudent.dob)}</p>
+                                    </div>
+                                    <div className="rounded-xl border border-slate-200 p-3">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nhóm năng lực</p>
+                                        <p className="mt-1 font-semibold text-slate-800">
+                                            {TIER_CONFIG[selectedStudent.tier as keyof typeof TIER_CONFIG]?.label || selectedStudent.tier}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border border-slate-200 p-3">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Phụ huynh</p>
+                                        <p className="mt-1 font-semibold text-slate-800">{selectedStudent.parent_name || 'Chưa cập nhật'}</p>
+                                    </div>
+                                    <div className="rounded-xl border border-slate-200 p-3">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">SĐT phụ huynh</p>
+                                        <p className="mt-1 font-semibold text-slate-800">{selectedStudent.parent_phone || 'Chưa cập nhật'}</p>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl bg-slate-100 p-4">
+                                    <p className="text-sm font-semibold text-slate-500">Điểm trung bình</p>
+                                    <p className={`text-3xl font-black ${getAvgScoreColor(selectedStudent.avg_score)}`}>
+                                        {getAvgScoreLabel(selectedStudent.avg_score)}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
+
+                {showEditClass && classData && (
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <div className="glass-panel border-white/50 bg-white/90 rounded-3xl p-8 w-full max-w-md shadow-2xl">
+                            <h2 className="text-xl font-bold mb-4 text-slate-800">Chỉnh sửa lớp học</h2>
+                            <form onSubmit={handleUpdateClass}>
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label htmlFor="edit_class_name">Tên lớp</Label>
+                                        <Input
+                                            id="edit_class_name"
+                                            placeholder="Ví dụ: 3A, 2B..."
+                                            value={editClassForm.class_name || ''}
+                                            onChange={(e) => setEditClassForm({ ...editClassForm, class_name: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="edit_class_grade">Khối lớp</Label>
+                                        <div className="flex gap-2 mt-1">
+                                            {[1, 2, 3].map((grade) => (
+                                                <button
+                                                    key={grade}
+                                                    type="button"
+                                                    onClick={() => setEditClassForm({ ...editClassForm, grade })}
+                                                    className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all duration-300 font-semibold ${editClassForm.grade === grade
+                                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
+                                                        : 'border-slate-100 bg-white hover:border-indigo-200 text-slate-600'
+                                                        }`}
+                                                >
+                                                    Lớp {grade}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 mt-6">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="flex-1 rounded-xl h-12 font-semibold hover:bg-slate-100"
+                                        onClick={() => setShowEditClass(false)}
+                                    >
+                                        Hủy
+                                    </Button>
+                                    <Button type="submit" className="flex-1 rounded-xl h-12 font-bold bg-indigo-600 hover:bg-indigo-700 shadow-soft" disabled={isUpdatingClass}>
+                                        {isUpdatingClass ? 'Đang lưu...' : 'Lưu thay đổi'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {showEditStudent && editingStudent && (
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <div className="glass-panel border-white/50 bg-white/90 rounded-3xl p-8 w-full max-w-md shadow-2xl">
+                            <h2 className="text-xl font-bold mb-4 text-slate-800">Chỉnh sửa học sinh</h2>
+                            <form onSubmit={handleUpdateStudent}>
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label htmlFor="edit_student_full_name">Họ và tên</Label>
+                                        <Input
+                                            id="edit_student_full_name"
+                                            value={editStudentForm.full_name}
+                                            onChange={(e) => setEditStudentForm({ ...editStudentForm, full_name: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="edit_student_dob">Ngày tháng năm sinh</Label>
+                                        <Input
+                                            id="edit_student_dob"
+                                            type="date"
+                                            value={editStudentForm.dob}
+                                            onChange={(e) => setEditStudentForm({ ...editStudentForm, dob: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="edit_student_parent_name">Họ tên bố hoặc mẹ</Label>
+                                        <Input
+                                            id="edit_student_parent_name"
+                                            value={editStudentForm.parent_name}
+                                            onChange={(e) => setEditStudentForm({ ...editStudentForm, parent_name: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="edit_student_parent_phone">SĐT bố hoặc mẹ</Label>
+                                        <Input
+                                            id="edit_student_parent_phone"
+                                            value={editStudentForm.parent_phone}
+                                            onChange={(e) => setEditStudentForm({ ...editStudentForm, parent_phone: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label>Nhóm năng lực</Label>
+                                        <div className="grid grid-cols-2 gap-2 mt-1">
+                                            {Object.entries(TIER_CONFIG).map(([tier, config]) => (
+                                                <button
+                                                    key={tier}
+                                                    type="button"
+                                                    onClick={() => setEditStudentForm({ ...editStudentForm, tier: tier as StudentCreate['tier'] })}
+                                                    className={`py-3 px-3 rounded-xl border-2 transition-all duration-300 text-sm font-semibold flex items-center justify-center gap-1 ${editStudentForm.tier === tier
+                                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
+                                                        : 'border-slate-100 bg-white hover:border-indigo-200 text-slate-600'
+                                                        }`}
+                                                >
+                                                    {config.icon} {config.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 mt-6">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="flex-1 rounded-xl h-12 font-semibold hover:bg-slate-100"
+                                        onClick={() => {
+                                            setShowEditStudent(false);
+                                            setEditingStudent(null);
+                                        }}
+                                    >
+                                        Hủy
+                                    </Button>
+                                    <Button type="submit" className="flex-1 rounded-xl h-12 font-bold bg-indigo-600 hover:bg-indigo-700 shadow-soft" disabled={isUpdatingStudent}>
+                                        {isUpdatingStudent ? 'Đang lưu...' : 'Lưu thay đổi'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
                 {/* Add Student Modal */}
                 {showAddStudent && (
                     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -379,6 +820,36 @@ export function ClassDetailPage() {
                                             placeholder="Nguyễn Văn A"
                                             value={newStudent.full_name}
                                             onChange={(e) => setNewStudent({ ...newStudent, full_name: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="dob">Ngày tháng năm sinh</Label>
+                                        <Input
+                                            id="dob"
+                                            type="date"
+                                            value={newStudent.dob}
+                                            onChange={(e) => setNewStudent({ ...newStudent, dob: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="parent_name">Họ tên bố hoặc mẹ</Label>
+                                        <Input
+                                            id="parent_name"
+                                            placeholder="Trần Thị B"
+                                            value={newStudent.parent_name}
+                                            onChange={(e) => setNewStudent({ ...newStudent, parent_name: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="parent_phone">SĐT bố hoặc mẹ</Label>
+                                        <Input
+                                            id="parent_phone"
+                                            placeholder="0909123456"
+                                            value={newStudent.parent_phone}
+                                            onChange={(e) => setNewStudent({ ...newStudent, parent_phone: e.target.value })}
                                             required
                                         />
                                     </div>
@@ -420,6 +891,54 @@ export function ClassDetailPage() {
                 )}
             </div>
         </div>
+
+        {/* Delete Class Confirmation */}
+        <AlertDialog open={showDeleteClassAlert} onOpenChange={setShowDeleteClassAlert}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>⚠️ Xóa lớp học</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Bạn sắp xóa lớp <strong>{classData?.class_name}</strong>. Tất cả học sinh, bài tập và dữ liệu liên quan sẽ bị xóa vĩnh viễn và không thể khôi phục.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setShowDeleteClassAlert(false)}>Hủy</AlertDialogCancel>
+                    <AlertDialogAction variant="destructive" onClick={confirmDeleteClass} disabled={isDeletingClass}>
+                        {isDeletingClass ? 'Đang xóa...' : 'Xóa vĩnh viễn'}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Grade Change Confirmation */}
+        <AlertDialog open={showGradeChangeAlert} onOpenChange={setShowGradeChangeAlert}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 text-amber-500" />
+                        Cảnh báo: Đổi khối lớp
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Bạn sắp đổi khối lớp từ <strong>Lớp {classData?.grade}</strong> sang <strong>Lớp {editClassForm.grade}</strong>.
+                        <br /><br />
+                        Điều này có thể ảnh hưởng đến: danh sách chủ đề, thống kê học sinh, và các bài tập đã tạo. Tiếp tục?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setShowGradeChangeAlert(false)}>Hủy</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={() => {
+                            setShowGradeChangeAlert(false);
+                            setPendingGradeSubmit(true);
+                            setTimeout(() => doUpdateClass(), 50);
+                        }}
+                    >
+                        Xác nhận đổi khối
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        </>
     );
 }
 

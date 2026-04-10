@@ -399,6 +399,7 @@ export function WorksheetsPage() {
                         open={showPdfModal}
                         onOpenChange={setShowPdfModal}
                         worksheetTitle={selectedWorksheetForPdf.title}
+                        worksheetId={selectedWorksheetForPdf.id}
                     />
                 )}
             </div>

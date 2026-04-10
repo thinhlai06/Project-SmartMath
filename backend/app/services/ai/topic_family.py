@@ -12,6 +12,7 @@ ContentFamily = Literal[
     "arithmetic",
     "geometry",
     "measurement",
+    "number_sense",
     "word_problem",
     "data_handling",
 ]
@@ -76,17 +77,20 @@ def resolve_arithmetic_operation_family(topic_name: str) -> Optional[ArithmeticO
     if "bang nhan" in normalized or "phep nhan" in normalized:
         return "multiplication"
 
-    # Topics like "Cac so den 100" or "Bang chia" are not yet supported by bundle-v1.
+    # Topics like "Cac so den 100" are not yet supported by bundle-v1.
     return None
 
 
 def build_topic_generation_metadata(topic_name: str, category: str) -> TopicGenerationMetadata:
     content_family = resolve_content_family(category)
-    operation_family = (
-        resolve_arithmetic_operation_family(topic_name)
-        if content_family == "arithmetic"
-        else None
-    )
+    operation_family: Optional[ArithmeticOperationFamily] = None
+
+    if content_family == "arithmetic":
+        operation_family = resolve_arithmetic_operation_family(topic_name)
+        # If arithmetic topic has no deterministic operation (e.g. "Cac so den 10"),
+        # reclassify as number_sense so the generator can handle it gracefully.
+        if operation_family is None:
+            content_family = "number_sense"
 
     return TopicGenerationMetadata(
         topic_name=topic_name,
