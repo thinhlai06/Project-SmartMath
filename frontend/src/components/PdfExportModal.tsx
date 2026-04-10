@@ -1,56 +1,51 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Checkbox } from './ui/checkbox';
-import { MOCK_STUDENT_WEAKNESSES } from '../mockData/studentWeaknesses';
-import { FileDown, QrCode, Sprout, Eye, BookOpen, User } from 'lucide-react';
+import { FileDown, QrCode, Sprout, Eye, BookOpen } from 'lucide-react';
+import { worksheetApi } from '@/services/worksheetApi';
+import { useToast } from '@/components/ui/toast';
 
 interface PdfExportModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     worksheetTitle: string;
+    worksheetId: number;
 }
 
-export function PdfExportModal({ open, onOpenChange, worksheetTitle }: PdfExportModalProps) {
-    const [mode, setMode] = useState<string>('classroom');
+export function PdfExportModal({ open, onOpenChange, worksheetTitle, worksheetId }: PdfExportModalProps) {
+    const { toast } = useToast();
     const [showPreview, setShowPreview] = useState(true);
+    const [isExporting, setIsExporting] = useState(false);
 
     // Classroom Settings
     const [qrEnabled, setQrEnabled] = useState(true);
-    const [parentGuideEnabled, setParentGuideEnabled] = useState(false);
+    const [withAnswers, setWithAnswers] = useState(false);
     const [layout, setLayout] = useState('standard'); // standard | eco
 
-    // Personalized Settings
-    const [selectedStudentId, setSelectedStudentId] = useState<string>('');
-    const [selectedWeaknesses, setSelectedWeaknesses] = useState<string[]>([]);
+    const handleExport = async () => {
+        try {
+            setIsExporting(true);
+            await worksheetApi.downloadPdf(worksheetId, {
+                paper_size: 'A4',
+                orientation: 'P',
+                with_answers: withAnswers,
+                font_size: layout === 'eco' ? 'small' : 'medium',
+                spacing: layout === 'eco' ? 'compact' : 'normal',
+                qr_code: qrEnabled,
+                eco_layout: layout === 'eco',
+            });
 
-    const selectedStudent = MOCK_STUDENT_WEAKNESSES.find(s => s.studentId === selectedStudentId);
-
-    const handleExport = () => {
-        let config;
-        if (mode === 'classroom') {
-            config = {
-                type: 'Classroom PDF',
-                qrCodes: qrEnabled,
-                parentGuide: parentGuideEnabled,
-                layout: layout
-            };
-        } else {
-            config = {
-                type: 'Personalized PDF',
-                student: selectedStudent?.studentName,
-                focusAreas: selectedWeaknesses
-            };
+            toast('Đã tải file PDF thành công', 'success');
+            onOpenChange(false);
+        } catch (error) {
+            console.error('Export PDF failed:', error);
+            toast('Không thể xuất PDF, vui lòng thử lại', 'error');
+        } finally {
+            setIsExporting(false);
         }
-
-        console.log('Export Config:', config);
-        alert(`Đang tạo file PDF...\n\nCấu hình:\n${JSON.stringify(config, null, 2)}`);
-        onOpenChange(false);
     };
 
     return (
@@ -62,113 +57,68 @@ export function PdfExportModal({ open, onOpenChange, worksheetTitle }: PdfExport
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
                                 <FileDown className="w-5 h-5 text-blue-600" />
-                                Xuất file PDF
+                                Xuất file PDF lớp học
                             </DialogTitle>
                             <DialogDescription>
-                                Tùy chỉnh định dạng file PDF cho bài tập "{worksheetTitle}"
+                                Tùy chỉnh định dạng PDF cho bài tập "{worksheetTitle}".
                             </DialogDescription>
                         </DialogHeader>
+                        <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                            Chế độ PDF cá nhân hóa đang được nâng cấp và sẽ mở lại ở phiên bản tiếp theo.
+                        </div>
 
-                        <Tabs defaultValue="classroom" value={mode} onValueChange={setMode} className="w-full mt-6">
-                            <TabsList className="grid w-full grid-cols-2 mb-4">
-                                <TabsTrigger value="classroom">Lớp học (Đồng loạt)</TabsTrigger>
-                                <TabsTrigger value="personalized">Cá nhân hóa</TabsTrigger>
-                            </TabsList>
+                        <div className="space-y-6 py-2 mt-4">
+                            <div className="space-y-3">
+                                <Label className="font-semibold text-gray-900">Tùy chọn hiển thị</Label>
+                                <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                                    <Label htmlFor="qr-mode" className="flex items-center gap-2 cursor-pointer">
+                                        <QrCode className="w-4 h-4 text-gray-500" />
+                                        <span>Mã QR lời giải</span>
+                                    </Label>
+                                    <Switch id="qr-mode" checked={qrEnabled} onCheckedChange={setQrEnabled} />
+                                </div>
+                                <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                                    <Label htmlFor="parent-mode" className="flex items-center gap-2 cursor-pointer">
+                                        <BookOpen className="w-4 h-4 text-gray-500" />
+                                        <span>Kèm đáp án ở cuối file</span>
+                                    </Label>
+                                    <Switch id="parent-mode" checked={withAnswers} onCheckedChange={setWithAnswers} />
+                                </div>
+                            </div>
 
-                            <TabsContent value="classroom" className="space-y-6 py-2">
-                                <div className="space-y-3">
-                                    <Label className="font-semibold text-gray-900">Tùy chọn hiển thị</Label>
-                                    <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-                                        <Label htmlFor="qr-mode" className="flex items-center gap-2 cursor-pointer">
-                                            <QrCode className="w-4 h-4 text-gray-500" />
-                                            <span>Mã QR lời giải</span>
+                            <div className="space-y-3">
+                                <Label className="font-semibold text-gray-900">Bố cục trang in</Label>
+                                <RadioGroup value={layout} onValueChange={setLayout} className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <RadioGroupItem value="standard" id="layout-standard" className="peer sr-only" />
+                                        <Label
+                                            htmlFor="layout-standard"
+                                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-blue-500 [&:has([data-state=checked])]:border-primary cursor-pointer"
+                                        >
+                                            <span className="mb-2 text-xl">📄</span>
+                                            Tiêu chuẩn (A4)
                                         </Label>
-                                        <Switch id="qr-mode" checked={qrEnabled} onCheckedChange={setQrEnabled} />
                                     </div>
-                                    <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-                                        <Label htmlFor="parent-mode" className="flex items-center gap-2 cursor-pointer">
-                                            <BookOpen className="w-4 h-4 text-gray-500" />
-                                            <span>Kèm hướng dẫn phụ huynh</span>
+                                    <div>
+                                        <RadioGroupItem value="eco" id="layout-eco" className="peer sr-only" />
+                                        <Label
+                                            htmlFor="layout-eco"
+                                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-green-500 [&:has([data-state=checked])]:border-primary cursor-pointer"
+                                        >
+                                            <span className="mb-2 text-xl flex"><Sprout className="w-5 h-5 text-green-600 mr-1" />🌱</span>
+                                            Tiết kiệm (2 trang/tờ)
                                         </Label>
-                                        <Switch id="parent-mode" checked={parentGuideEnabled} onCheckedChange={setParentGuideEnabled} />
                                     </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <Label className="font-semibold text-gray-900">Bố cục trang in</Label>
-                                    <RadioGroup value={layout} onValueChange={setLayout} className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <RadioGroupItem value="standard" id="layout-standard" className="peer sr-only" />
-                                            <Label
-                                                htmlFor="layout-standard"
-                                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-blue-500 [&:has([data-state=checked])]:border-primary cursor-pointer"
-                                            >
-                                                <span className="mb-2 text-xl">📄</span>
-                                                Tiêu chuẩn (A4)
-                                            </Label>
-                                        </div>
-                                        <div>
-                                            <RadioGroupItem value="eco" id="layout-eco" className="peer sr-only" />
-                                            <Label
-                                                htmlFor="layout-eco"
-                                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-green-500 [&:has([data-state=checked])]:border-primary cursor-pointer"
-                                            >
-                                                <span className="mb-2 text-xl flex"><Sprout className="w-5 h-5 text-green-600 mr-1" />🌱</span>
-                                                Tiết kiệm (2 trang/tờ)
-                                            </Label>
-                                        </div>
-                                    </RadioGroup>
-                                </div>
-                            </TabsContent>
-
-                            <TabsContent value="personalized" className="space-y-6 py-2">
-                                <div className="space-y-3">
-                                    <Label>Chọn học sinh</Label>
-                                    <Select value={selectedStudentId} onValueChange={(val) => {
-                                        setSelectedStudentId(val);
-                                        setSelectedWeaknesses([]);
-                                    }}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Chọn học sinh..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {MOCK_STUDENT_WEAKNESSES.map((s) => (
-                                                <SelectItem key={s.studentId} value={s.studentId}>{s.studentName}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {selectedStudent && (
-                                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                                        <Label>Trọng tâm ôn tập (Dựa trên điểm yếu)</Label>
-                                        <div className="space-y-2 border rounded-lg p-3 bg-red-50/50">
-                                            {selectedStudent.weaknesses.map((w, idx) => (
-                                                <div key={idx} className="flex items-center space-x-2">
-                                                    <Checkbox
-                                                        id={`w-${idx}`}
-                                                        checked={selectedWeaknesses.includes(w)}
-                                                        onCheckedChange={(checked) => {
-                                                            if (checked) {
-                                                                setSelectedWeaknesses([...selectedWeaknesses, w]);
-                                                            } else {
-                                                                setSelectedWeaknesses(selectedWeaknesses.filter(item => item !== w));
-                                                            }
-                                                        }}
-                                                    />
-                                                    <Label htmlFor={`w-${idx}`}>{w}</Label>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </TabsContent>
-                        </Tabs>
+                                </RadioGroup>
+                            </div>
+                        </div>
 
                         <DialogFooter className="mt-6 pt-4 border-t">
                             <Button variant="outline" onClick={() => onOpenChange(false)}>Hủy</Button>
-                            <Button onClick={handleExport} className={mode === 'classroom' ? 'bg-blue-600' : 'bg-purple-600'}>
-                                {mode === 'classroom' ? 'Xuất PDF Lớp học' : 'Xuất PDF Cá nhân'}
+                            <Button onClick={handleExport} className="bg-blue-600" disabled={isExporting}>
+                                {isExporting
+                                    ? 'Đang tạo PDF...'
+                                    : 'Xuất PDF Lớp học'}
                             </Button>
                         </DialogFooter>
                     </div>
@@ -203,12 +153,6 @@ export function PdfExportModal({ open, onOpenChange, worksheetTitle }: PdfExport
                                                     <p className="text-[10px] text-gray-400 uppercase tracking-wider">Smart-MathAI</p>
                                                     <p className="text-xs font-bold text-gray-900">{worksheetTitle}</p>
                                                 </div>
-                                                {mode === 'personalized' && selectedStudent && (
-                                                    <div className="flex items-center gap-1 text-[10px] text-purple-600 bg-purple-50 px-2 py-1 rounded">
-                                                        <User className="w-3 h-3" />
-                                                        {selectedStudent.studentName}
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
 
@@ -239,7 +183,7 @@ export function PdfExportModal({ open, onOpenChange, worksheetTitle }: PdfExport
                                         </div>
 
                                         {/* QR Code */}
-                                        {qrEnabled && mode === 'classroom' && (
+                                        {qrEnabled && (
                                             <div className="flex justify-end pt-2 border-t border-dashed border-gray-200">
                                                 <div className="text-center">
                                                     <div className="w-10 h-10 bg-gray-900 rounded p-1">
@@ -250,20 +194,6 @@ export function PdfExportModal({ open, onOpenChange, worksheetTitle }: PdfExport
                                                         </div>
                                                     </div>
                                                     <p className="text-[6px] text-gray-400 mt-1">Quét để xem đáp án</p>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Focus Areas for Personalized */}
-                                        {mode === 'personalized' && selectedWeaknesses.length > 0 && (
-                                            <div className="bg-red-50 rounded p-2 border border-red-100">
-                                                <p className="text-[8px] font-bold text-red-700 mb-1">📌 Trọng tâm ôn tập:</p>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {selectedWeaknesses.slice(0, 2).map((w, i) => (
-                                                        <span key={i} className="text-[6px] bg-red-100 text-red-600 px-1 py-0.5 rounded">
-                                                            {w}
-                                                        </span>
-                                                    ))}
                                                 </div>
                                             </div>
                                         )}
@@ -289,11 +219,11 @@ export function PdfExportModal({ open, onOpenChange, worksheetTitle }: PdfExport
                                 </div>
 
                                 {/* Parent Guide Preview */}
-                                {parentGuideEnabled && mode === 'classroom' && (
+                                {withAnswers && (
                                     <div className="mt-3 bg-white rounded-lg shadow border border-blue-200 p-3 animate-in slide-in-from-bottom-2">
                                         <div className="flex items-center gap-2 mb-2">
                                             <BookOpen className="w-4 h-4 text-blue-600" />
-                                            <p className="text-[10px] font-bold text-blue-900">Hướng dẫn Phụ huynh</p>
+                                            <p className="text-[10px] font-bold text-blue-900">Phần đáp án tham khảo</p>
                                         </div>
                                         <div className="space-y-1">
                                             <div className="h-1.5 bg-blue-50 rounded w-full"></div>
@@ -307,7 +237,7 @@ export function PdfExportModal({ open, onOpenChange, worksheetTitle }: PdfExport
                                 <div className="mt-4 text-center">
                                     <p className="text-[10px] text-gray-400">
                                         {layout === 'eco' ? '2 trang / 1 tờ A4' : '1 trang / 1 tờ A4'}
-                                        {parentGuideEnabled && ' + Trang hướng dẫn'}
+                                        {withAnswers && ' + Trang đáp án'}
                                     </p>
                                 </div>
                             </div>

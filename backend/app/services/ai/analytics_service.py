@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from typing import List, Dict, Any
 from app.models.student_progress import StudentProgress
+from app.models.student_analytics import StudentAnalytics
+from app.models.math_class import MathClass
 from app.models.student import Student
 from app.models.worksheet import Worksheet
 from app.models.math_topic import MathTopic
@@ -14,6 +15,12 @@ class AnalyticsService:
         """
         Analyze errors for a specific class based on student progress.
         """
+        analytics_rows = (
+            self.db.query(StudentAnalytics)
+            .filter(StudentAnalytics.class_id == class_id)
+            .all()
+        )
+
         # 1. Fetch all progress for this class
         # Join Student to filter by class_id
         # Join Worksheet to get topic info
@@ -25,7 +32,7 @@ class AnalyticsService:
             .all()
         )
         
-        if not progress_list:
+        if not progress_list and not analytics_rows:
             return {
                 "weak_topics": [],
                 "student_performance": [],
@@ -84,6 +91,10 @@ class AnalyticsService:
             student_stats[s_name]["max_score"] += current_max
             student_stats[s_name]["worksheets"] += 1
 
+        for row in analytics_rows:
+            normalized_count = row.count if row.count and row.count > 0 else 1
+            mistake_patterns[row.error_type] = mistake_patterns.get(row.error_type, 0) + normalized_count
+
         # 4. Format Output
         
         # Weak Topics
@@ -127,3 +138,94 @@ class AnalyticsService:
             "student_performance": performance_list,
             "common_mistakes": mistakes_list[:5] # Top 5
         }
+
+    def record_error_tags(
+        self,
+        *,
+        class_id: int,
+        teacher_id: int,
+        source: str,
+        error_tags: List[Dict[str, Any]],
+        student_id: int | None = None,
+        worksheet_id: int | None = None,
+    ) -> int:
+        """Persist error tags for later class-level analytics aggregation."""
+        records_created = 0
+
+        for tag in error_tags:
+            row = StudentAnalytics(
+                class_id=class_id,
+                teacher_id=teacher_id,
+                student_id=student_id,
+                worksheet_id=worksheet_id,
+                source=source,
+                error_type=str(tag.get("error_type", "khac")),
+                count=max(int(tag.get("count", 1)), 1),
+                ocr_confidence=tag.get("ocr_confidence"),
+                payload={
+                    "question_id": tag.get("question_id"),
+                },
+            )
+            self.db.add(row)
+            records_created += 1
+
+        self.db.commit()
+        return records_created
+
+    def submit_reviewed_error_tags(
+        self,
+        *,
+        class_id: int,
+        teacher_id: int,
+        source: str,
+        error_tags: List[Dict[str, Any]],
+        student_id: int | None = None,
+        worksheet_id: int | None = None,
+    ) -> int:
+        """Validate ownership and persist only teacher-reviewed analytics tags."""
+        if source != "teacher_review":
+            raise ValueError("Chi chap nhan du lieu da duoc giao vien duyet")
+
+        owned_class = (
+            self.db.query(MathClass)
+            .filter(
+                MathClass.id == class_id,
+                MathClass.teacher_id == teacher_id,
+            )
+            .first()
+        )
+        if not owned_class:
+            raise PermissionError("Ban khong co quyen cap nhat thong ke lop nay")
+
+        if student_id is not None:
+            student = (
+                self.db.query(Student)
+                .filter(
+                    Student.id == student_id,
+                    Student.class_id == class_id,
+                )
+                .first()
+            )
+            if not student:
+                raise LookupError("Hoc sinh khong thuoc lop da chon")
+
+        if worksheet_id is not None:
+            worksheet = (
+                self.db.query(Worksheet)
+                .filter(
+                    Worksheet.id == worksheet_id,
+                    Worksheet.class_id == class_id,
+                )
+                .first()
+            )
+            if not worksheet:
+                raise LookupError("Bai tap khong thuoc lop da chon")
+
+        return self.record_error_tags(
+            class_id=class_id,
+            teacher_id=teacher_id,
+            student_id=student_id,
+            worksheet_id=worksheet_id,
+            source=source,
+            error_tags=error_tags,
+        )

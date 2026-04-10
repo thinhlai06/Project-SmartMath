@@ -1,25 +1,50 @@
-# Product Brief: Smart-MathAI (Baseline & Giai đoạn 2)
+# Product Brief: Smart-MathAI (Baseline & Giai đoạn 2 Mở rộng)
 
 ## 1. Tóm tắt (Executive Summary)
 **Smart-MathAI** là nền tảng SaaS trợ lý phân tích và ra đề môn Toán dành riêng cho Giáo viên Tiểu học (Khối 1-3).
-Bản Product Brief này nhằm hai mục đích: (1) Chuẩn hóa lại toàn bộ bối cảnh dự án đã xây dựng (Backend Hexagonal, RAG, Frontend React) và (2) Xác định rõ các "lỗ hổng" hiện tại cần phải ưu tiên giải quyết ngay: Thay thế toàn bộ dữ liệu giả (mock data) trên Dashboard bằng việc nối ống dữ liệu từ AI OCR Grade, và thiết kế lại hoàn toàn chất lượng UI/UX cho tính năng xuất PDF.
+
+Giai đoạn này tập trung hoàn thiện toàn bộ vòng lặp vận hành thật (không mock) và giảm ma sát cho giáo viên trong các tác vụ hằng ngày:
+1. Đồng bộ luồng OCR -> Analytics Dashboard bằng dữ liệu thật.
+2. Nâng cấp trải nghiệm xuất PDF theo hai hướng đồng thời: in nhanh trong editor và tải file PDF thật từ modal export.
+3. Cải thiện độ chính xác chấm bài qua ảnh bằng Answer Builder (không yêu cầu giáo viên nhập JSON).
+4. Khóa chủ đề theo khối lớp, mở rộng Bundle-v2 Phase 1, hoàn thiện CRUD lớp/học sinh tại các màn hình quản trị lớp.
 
 ## 2. Vấn đề hiện tại (The Problem Space)
-Hệ thống hiện tại đã có bộ khung kiến trúc cực kỳ chuẩn mực, nhưng trải nghiệm thực tế (End-to-End User Experience) đang bị đứt gãy ở những chặng cuối cùng:
-1. **Đứt gãy luồng dữ liệu phân tích:** Mặc dù mô hình AI OCR (`glm-ocr`) đã chấm bài và phân tích được lỗi sai từ ảnh chụp bài làm, dữ liệu này lại không được đẩy thẳng vào Database phân tích. Hậu quả là Teacher Dashboard hiện tại hiển thị phân tích lỗi dựa trên Mock Data vô nghĩa.
-2. **Thiết kế xuất bản (PDF) kém thẩm mỹ:** Tính năng xuất PDF hiện đã chạy được, tuy nhiên giao diện thô cứng, vỡ layout và không đạt chuẩn thẩm mỹ khắt khe của một sản phẩm giáo dục cao cấp cho trẻ em (thiếu tính đồng bộ CPA, căn lề và định dạng chưa tốt).
+Hệ thống đã có nền tảng kiến trúc tốt nhưng còn các điểm đứt gãy trải nghiệm end-to-end:
+1. **Analytics chưa nhất quán dữ liệu thật:** OCR grading có thể hoàn thành nhưng dashboard dễ lệch nếu pipeline submit/label chưa chuẩn hóa.
+2. **Chấm ảnh còn false-positive:** Dạng đáp án danh sách hoặc nhiều ô trống có thể bị chấm sai do so khớp chuỗi đơn giản.
+3. **UX nhập đáp án gây ma sát:** Giáo viên phải nhập JSON thô thay vì nhập bằng form nghiệp vụ.
+4. **Topic theo lớp chưa khóa triệt để:** Một số luồng vẫn có nguy cơ trộn chủ đề lớp 1-2-3.
+5. **Bundle-v2 coverage còn hẹp:** Chưa bao phủ đủ nhóm bài trong phạm vi roadmap Phase 1.
+6. **Xuất PDF chưa thống nhất hành vi:** Có luồng in popup nhưng chưa tải file thật ở một số đường đi.
+7. **CRUD lớp/học sinh chưa hoàn thiện tại UI:** Còn thiếu hoặc chưa đồng đều giữa trang danh sách lớp và trang chi tiết lớp.
 
 ## 3. Tầm nhìn & Mục tiêu sắp tới
-**Tầm nhìn:** Tạo ra một vòng lặp hoàn hảo: Tự động ra đề (CPA) -> Giáo viên in file PDF siêu đẹp -> Học sinh làm bài -> Chụp ảnh -> AI tự chấm và đẩy kết quả phân tích lỗi lên Dashboard để có chiến lược kèm cặp tiếp theo.
+**Tầm nhìn:** Xây vòng lặp khép kín, vận hành ổn định cho giáo viên Tiểu học:
+Tạo bài tập -> Xuất bản in đẹp/tải file thật -> Học sinh làm bài -> Chụp ảnh -> AI chấm có cấu trúc -> Giáo viên review -> Dashboard phản ánh lỗi thật theo lớp.
 
-**Mục tiêu (Goals) cho Giai đoạn này:**
-- Nối thành công luồng dữ liệu: Đưa kết quả phân tích lỗi từ `AI Grading UseCase` vào DB Thống kê, hiển thị Real-time trên Dashboard.
-- Nâng cấp triệt để giao diện PDF (Classroom PDF & Home PDF) đạt chuẩn in ấn sách giáo khoa.
+**Mục tiêu (Goals) giai đoạn này:**
+1. Dashboard và analytics dùng dữ liệu thật, loại bỏ hoàn toàn mock liên quan.
+2. PDF có hai trải nghiệm rõ ràng:
+	 - In nhanh trong editor (print CSS).
+	 - Tải file PDF thật từ modal (classroom + personalized).
+3. Teacher không cần nhập JSON khi chấm ảnh; Answer Builder tự convert sang internal schema JSON.
+4. Giảm lỗi chấm sai cho bài gần đúng (đặc biệt list/multi-blank) bằng rule per-question.
+5. Khóa chủ đề theo lớp, mở rộng Bundle-v2 Phase 1 theo taxonomy bền vững.
+6. Hoàn thiện class CRUD và student edit ở cả trang danh sách lớp và chi tiết lớp.
 
 ## 4. Đối tượng phục vụ (Target Audience)
-- **Giáo viên (End-User chính):** Cần giao diện bảng điều khiển số liệu chính xác để theo dõi năng lực học sinh, và cần xuất file PDF đẹp để phát trên lớp.
-- **Phụ huynh (End-User tiêu thụ):** Cần nhận được PDF kèm "Cẩm nang hướng dẫn" in rõ ràng, bắt mắt.
+- **Giáo viên (End-User chính):** Cần quy trình tạo đề, in/tải bài, chấm ảnh và theo dõi lỗi học sinh nhanh, chính xác, không phải thao tác kỹ thuật (nhập JSON).
+- **Phụ huynh (End-User tiêu thụ):** Cần bản in rõ ràng, dễ dùng tại nhà, có hướng dẫn phù hợp.
 
 ## 5. Phạm vi (Scope)
-- **Trong phạm vi thực hiện (In-Scope):** Tích hợp logic lưu trữ Data Analytics, cập nhật UI/UX hiển thị Dashboard, thiết kế lại cấu trúc HTML/CSS cho bản in PDF.
-- **Ngoài phạm vi (Out-of-Scope - cấm vi phạm):** Tự động phát hành bài tập mà không cần Giáo viên duyệt (No Autonomous AI). Nâng cấp sang lớp 4-5.
+- **Trong phạm vi thực hiện (In-Scope):**
+	- Pipeline OCR analytics dữ liệu thật.
+	- Answer Builder + structured grading schema (numeric, ordered/unordered list, multi-blank, boolean).
+	- Khóa topic theo grade lớp và mở rộng Bundle-v2 Phase 1.
+	- PDF real download từ modal + print aesthetic trong editor.
+	- Hoàn thiện CRUD lớp/học sinh trong luồng teacher.
+- **Ngoài phạm vi (Out-of-Scope):**
+	- Auto-publish nội dung AI không qua giáo viên duyệt.
+	- Mở rộng ngoài toán lớp 1-3.
+	- Bổ sung model AI ngoài danh sách đã phê duyệt.

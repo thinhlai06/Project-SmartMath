@@ -59,7 +59,13 @@ def test_dashboard_stats_are_teacher_scoped(client: TestClient, db_session):
     student_1 = client.post(
         f"/api/classes/{class_1_id}/students",
         headers=teacher_1_headers,
-        json={"full_name": "Nguyen Van A", "tier": "standard"},
+        json={
+            "full_name": "Nguyen Van A",
+            "dob": "2018-01-15",
+            "parent_name": "Tran Thi B",
+            "parent_phone": "0909123456",
+            "tier": "standard",
+        },
     )
     assert student_1.status_code == 201
     student_1_id = student_1.json()["id"]
@@ -67,7 +73,13 @@ def test_dashboard_stats_are_teacher_scoped(client: TestClient, db_session):
     student_2 = client.post(
         f"/api/classes/{class_2_id}/students",
         headers=teacher_2_headers,
-        json={"full_name": "Le Thi B", "tier": "standard"},
+        json={
+            "full_name": "Le Thi B",
+            "dob": "2018-02-20",
+            "parent_name": "Pham Van C",
+            "parent_phone": "0911222333",
+            "tier": "standard",
+        },
     )
     assert student_2.status_code == 201
     student_2_id = student_2.json()["id"]

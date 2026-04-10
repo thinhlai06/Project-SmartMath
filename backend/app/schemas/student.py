@@ -21,9 +21,13 @@ class StudentBase(BaseModel):
     parent_phone: Optional[str] = Field(None, max_length=20)
 
 
-class StudentCreate(StudentBase):
+class StudentCreate(BaseModel):
     """Schema for creating a student."""
-    pass
+    full_name: str = Field(..., min_length=1, max_length=255)
+    tier: StudentTier
+    dob: Optional[date] = None
+    parent_name: Optional[str] = Field(None, max_length=100)
+    parent_phone: Optional[str] = Field(None, max_length=20)
 
 
 class StudentUpdate(BaseModel):

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Users, Plus, Trash2, Edit2, RefreshCw, Copy, UserCircle, FileText, CheckCircle, Upload } from 'lucide-react';
 import { classApi, studentApi } from '../services/classApi';
 import { worksheetApi } from '../services/worksheetApi';
-import type { MathClass, Student, StudentCreate } from '../services/classApi';
+import type { MathClass, Student, StudentCreate, ClassUpdate } from '../services/classApi';
 import type { Worksheet } from '../services/worksheetApi';
 import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
@@ -40,13 +40,33 @@ export function ClassDetailPage() {
     const [worksheetSkip, setWorksheetSkip] = useState(0);
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
     const [showStudentProfile, setShowStudentProfile] = useState(false);
+    const [showEditStudent, setShowEditStudent] = useState(false);
+    const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+    const [isUpdatingStudent, setIsUpdatingStudent] = useState(false);
+    const [showEditClass, setShowEditClass] = useState(false);
+    const [isUpdatingClass, setIsUpdatingClass] = useState(false);
+    const [isDeletingClass, setIsDeletingClass] = useState(false);
     const pageLimit = 10;
     const excelFileInputRef = useRef<HTMLInputElement | null>(null);
 
     // New student form
     const [newStudent, setNewStudent] = useState<StudentCreate>({
         full_name: '',
+        dob: '',
+        parent_name: '',
+        parent_phone: '',
         tier: 'standard',
+    });
+    const [editStudentForm, setEditStudentForm] = useState<StudentCreate>({
+        full_name: '',
+        dob: '',
+        parent_name: '',
+        parent_phone: '',
+        tier: 'standard',
+    });
+    const [editClassForm, setEditClassForm] = useState<ClassUpdate>({
+        class_name: '',
+        grade: 1,
     });
     const [isAdding, setIsAdding] = useState(false);
 
@@ -95,14 +115,30 @@ export function ClassDetailPage() {
 
     const handleAddStudent = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newStudent.full_name.trim()) return;
+        const missingRequiredInfo =
+            !newStudent.full_name.trim() ||
+            !newStudent.dob ||
+            !newStudent.parent_name.trim() ||
+            !newStudent.parent_phone.trim() ||
+            !newStudent.tier;
+
+        if (missingRequiredInfo) {
+            toast('Vui lòng nhập đầy đủ thông tin học sinh', 'error');
+            return;
+        }
 
         try {
             setIsAdding(true);
             const created = await studentApi.createStudent(Number(classId), newStudent);
             setStudents([...students, created]);
             setShowAddStudent(false);
-            setNewStudent({ full_name: '', tier: 'standard' });
+            setNewStudent({
+                full_name: '',
+                dob: '',
+                parent_name: '',
+                parent_phone: '',
+                tier: 'standard',
+            });
             toast('Đã thêm học sinh mới', 'success');
         } catch (err) {
             setError('Không thể thêm học sinh');
@@ -148,6 +184,57 @@ export function ClassDetailPage() {
         }
     };
 
+    const openEditStudentModal = (student: Student) => {
+        setEditingStudent(student);
+        setEditStudentForm({
+            full_name: student.full_name,
+            dob: student.dob || '',
+            parent_name: student.parent_name || '',
+            parent_phone: student.parent_phone || '',
+            tier: (student.tier as StudentCreate['tier']) || 'standard',
+        });
+        setShowEditStudent(true);
+    };
+
+    const handleUpdateStudent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingStudent) {
+            return;
+        }
+
+        const missingRequiredInfo =
+            !editStudentForm.full_name.trim() ||
+            !editStudentForm.dob ||
+            !editStudentForm.parent_name.trim() ||
+            !editStudentForm.parent_phone.trim() ||
+            !editStudentForm.tier;
+
+        if (missingRequiredInfo) {
+            toast('Vui lòng nhập đầy đủ thông tin học sinh', 'error');
+            return;
+        }
+
+        try {
+            setIsUpdatingStudent(true);
+            const updated = await studentApi.updateStudent(editingStudent.id, editStudentForm);
+            setStudents((prev) => prev.map((student) => (student.id === updated.id ? updated : student)));
+
+            if (selectedStudent?.id === updated.id) {
+                setSelectedStudent(updated);
+            }
+
+            setShowEditStudent(false);
+            setEditingStudent(null);
+            toast('Đã cập nhật học sinh', 'success');
+        } catch (err) {
+            setError('Không thể cập nhật học sinh');
+            toast('Không thể cập nhật học sinh', 'error');
+            console.error(err);
+        } finally {
+            setIsUpdatingStudent(false);
+        }
+    };
+
     const handleRegenerateCode = async () => {
         if (!classData) return;
         if (!confirm('Mã lớp cũ sẽ không còn hiệu lực. Tiếp tục?')) return;
@@ -160,6 +247,75 @@ export function ClassDetailPage() {
             setError('Không thể tạo mã mới');
             toast('Không thể tạo mã lớp mới', 'error');
             console.error(err);
+        }
+    };
+
+    const handleOpenEditClass = () => {
+        if (!classData) {
+            return;
+        }
+
+        setEditClassForm({
+            class_name: classData.class_name,
+            grade: classData.grade,
+        });
+        setShowEditClass(true);
+    };
+
+    const handleUpdateClass = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!classData || !editClassForm.class_name?.trim()) {
+            return;
+        }
+
+        if (editClassForm.grade !== classData.grade) {
+            const confirmGradeChange = confirm(
+                `Bạn sắp đổi khối lớp từ Lớp ${classData.grade} sang Lớp ${editClassForm.grade}. Các luồng chọn chủ đề và thống kê có thể bị ảnh hưởng. Tiếp tục?`
+            );
+            if (!confirmGradeChange) {
+                return;
+            }
+        }
+
+        try {
+            setIsUpdatingClass(true);
+            const updated = await classApi.updateClass(classData.id, {
+                class_name: editClassForm.class_name.trim(),
+                grade: editClassForm.grade,
+            });
+            setClassData(updated);
+            setShowEditClass(false);
+            toast('Đã cập nhật lớp học', 'success');
+        } catch (err) {
+            setError('Không thể cập nhật lớp học');
+            toast('Không thể cập nhật lớp học', 'error');
+            console.error(err);
+        } finally {
+            setIsUpdatingClass(false);
+        }
+    };
+
+    const handleDeleteClass = async () => {
+        if (!classData) {
+            return;
+        }
+
+        const isConfirmed = confirm(`Bạn có chắc muốn xóa lớp ${classData.class_name}?`);
+        if (!isConfirmed) {
+            return;
+        }
+
+        try {
+            setIsDeletingClass(true);
+            await classApi.deleteClass(classData.id);
+            toast('Đã xóa lớp học', 'success');
+            navigate('/classes');
+        } catch (err) {
+            setError('Không thể xóa lớp học');
+            toast('Không thể xóa lớp học', 'error');
+            console.error(err);
+        } finally {
+            setIsDeletingClass(false);
         }
     };
 
@@ -259,6 +415,14 @@ export function ClassDetailPage() {
                             </div>
                             {copiedCode && <span className="absolute -top-8 right-0 bg-slate-800 text-white text-xs px-2 py-1 rounded shadow-lg animate-fade-in-up">Đã sao chép!</span>}
                         </div>
+                        <Button variant="outline" size="sm" onClick={handleOpenEditClass}>
+                            <Edit2 className="w-4 h-4" />
+                            Sửa lớp
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={handleDeleteClass} disabled={isDeletingClass}>
+                            <Trash2 className="w-4 h-4" />
+                            {isDeletingClass ? 'Đang xóa...' : 'Xóa lớp'}
+                        </Button>
                     </div>
                 </div>
 
@@ -403,7 +567,10 @@ export function ClassDetailPage() {
                                             <div className="flex items-center gap-1">
                                                 <button
                                                     className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors"
-                                                    onClick={(event) => event.stopPropagation()}
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        openEditStudentModal(student);
+                                                    }}
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
@@ -480,6 +647,144 @@ export function ClassDetailPage() {
                     </DialogContent>
                 </Dialog>
 
+                {showEditClass && classData && (
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <div className="glass-panel border-white/50 bg-white/90 rounded-3xl p-8 w-full max-w-md shadow-2xl">
+                            <h2 className="text-xl font-bold mb-4 text-slate-800">Chỉnh sửa lớp học</h2>
+                            <form onSubmit={handleUpdateClass}>
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label htmlFor="edit_class_name">Tên lớp</Label>
+                                        <Input
+                                            id="edit_class_name"
+                                            placeholder="Ví dụ: 3A, 2B..."
+                                            value={editClassForm.class_name || ''}
+                                            onChange={(e) => setEditClassForm({ ...editClassForm, class_name: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="edit_class_grade">Khối lớp</Label>
+                                        <div className="flex gap-2 mt-1">
+                                            {[1, 2, 3].map((grade) => (
+                                                <button
+                                                    key={grade}
+                                                    type="button"
+                                                    onClick={() => setEditClassForm({ ...editClassForm, grade })}
+                                                    className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all duration-300 font-semibold ${editClassForm.grade === grade
+                                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
+                                                        : 'border-slate-100 bg-white hover:border-indigo-200 text-slate-600'
+                                                        }`}
+                                                >
+                                                    Lớp {grade}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 mt-6">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="flex-1 rounded-xl h-12 font-semibold hover:bg-slate-100"
+                                        onClick={() => setShowEditClass(false)}
+                                    >
+                                        Hủy
+                                    </Button>
+                                    <Button type="submit" className="flex-1 rounded-xl h-12 font-bold bg-indigo-600 hover:bg-indigo-700 shadow-soft" disabled={isUpdatingClass}>
+                                        {isUpdatingClass ? 'Đang lưu...' : 'Lưu thay đổi'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {showEditStudent && editingStudent && (
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <div className="glass-panel border-white/50 bg-white/90 rounded-3xl p-8 w-full max-w-md shadow-2xl">
+                            <h2 className="text-xl font-bold mb-4 text-slate-800">Chỉnh sửa học sinh</h2>
+                            <form onSubmit={handleUpdateStudent}>
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label htmlFor="edit_student_full_name">Họ và tên</Label>
+                                        <Input
+                                            id="edit_student_full_name"
+                                            value={editStudentForm.full_name}
+                                            onChange={(e) => setEditStudentForm({ ...editStudentForm, full_name: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="edit_student_dob">Ngày tháng năm sinh</Label>
+                                        <Input
+                                            id="edit_student_dob"
+                                            type="date"
+                                            value={editStudentForm.dob}
+                                            onChange={(e) => setEditStudentForm({ ...editStudentForm, dob: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="edit_student_parent_name">Họ tên bố hoặc mẹ</Label>
+                                        <Input
+                                            id="edit_student_parent_name"
+                                            value={editStudentForm.parent_name}
+                                            onChange={(e) => setEditStudentForm({ ...editStudentForm, parent_name: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="edit_student_parent_phone">SĐT bố hoặc mẹ</Label>
+                                        <Input
+                                            id="edit_student_parent_phone"
+                                            value={editStudentForm.parent_phone}
+                                            onChange={(e) => setEditStudentForm({ ...editStudentForm, parent_phone: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label>Nhóm năng lực</Label>
+                                        <div className="grid grid-cols-2 gap-2 mt-1">
+                                            {Object.entries(TIER_CONFIG).map(([tier, config]) => (
+                                                <button
+                                                    key={tier}
+                                                    type="button"
+                                                    onClick={() => setEditStudentForm({ ...editStudentForm, tier: tier as StudentCreate['tier'] })}
+                                                    className={`py-3 px-3 rounded-xl border-2 transition-all duration-300 text-sm font-semibold flex items-center justify-center gap-1 ${editStudentForm.tier === tier
+                                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
+                                                        : 'border-slate-100 bg-white hover:border-indigo-200 text-slate-600'
+                                                        }`}
+                                                >
+                                                    {config.icon} {config.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 mt-6">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="flex-1 rounded-xl h-12 font-semibold hover:bg-slate-100"
+                                        onClick={() => {
+                                            setShowEditStudent(false);
+                                            setEditingStudent(null);
+                                        }}
+                                    >
+                                        Hủy
+                                    </Button>
+                                    <Button type="submit" className="flex-1 rounded-xl h-12 font-bold bg-indigo-600 hover:bg-indigo-700 shadow-soft" disabled={isUpdatingStudent}>
+                                        {isUpdatingStudent ? 'Đang lưu...' : 'Lưu thay đổi'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
                 {/* Add Student Modal */}
                 {showAddStudent && (
                     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -494,6 +799,36 @@ export function ClassDetailPage() {
                                             placeholder="Nguyễn Văn A"
                                             value={newStudent.full_name}
                                             onChange={(e) => setNewStudent({ ...newStudent, full_name: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="dob">Ngày tháng năm sinh</Label>
+                                        <Input
+                                            id="dob"
+                                            type="date"
+                                            value={newStudent.dob}
+                                            onChange={(e) => setNewStudent({ ...newStudent, dob: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="parent_name">Họ tên bố hoặc mẹ</Label>
+                                        <Input
+                                            id="parent_name"
+                                            placeholder="Trần Thị B"
+                                            value={newStudent.parent_name}
+                                            onChange={(e) => setNewStudent({ ...newStudent, parent_name: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="parent_phone">SĐT bố hoặc mẹ</Label>
+                                        <Input
+                                            id="parent_phone"
+                                            placeholder="0909123456"
+                                            value={newStudent.parent_phone}
+                                            onChange={(e) => setNewStudent({ ...newStudent, parent_phone: e.target.value })}
                                             required
                                         />
                                     </div>

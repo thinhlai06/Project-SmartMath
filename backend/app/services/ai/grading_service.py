@@ -1,6 +1,8 @@
 import logging
 import json
 import re
+import unicodedata
+from collections import Counter
 from typing import List, Dict, Any, Optional
 from .ocr_service import OCRService
 from .ollama_service import OllamaService
@@ -45,22 +47,37 @@ class GradingService:
                 # Try to get answer by ID (string or int key)
                 student_ans = extracted_answers.get(str(q_id)) or extracted_answers.get(q_id) or ""
                 student_ans = str(student_ans).strip()
-                
-                # Simple Comparison Logic (can be enhanced)
-                is_correct = self._compare_answers(student_ans, str(expected['answer']))
-                
+
+                comparison = self._compare_answers(student_ans, expected)
+                is_correct = comparison["is_correct"]
+
                 # Default 10 points per question if not specified
-                points = expected.get('points', 10)
-                score = points if is_correct else 0
+                points = self._normalize_points(expected.get('points', 10))
+                grading_rule = str(expected.get("grading_rule", "all_or_nothing")).strip().lower()
+
+                if grading_rule == "per_item" and comparison["total_items"] > 0:
+                    ratio = comparison["matched_items"] / comparison["total_items"]
+                    score = min(points, max(0, int(round(points * ratio))))
+                else:
+                    score = points if is_correct else 0
+
+                feedback: Optional[str] = None
+                if not is_correct and score > 0:
+                    feedback = (
+                        f"Đúng một phần ({comparison['matched_items']}/{comparison['total_items']} ý đúng)."
+                    )
+
                 answer_confidence, low_conf_tokens = self._estimate_answer_confidence(student_ans, ocr_tokens, ocr_avg_confidence)
                 
                 results.append({
                     "question_id": str(q_id),
                     "student_answer": student_ans,
-                    "correct_answer": expected['answer'],
+                    "correct_answer": self._answer_to_display(expected.get("answer")),
                     "is_correct": is_correct,
                     "score": score,
                     "max_score": points,
+                    "feedback": feedback,
+                    "question_type": expected.get("question_type") or expected.get("answer_type"),
                     "ocr_confidence": answer_confidence,
                     "low_confidence_tokens": low_conf_tokens,
                 })
@@ -153,22 +170,183 @@ CHỈ TRẢ VỀ JSON, KHÔNG CÓ TEXT KHÁC."""
                 "raw_text": text
             }
 
-    def _compare_answers(self, student: str, correct: str) -> bool:
-        # Basic normalization: lowercase, remove spaces, remove dots/commas if number?
-        s = student.lower().strip().replace(" ", "")
-        c = correct.lower().strip().replace(" ", "")
-        
-        if s == c:
+    def _compare_answers(self, student: str, expected: Dict[str, Any]) -> Dict[str, int | bool]:
+        answer_type = str(expected.get("answer_type", "text")).strip().lower()
+        grading_rule = str(expected.get("grading_rule", "all_or_nothing")).strip().lower()
+        correct = expected.get("answer")
+
+        if answer_type == "number":
+            student_number = self._extract_number(student)
+            correct_number = self._extract_number(correct)
+            is_correct = (
+                student_number is not None
+                and correct_number is not None
+                and abs(student_number - correct_number) < 1e-9
+            )
+            return {
+                "is_correct": is_correct,
+                "matched_items": 1 if is_correct else 0,
+                "total_items": 1,
+            }
+
+        if answer_type == "boolean":
+            student_bool = self._parse_boolean(student)
+            correct_bool = self._parse_boolean(correct)
+            is_correct = student_bool is not None and correct_bool is not None and student_bool == correct_bool
+            return {
+                "is_correct": is_correct,
+                "matched_items": 1 if is_correct else 0,
+                "total_items": 1,
+            }
+
+        if answer_type in {"ordered_list", "unordered_list", "multi_blank"}:
+            expected_items = self._to_items(correct)
+            student_items = self._to_items(student)
+
+            if len(student_items) <= 1 and len(expected_items) > 1:
+                detected_numbers = re.findall(r"-?\d+(?:[\.,]\d+)?", student)
+                if len(detected_numbers) >= len(expected_items):
+                    student_items = detected_numbers[: len(expected_items)]
+
+            normalized_expected = [self._normalize_text(item) for item in expected_items]
+            normalized_student = [self._normalize_text(item) for item in student_items]
+
+            if not normalized_expected:
+                return {
+                    "is_correct": len(normalized_student) == 0,
+                    "matched_items": 0,
+                    "total_items": 0,
+                }
+
+            if answer_type == "unordered_list":
+                expected_counter = Counter(normalized_expected)
+                student_counter = Counter(normalized_student)
+                matched = sum(min(expected_counter[item], student_counter.get(item, 0)) for item in expected_counter)
+                expected_total = sum(expected_counter.values())
+                student_total = sum(student_counter.values())
+                total = max(expected_total, student_total)
+                is_correct = expected_counter == student_counter
+
+                if grading_rule == "per_item":
+                    return {
+                        "is_correct": is_correct,
+                        "matched_items": matched,
+                        "total_items": total,
+                    }
+
+                return {
+                    "is_correct": is_correct,
+                    "matched_items": total if is_correct else 0,
+                    "total_items": total,
+                }
+
+            paired_length = min(len(normalized_student), len(normalized_expected))
+            matched = sum(
+                1
+                for index in range(paired_length)
+                if normalized_student[index] == normalized_expected[index]
+            )
+            expected_total = len(normalized_expected)
+            student_total = len(normalized_student)
+            total = max(expected_total, student_total)
+            is_same_length = student_total == expected_total
+            is_correct = is_same_length and matched == expected_total
+
+            if grading_rule == "per_item":
+                return {
+                    "is_correct": is_correct,
+                    "matched_items": matched,
+                    "total_items": total,
+                }
+
+            return {
+                "is_correct": is_correct,
+                "matched_items": total if is_correct else 0,
+                "total_items": total,
+            }
+
+        # Legacy/default text compare
+        normalized_student = self._normalize_text(student)
+        normalized_correct = self._normalize_text(correct)
+
+        if normalized_student == normalized_correct:
+            return {"is_correct": True, "matched_items": 1, "total_items": 1}
+
+        # Backward-compatible number fallback for values like "5 qua" vs "5"
+        correct_number = self._extract_number(correct)
+        student_number = self._extract_number(student)
+        if correct_number is not None and student_number is not None and abs(student_number - correct_number) < 1e-9:
+            return {"is_correct": True, "matched_items": 1, "total_items": 1}
+
+        return {"is_correct": False, "matched_items": 0, "total_items": 1}
+
+    def _normalize_points(self, raw_points: Any) -> int:
+        try:
+            points = int(raw_points)
+        except (TypeError, ValueError):
+            points = 10
+        if points <= 0:
+            return 10
+        return points
+
+    def _normalize_text(self, value: Any) -> str:
+        text = str(value or "")
+        normalized = unicodedata.normalize("NFD", text)
+        normalized = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+        normalized = normalized.replace("đ", "d").replace("Đ", "d")
+        normalized = re.sub(r"\s+", " ", normalized).strip().lower()
+        return normalized
+
+    def _extract_number(self, value: Any) -> Optional[float]:
+        if isinstance(value, (int, float)):
+            return float(value)
+
+        text = str(value or "").strip()
+        if not text:
+            return None
+
+        matches = re.findall(r"-?\d+(?:[\.,]\d+)?", text)
+        if not matches:
+            return None
+
+        candidate = matches[0].replace(",", ".")
+        try:
+            return float(candidate)
+        except ValueError:
+            return None
+
+    def _parse_boolean(self, value: Any) -> Optional[bool]:
+        text = self._normalize_text(value)
+        if text in {"true", "1", "yes", "co", "dung"}:
             return True
-            
-        # Optional: Fuzzy match or number parsing
-        # e.g. "5 qua" vs "5"
-        if c.isdigit():
-            # Extract digits from student answer
-            s_digits = "".join(filter(str.isdigit, s))
-            return s_digits == c
-            
-        return False
+        if text in {"false", "0", "no", "khong", "sai"}:
+            return False
+        return None
+
+    def _to_items(self, value: Any) -> List[str]:
+        if value is None:
+            return []
+
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+
+        raw = str(value).strip()
+        if not raw:
+            return []
+
+        if any(separator in raw for separator in ["\n", ",", ";", "|"]):
+            tokens = re.split(r"[\n,;|]+", raw)
+        else:
+            tokens = [raw]
+
+        return [token.strip() for token in tokens if token.strip()]
+
+    def _answer_to_display(self, value: Any) -> str:
+        if isinstance(value, bool):
+            return "Đúng" if value else "Sai"
+        if isinstance(value, list):
+            return ", ".join(str(item) for item in value)
+        return str(value if value is not None else "")
 
     def _parse_answers_with_llm(self, text: str, count: int) -> Dict[str, str]:
         prompt = f"""Bạn là trợ lý chấm thi. Hãy trích xuất {count} câu trả lời từ văn bản OCR bài làm học sinh dưới đây.

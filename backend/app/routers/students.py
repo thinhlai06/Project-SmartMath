@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import Callable, List, Optional
 from datetime import date, datetime
 import io
 
@@ -17,9 +17,9 @@ router = APIRouter()
 
 EXPECTED_EXCEL_HEADERS = [
     "Họ và tên",
-    "Ngày tháng năm sinh",
-    "Họ tên bố hoặc mẹ",
-    "SĐT bố hoặc mẹ",
+    "Ngày sinh",
+    "Họ tên bố/mẹ",
+    "SĐT bố/mẹ",
 ]
 
 
@@ -33,7 +33,7 @@ def _clean_text(value: object) -> Optional[str]:
 def _parse_dob(
     raw_value: object,
     row_index: int,
-    excel_date_parser: Optional[callable] = None,
+    excel_date_parser: Optional[Callable[[float], datetime | date]] = None,
 ) -> Optional[date]:
     """Parse DOB from Excel values in multiple common formats."""
     if raw_value is None:
@@ -84,7 +84,7 @@ def verify_class_ownership(db: Session, class_id: int, teacher_id: int) -> MathC
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Không tìm thấy lớp học"
         )
-    if db_class.teacher_id != teacher_id:
+    if int(db_class.teacher_id) != teacher_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Bạn không có quyền truy cập lớp học này"
@@ -106,7 +106,7 @@ async def list_students(
     
     - **tier**: Lọc theo nhóm (foundation, standard, extension, advanced)
     """
-    verify_class_ownership(db, class_id, current_user.id)
+    verify_class_ownership(db, class_id, int(current_user.id))
     return student_service.get_students_by_class(db, class_id, tier, skip=skip, limit=limit)
 
 
@@ -121,9 +121,12 @@ async def create_student(
     Thêm học sinh vào lớp.
     
     - **full_name**: Họ tên học sinh
-    - **tier**: Nhóm năng lực (mặc định: standard)
+    - **dob**: Ngày tháng năm sinh (YYYY-MM-DD)
+    - **parent_name**: Họ tên bố hoặc mẹ
+    - **parent_phone**: SĐT bố hoặc mẹ
+    - **tier**: Nhóm năng lực (foundation/standard/extension/advanced)
     """
-    verify_class_ownership(db, class_id, current_user.id)
+    verify_class_ownership(db, class_id, int(current_user.id))
     
     tier_val = student_data.tier.value if student_data.tier else "standard"
     return student_service.create_student(
@@ -147,7 +150,7 @@ async def upload_students_excel(
     """
     Thêm học sinh từ file Excel theo đúng mẫu cột tiếng Việt.
     """
-    verify_class_ownership(db, class_id, current_user.id)
+    verify_class_ownership(db, class_id, int(current_user.id))
     
     if not file.filename or not file.filename.lower().endswith('.xlsx'):
         raise HTTPException(status_code=400, detail="Chỉ hỗ trợ định dạng .xlsx")
@@ -165,6 +168,8 @@ async def upload_students_excel(
         contents = await file.read()
         workbook = openpyxl.load_workbook(io.BytesIO(contents))
         sheet = workbook.active
+        if sheet is None:
+            raise HTTPException(status_code=400, detail="File Excel khong co sheet hop le")
 
         header_row = next(sheet.iter_rows(min_row=1, max_row=1, values_only=True), None)
         actual_headers = [str(cell).strip() if cell is not None else "" for cell in (header_row or [])]
@@ -226,7 +231,7 @@ async def get_student(
             detail="Không tìm thấy học sinh"
         )
     
-    verify_class_ownership(db, student.class_id, current_user.id)
+    verify_class_ownership(db, int(student.class_id), int(current_user.id))
     return student
 
 
@@ -247,7 +252,7 @@ async def update_student(
             detail="Không tìm thấy học sinh"
         )
     
-    verify_class_ownership(db, student.class_id, current_user.id)
+    verify_class_ownership(db, int(student.class_id), int(current_user.id))
     
     tier_val = student_data.tier.value if student_data.tier else None
     return student_service.update_student(
@@ -277,6 +282,6 @@ async def delete_student(
             detail="Không tìm thấy học sinh"
         )
     
-    verify_class_ownership(db, student.class_id, current_user.id)
+    verify_class_ownership(db, int(student.class_id), int(current_user.id))
     student_service.delete_student(db, student)
     return None

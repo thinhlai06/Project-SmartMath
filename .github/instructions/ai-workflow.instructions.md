@@ -127,6 +127,35 @@ Teacher → [Upload ảnh bài làm]
   → [Grade draft] → Teacher review → [Confirm/Override]
 ```
 
+### Typed Answer Key Contract (grade-image)
+
+`POST /api/ai/grade-image` hỗ trợ 2 định dạng `correct_answers_json` để giữ backward compatibility:
+
+1. Legacy:
+- `[{"id": 1, "answer": "12", "points": 10}]`
+
+2. Typed (khuyến nghị dùng từ Answer Builder):
+- `answer_type`: `text | number | boolean | ordered_list | unordered_list | multi_blank`
+- `grading_rule`: `all_or_nothing | per_item` (áp dụng cho list/multi_blank)
+- Ví dụ:
+`[{"id":"1","answer_type":"ordered_list","grading_rule":"per_item","answer":["2","3","4"],"points":10}]`
+
+Quy tắc runtime:
+- `number`: so khớp theo giá trị số
+- `boolean`: chấp nhận biến thể `Đúng/Sai`, `true/false`, `1/0`
+- `ordered_list` và `multi_blank`: chấm theo thứ tự
+- `unordered_list`: chấm không phụ thuộc thứ tự
+- `per_item`: cho phép điểm một phần theo tỉ lệ ý đúng
+
+### Analytics Submit Gate (teacher review bắt buộc)
+
+`POST /api/v1/ai/analytics/submit` chỉ chấp nhận dữ liệu đã được giáo viên duyệt:
+
+- `source` bắt buộc là `teacher_review`
+- Không submit analytics ngay sau OCR draft
+- Frontend phải cho giáo viên review/override trước khi lưu thống kê
+- Mục tiêu: tránh đẩy lỗi OCR chưa duyệt lên dashboard
+
 ### Implementation Pattern
 
 ```python

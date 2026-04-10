@@ -129,3 +129,23 @@ class ClassAnalyticsResponse(BaseModel):
     weak_topics: List[WeakTopic]
     student_performance: List[StudentPerformance]
     common_mistakes: List[MistakePattern]
+
+
+class AnalyticsTagItem(BaseModel):
+    error_type: str = Field(..., min_length=1, max_length=120)
+    count: int = Field(default=1, ge=1, le=100)
+    question_id: Optional[str] = None
+    ocr_confidence: Optional[float] = Field(default=None, ge=0, le=100)
+
+
+class AnalyticsSubmitRequest(BaseModel):
+    class_id: int
+    student_id: Optional[int] = None
+    worksheet_id: Optional[int] = None
+    source: Literal["ai_grading", "teacher_review"] = "ai_grading"
+    error_tags: List[AnalyticsTagItem] = Field(default_factory=list, min_length=1)
+
+
+class AnalyticsSubmitResponse(BaseModel):
+    message: str
+    records_created: int

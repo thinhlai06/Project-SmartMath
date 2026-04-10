@@ -101,6 +101,32 @@ async function installEpic1ApiMocks(page: import('@playwright/test').Page, state
       });
     }
 
+    if (path === '/api/classes/1/students' && method === 'POST') {
+      const payload = request.postDataJSON() as {
+        full_name: string;
+        dob: string;
+        parent_name: string;
+        parent_phone: string;
+        tier: 'foundation' | 'standard' | 'extension' | 'advanced';
+      };
+
+      return route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 99,
+          class_id: 1,
+          full_name: payload.full_name,
+          tier: payload.tier,
+          dob: payload.dob,
+          parent_name: payload.parent_name,
+          parent_phone: payload.parent_phone,
+          avg_score: null,
+          created_at: '2026-01-01T00:00:00',
+        }),
+      });
+    }
+
     if (path === '/api/classes/1/students/upload' && method === 'POST') {
       state.uploaded = true;
       return route.fulfill({
@@ -159,6 +185,27 @@ async function installEpic1ApiMocks(page: import('@playwright/test').Page, state
 }
 
 test.describe('Epic 1 - Class detail student flows', () => {
+  test('manual student add requires full profile fields and submits successfully', async ({ page }) => {
+    const state: MockState = { uploaded: false };
+    await installEpic1ApiMocks(page, state);
+
+    await page.goto('/classes/1');
+
+    await page.getByRole('button', { name: 'Thêm học sinh' }).click();
+    await expect(page.getByRole('heading', { name: 'Thêm học sinh' })).toBeVisible();
+
+    await page.getByLabel('Họ và tên').fill('Pham Thi M');
+    await page.getByLabel('Ngày tháng năm sinh').fill('2018-03-01');
+    await page.getByLabel('Họ tên bố hoặc mẹ').fill('Pham Van N');
+    await page.getByLabel('SĐT bố hoặc mẹ').fill('0988111222');
+    await page.getByRole('button', { name: '🔶 Mở rộng' }).click();
+
+    await page.getByRole('button', { name: 'Thêm học sinh' }).last().click();
+
+    await expect(page.getByText('Đã thêm học sinh mới')).toBeVisible();
+    await expect(page.getByText('Pham Thi M')).toBeVisible();
+  });
+
   test('opens student profile dialog with required fields', async ({ page }) => {
     const state: MockState = { uploaded: false };
     await installEpic1ApiMocks(page, state);

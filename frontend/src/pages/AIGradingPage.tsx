@@ -1,15 +1,16 @@
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Upload, AlertCircle, RefreshCw, FileText } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { GradingDiffViewer } from '@/components/redesign';
+import { AnswerBuilder, toAnswerKeyPayload, type AnswerBuilderEntry } from '@/components/ai/AnswerBuilder';
 import aiApi from '@/services/aiApi';
-import type { GradeResult, GradingResponse } from '@/types/ai';
+import type { AnalyticsTagItem, GradeResult, GradingResponse } from '@/types/ai';
+import { classApi, type MathClass } from '@/services/classApi';
 
 interface OCRDiffState {
     resultIndex: number;
@@ -24,11 +25,75 @@ export default function AIGradingPage() {
     const [step, setStep] = useState<'upload' | 'processing' | 'result'>('upload');
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [correctAnswersJson, setCorrectAnswersJson] = useState<string>("");
+    const [answerKeyEntries, setAnswerKeyEntries] = useState<AnswerBuilderEntry[]>([]);
     const [gradingResult, setGradingResult] = useState<GradingResponse | null>(null);
     const [ocrDiff, setOcrDiff] = useState<OCRDiffState | null>(null);
+    const [classes, setClasses] = useState<MathClass[]>([]);
+    const [selectedClassId, setSelectedClassId] = useState<string>('');
+    const [analyticsNotice, setAnalyticsNotice] = useState<string | null>(null);
+    const [isSubmittingAnalytics, setIsSubmittingAnalytics] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+
+    const buildErrorTags = (results: GradeResult[]): AnalyticsTagItem[] => {
+        const mistakeCounter = results.reduce<Record<string, number>>((acc, item) => {
+            if (item.is_correct) {
+                return acc;
+            }
+
+            const normalizedType = (item.question_type || 'khac').trim().toLowerCase().replace(/\s+/g, '_');
+            acc[normalizedType] = (acc[normalizedType] || 0) + 1;
+            return acc;
+        }, {});
+
+        return Object.entries(mistakeCounter).map(([error_type, count]) => ({
+            error_type,
+            count,
+        }));
+    };
+
+    const extractFirstNumber = (value: string): number | null => {
+        const matches = value.match(/-?\d+(?:[\.,]\d+)?/);
+        if (!matches || matches.length === 0) {
+            return null;
+        }
+
+        const parsed = Number(matches[0].replace(',', '.'));
+        return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const isOverrideCorrect = (item: GradeResult, correctedText: string): boolean => {
+        const normalizedType = (item.question_type || '').trim().toLowerCase();
+        const studentText = correctedText.trim();
+        const expectedText = item.correct_answer.trim();
+
+        if (normalizedType === 'number' || normalizedType === 'numeric') {
+            const studentNumber = extractFirstNumber(studentText);
+            const expectedNumber = extractFirstNumber(expectedText);
+
+            if (studentNumber !== null && expectedNumber !== null) {
+                return Math.abs(studentNumber - expectedNumber) < 1e-9;
+            }
+        }
+
+        return studentText === expectedText;
+    };
+
+    useEffect(() => {
+        const fetchClasses = async () => {
+            try {
+                const classList = await classApi.getClasses();
+                setClasses(classList);
+                if (classList.length > 0) {
+                    setSelectedClassId(classList[0].id.toString());
+                }
+            } catch (fetchError) {
+                console.error('Khong the tai danh sach lop:', fetchError);
+            }
+        };
+
+        fetchClasses();
+    }, []);
 
     const handleUploadClick = () => {
         fileInputRef.current?.click();
@@ -58,22 +123,27 @@ export default function AIGradingPage() {
     const handleGrade = async () => {
         if (!file) return;
 
-        // Validate JSON only if provided
-        if (correctAnswersJson.trim()) {
-            try {
-                JSON.parse(correctAnswersJson);
-            } catch (_e) {
-                setError("Invalid JSON format for Correct Answers");
-                return;
-            }
-        }
-
         setStep('processing');
         setError(null);
+        setAnalyticsNotice(null);
 
         try {
-            const data: GradingResponse = await aiApi.gradeImage(file, correctAnswersJson.trim() || undefined);
+            const correctAnswersPayload = answerKeyEntries.length > 0
+                ? JSON.stringify(toAnswerKeyPayload(answerKeyEntries))
+                : undefined;
+
+            const data: GradingResponse = await aiApi.gradeImage(file, correctAnswersPayload);
             setGradingResult(data);
+
+            const errorTags = buildErrorTags(data.results);
+            if (!selectedClassId) {
+                setAnalyticsNotice('Vui long chon lop hoc truoc khi luu thong ke da duyet.');
+            } else if (errorTags.length === 0) {
+                setAnalyticsNotice('Khong co loi sai de cap nhat thong ke.');
+            } else {
+                setAnalyticsNotice('Da co ket qua nhap. Vui long review/override roi bam "Luu thong ke da duyet".');
+            }
+
             const firstIncorrectIndex = data.results.findIndex((item) => !item.is_correct);
             if (firstIncorrectIndex >= 0) {
                 setOcrDiff({
@@ -98,6 +168,7 @@ export default function AIGradingPage() {
         setPreviewUrl(null);
         setGradingResult(null);
         setOcrDiff(null);
+        setAnalyticsNotice(null);
         setError(null);
     };
 
@@ -111,7 +182,7 @@ export default function AIGradingPage() {
                 return item;
             }
 
-            const isCorrect = correctedText.trim() === item.correct_answer.trim();
+            const isCorrect = isOverrideCorrect(item, correctedText);
             return {
                 ...item,
                 student_answer: correctedText,
@@ -128,6 +199,44 @@ export default function AIGradingPage() {
             total_score: recalculatedTotal,
         });
         setOcrDiff(null);
+        const refreshedErrorTags = buildErrorTags(updatedResults);
+        if (refreshedErrorTags.length === 0) {
+            setAnalyticsNotice('Da cap nhat ket qua review. Khong con loi sai de luu thong ke.');
+        } else {
+            setAnalyticsNotice('Da cap nhat ket qua review. Bam "Luu thong ke da duyet" de dong bo dashboard.');
+        }
+    };
+
+    const handleSubmitReviewedAnalytics = async () => {
+        if (!gradingResult) {
+            return;
+        }
+
+        if (!selectedClassId) {
+            setAnalyticsNotice('Vui long chon lop hoc truoc khi luu thong ke.');
+            return;
+        }
+
+        const errorTags = buildErrorTags(gradingResult.results);
+        if (errorTags.length === 0) {
+            setAnalyticsNotice('Khong co loi sai de cap nhat thong ke.');
+            return;
+        }
+
+        try {
+            setIsSubmittingAnalytics(true);
+            const submitResult = await aiApi.submitAnalytics({
+                class_id: Number(selectedClassId),
+                source: 'teacher_review',
+                error_tags: errorTags,
+            });
+            setAnalyticsNotice(`Da luu ${submitResult.records_created} nhom loi vao dashboard.`);
+        } catch (submitError) {
+            console.error('Khong the luu analytics da duyet:', submitError);
+            setAnalyticsNotice('Khong the luu thong ke da duyet. Vui long thu lai.');
+        } finally {
+            setIsSubmittingAnalytics(false);
+        }
     };
 
     const getResultConfidence = (result: GradeResult): number => {
@@ -210,17 +319,26 @@ export default function AIGradingPage() {
                             />
 
                             <div className="space-y-3 pt-4 border-t border-slate-200/50">
-                                <Label className="text-slate-700 font-bold block text-base">2. Đáp án mẫu (Tùy chọn)</Label>
-                                <Textarea
-                                    rows={8}
-                                    className="font-mono text-xs bg-white/60 border-slate-200 focus:border-indigo-500 rounded-xl resize-none"
-                                    value={correctAnswersJson}
-                                    onChange={(e) => setCorrectAnswersJson(e.target.value)}
-                                    placeholder='[{"id": 1, "answer": "..."}]'
-                                />
-                                <p className="text-xs text-slate-500 font-medium">
-                                    Để trống để AI tự động giải và chấm điểm. Hoặc nhập JSON để chấm theo đáp án của bạn.
-                                </p>
+                                <Label className="text-slate-700 font-bold block text-base">2. Lop hoc</Label>
+                                <select
+                                    className="w-full rounded-xl border border-slate-200 bg-white/60 px-3 py-2 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:outline-none"
+                                    value={selectedClassId}
+                                    onChange={(e) => setSelectedClassId(e.target.value)}
+                                >
+                                    {classes.length === 0 ? (
+                                        <option value="">Chua co lop hoc de luu thong ke</option>
+                                    ) : (
+                                        classes.map((cls) => (
+                                            <option key={cls.id} value={cls.id.toString()}>
+                                                {cls.class_name}
+                                            </option>
+                                        ))
+                                    )}
+                                </select>
+                            </div>
+
+                            <div className="space-y-3 pt-4 border-t border-slate-200/50">
+                                <AnswerBuilder value={answerKeyEntries} onChange={setAnswerKeyEntries} />
                             </div>
 
                             <Button
@@ -272,6 +390,20 @@ export default function AIGradingPage() {
                                         <p className="text-xs font-semibold text-slate-500 mt-1">
                                             OCR tin cậy trung bình: {(gradingResult.ocr_avg_confidence ?? 0).toFixed(1)}%
                                         </p>
+                                        {analyticsNotice && (
+                                            <p className="text-xs font-semibold text-indigo-600 mt-2">{analyticsNotice}</p>
+                                        )}
+                                        <div className="mt-3">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="h-9"
+                                                onClick={handleSubmitReviewedAnalytics}
+                                                disabled={isSubmittingAnalytics || !selectedClassId}
+                                            >
+                                                {isSubmittingAnalytics ? 'Dang luu...' : 'Luu thong ke da duyet'}
+                                            </Button>
+                                        </div>
                                     </div>
                                     <div className="text-right">
                                         <div className="text-3xl font-bold text-green-600">

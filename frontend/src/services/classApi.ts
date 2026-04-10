@@ -37,7 +37,10 @@ export interface Student {
 
 export interface StudentCreate {
     full_name: string;
-    tier?: 'foundation' | 'standard' | 'extension' | 'advanced';
+    dob: string;
+    parent_name: string;
+    parent_phone: string;
+    tier: 'foundation' | 'standard' | 'extension' | 'advanced';
 }
 
 export interface MathTopic {
