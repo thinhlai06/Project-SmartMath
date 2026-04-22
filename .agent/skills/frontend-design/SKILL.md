@@ -1,8 +1,19 @@
----
+﻿---
 name: frontend-design
 description: Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, or applications. Generates creative, polished code that avoids generic AI aesthetics.
 license: Complete terms in LICENSE.txt
 ---
+
+## Smart-MathAI Guardrails (MANDATORY)
+
+- Scope: only Vietnamese primary Math for grades 1-3.
+- Roles: only Teacher and Parent are allowed.
+- AI output must remain draft; Teacher review is required before publish.
+- Approved AI models only: qwen3:1.7b (generation), glm-ocr:latest (OCR), vietnamese-sbert (RAG).
+- Do not introduce other AI models or auto-publish flows.
+- Backend: FastAPI + SQLAlchemy ORM only (no raw SQL); enforce grade with Literal[1,2,3] when applicable.
+- Frontend: TypeScript strict mode, immutable updates, role-based rendering, Vietnamese UX/error messages.
+- Keep AI logic isolated under backend/app/services/ai and mock AI calls in tests.
 
 This skill guides creation of distinctive, production-grade frontend interfaces that avoid generic "AI slop" aesthetics. Implement real working code with exceptional attention to aesthetic details and creative choices.
 

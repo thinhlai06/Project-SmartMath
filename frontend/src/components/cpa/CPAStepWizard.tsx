@@ -279,44 +279,8 @@ export function CPAStepWizard() {
 
             await cpaBundleApi.saveBundles(worksheet.id, approvedBundles);
 
-            const exercises = approvedBundles.flatMap((bundle, bundleIndex) => {
-                const baseIndex = bundleIndex * 3;
-                return [
-                    {
-                        question: `${bundle.concrete.action_instruction}\n${bundle.concrete.result_prompt}`,
-                        answer: bundle.concrete.answer,
-                        exercise_type: 'concrete',
-                        order_index: baseIndex,
-                    },
-                    {
-                        question: `${bundle.pictorial.question_text}\n[Sơ đồ: ${bundle.pictorial.diagram_type}]`,
-                        answer: bundle.pictorial.answer,
-                        exercise_type: 'pictorial',
-                        order_index: baseIndex + 1,
-                    },
-                    {
-                        question: bundle.abstract.expression,
-                        answer: bundle.abstract.answer,
-                        hint: bundle.abstract.hint,
-                        exercise_type: 'abstract',
-                        order_index: baseIndex + 2,
-                    },
-                ];
-            });
-
-            for (const exercise of exercises) {
-                await fetch(`/api/worksheets/${worksheet.id}/exercises`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify(exercise),
-                });
-            }
-
-            // Success - navigate to worksheets page
-            navigate(`/classes/${selectedClassId}/worksheets`);
+            // Success - navigate to worksheet editor for optional fine-tuning
+            navigate(`/worksheets/${worksheet.id}/edit`);
         } catch (error: any) {
             setSaveError(error.message || 'Đã xảy ra lỗi khi lưu');
         } finally {

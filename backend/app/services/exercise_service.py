@@ -21,6 +21,7 @@ def create_exercise(
     question: str, 
     answer: Optional[str] = None, 
     hint: Optional[str] = None,
+    image_url: Optional[str] = None,
     exercise_type: str = "short_answer",
     difficulty_tier: str = "standard",
     order_index: int = 0
@@ -37,6 +38,7 @@ def create_exercise(
         question=question,
         answer=answer,
         hint=hint,
+        image_url=image_url,
         exercise_type=exercise_type,
         difficulty_tier=difficulty_tier,
         order_index=order_index

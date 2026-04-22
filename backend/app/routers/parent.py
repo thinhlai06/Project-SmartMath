@@ -13,7 +13,7 @@ from app.models.parent_class_link import ParentClassLink
 from app.models.student import Student
 from app.models.worksheet import Worksheet
 from app.models.math_topic import MathTopic
-from app.models.student_progress import StudentProgress, ProgressStatus
+from app.models.student_progress import StudentProgress
 from app.models.announcement import Announcement
 from app.models.worksheet_exercise import WorksheetExercise
 from app.schemas.parent import (
@@ -138,7 +138,7 @@ async def get_parent_dashboard(
     )
     progress_by_worksheet = {p.worksheet_id: p for p in progress_rows}
 
-    completed_count = sum(1 for p in progress_rows if _status_value(p.status) == ProgressStatus.COMPLETED.value)
+    completed_count = sum(1 for p in progress_rows if _status_value(p.status) == "completed")
     total_correct = sum((p.correct_count or 0) for p in progress_rows)
     total_questions = sum((p.total_count or 0) for p in progress_rows if (p.total_count or 0) > 0)
     accuracy = round((total_correct / total_questions) * 100) if total_questions > 0 else 0
@@ -170,7 +170,7 @@ async def get_parent_dashboard(
         if progress:
             if progress.total_count and progress.total_count > 0:
                 percent = round((progress.correct_count / progress.total_count) * 100)
-            elif _status_value(progress.status) == ProgressStatus.COMPLETED.value:
+            elif _status_value(progress.status) == "completed":
                 percent = 100
 
         topic_percent_map.setdefault(topic_label, []).append(percent)
@@ -309,21 +309,21 @@ async def mark_parent_worksheet_completed(
         progress = StudentProgress(
             student_id=link.student_id,
             worksheet_id=worksheet_id,
-            status=ProgressStatus.COMPLETED,
+            status="completed",
             correct_count=0,
             total_count=exercise_count,
             completed_at=datetime.utcnow(),
         )
         db.add(progress)
     else:
-        progress.status = ProgressStatus.COMPLETED
+        progress.status = "completed"
         progress.completed_at = datetime.utcnow()
 
     db.commit()
 
     return MarkWorksheetCompletedResponse(
         worksheet_id=worksheet_id,
-        status=ProgressStatus.COMPLETED.value,
+        status="completed",
         message="Đã đánh dấu hoàn thành",
     )
 

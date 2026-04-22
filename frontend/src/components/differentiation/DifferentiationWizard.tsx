@@ -77,7 +77,7 @@ export function DifferentiationWizard() {
         setCurrentStep(3);
     };
 
-    const handleSave = async () => {
+    const handleSave = async (generatedContent: Record<string, { question: string; answer: string; hint?: string }[]>) => {
         if (!selectedClassId) {
             setSaveError('Vui lòng chọn lớp học');
             return;
@@ -117,36 +117,33 @@ export function DifferentiationWizard() {
 
             // Add exercises from tier assignments
             const tierOrder = ['foundation', 'standard', 'extension', 'advanced'];
-            const tierLabels: Record<string, string> = {
-                foundation: 'Nhận biết',
-                standard: 'Thông hiểu',
-                extension: 'Vận dụng',
-                advanced: 'Vận dụng cao'
-            };
-
             let orderIndex = 0;
-            for (const tier of tierOrder) {
-                const exercise = {
-                    question: `[${tierLabels[tier]}] Bài tập phân hóa - Mức ${tierLabels[tier]}`,
-                    difficulty_tier: tier,
-                    order_index: orderIndex++
-                };
 
-                await fetch(
-                    `/api/worksheets/${worksheet.id}/exercises`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        credentials: 'include',
-                        body: JSON.stringify(exercise)
-                    }
-                );
+            for (const tier of tierOrder) {
+                const tierQuestions = generatedContent[tier] || [];
+                for (const q of tierQuestions) {
+                    await fetch(
+                        `/api/worksheets/${worksheet.id}/exercises`,
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                question: q.question,
+                                answer: q.answer || '',
+                                hint: q.hint || '',
+                                difficulty_tier: tier,
+                                order_index: orderIndex++
+                            })
+                        }
+                    );
+                }
             }
 
-            // Success - navigate to worksheets page
-            navigate(`/classes/${selectedClassId}/worksheets`);
+            // Success - navigate to worksheets editor
+            navigate(`/worksheets/${worksheet.id}/edit`);
         } catch (error: any) {
             setSaveError(error.message || 'Đã xảy ra lỗi khi lưu');
         } finally {

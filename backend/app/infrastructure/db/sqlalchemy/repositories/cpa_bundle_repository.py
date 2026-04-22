@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.domain.repositories.cpa_bundle_repository import CPABundleRepository
 from app.models.cpa_bundle import CPABundleRecord
+from app.models.worksheet_exercise import WorksheetExercise, ExerciseType
 from app.schemas.cpa_bundle import CPABundle, ContentFamily, MathCore, ValidationStatus
 
 
@@ -17,7 +18,7 @@ class SqlAlchemyCPABundleRepository(CPABundleRepository):
         self.db = db
 
     def save_many(self, worksheet_id: int, bundles: List[CPABundle]) -> int:
-        self.delete_by_worksheet_id(worksheet_id)
+        self.delete_by_worksheet_id(worksheet_id, commit=False)
         records: List[CPABundleRecord] = []
         for index, bundle in enumerate(bundles):
             core_payload: dict = {
@@ -44,6 +45,54 @@ class SqlAlchemyCPABundleRepository(CPABundleRepository):
             records.append(record)
 
         self.db.add_all(records)
+
+        # Delete existing worksheet exercises for this worksheet to resync
+        self.db.query(WorksheetExercise).filter(WorksheetExercise.worksheet_id == worksheet_id).delete(synchronize_session=False)
+
+        # Sync bundles to WorksheetExercises
+        exercises: List[WorksheetExercise] = []
+        exercise_order = 0
+
+        for bundle in bundles:
+            # Concrete
+            if bundle.concrete:
+                exercises.append(WorksheetExercise(
+                    worksheet_id=worksheet_id,
+                    exercise_type=ExerciseType.CONCRETE,
+                    question=f"{bundle.concrete.action_instruction}\n{bundle.concrete.result_prompt}".strip(),
+                    answer=bundle.concrete.answer,
+                    hint=None,
+                    order_index=exercise_order
+                ))
+                exercise_order += 1
+
+            # Pictorial
+            if bundle.pictorial:
+                exercises.append(WorksheetExercise(
+                    worksheet_id=worksheet_id,
+                    exercise_type=ExerciseType.PICTORIAL,
+                    question=f"{bundle.pictorial.question_text}\n[Sơ đồ: {bundle.pictorial.diagram_type}]",
+                    answer=bundle.pictorial.answer,
+                    hint=None,
+                    order_index=exercise_order
+                ))
+                exercise_order += 1
+
+            # Abstract
+            if bundle.abstract:
+                exercises.append(WorksheetExercise(
+                    worksheet_id=worksheet_id,
+                    exercise_type=ExerciseType.ABSTRACT,
+                    question=bundle.abstract.expression,
+                    answer=bundle.abstract.answer,
+                    hint=bundle.abstract.hint,
+                    order_index=exercise_order
+                ))
+                exercise_order += 1
+
+        if exercises:
+            self.db.add_all(exercises)
+
         self.db.commit()
         return len(records)
 
@@ -91,10 +140,11 @@ class SqlAlchemyCPABundleRepository(CPABundleRepository):
             bundles.append(bundle)
         return bundles
 
-    def delete_by_worksheet_id(self, worksheet_id: int) -> None:
+    def delete_by_worksheet_id(self, worksheet_id: int, commit: bool = True) -> None:
         (
             self.db.query(CPABundleRecord)
             .filter(CPABundleRecord.worksheet_id == worksheet_id)
             .delete(synchronize_session=False)
         )
-        self.db.commit()
+        if commit:
+            self.db.commit()

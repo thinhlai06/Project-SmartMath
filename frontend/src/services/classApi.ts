@@ -43,6 +43,27 @@ export interface StudentCreate {
     tier: 'foundation' | 'standard' | 'extension' | 'advanced';
 }
 
+export interface StudentProgressCreate {
+    worksheet_id: number;
+    correct_count: number;
+    total_count: number;
+    score?: number;
+    details?: Record<string, unknown>;
+}
+
+export interface StudentProgressResponse {
+    id: number;
+    student_id: number;
+    worksheet_id: number;
+    status: string;
+    correct_count: number;
+    total_count: number;
+    completed_at?: string | null;
+    details?: Record<string, unknown> | null;
+    created_at: string;
+    updated_at?: string | null;
+}
+
 export interface MathTopic {
     id: number;
     topic_name: string;
@@ -135,6 +156,12 @@ export const studentApi = {
     // Delete a student
     deleteStudent: async (studentId: number): Promise<void> => {
         await api.delete(`/students/${studentId}`);
+    },
+
+    // Save student worksheet progress (AI grading reviewed by teacher)
+    saveProgress: async (studentId: number, data: StudentProgressCreate): Promise<StudentProgressResponse> => {
+        const response = await api.post<StudentProgressResponse>(`/students/${studentId}/progress`, data);
+        return response.data;
     },
 };
 

@@ -468,9 +468,15 @@ export function ClassDetailPage() {
                             <FileText className="w-5 h-5" />
                             Bài tập đã giao ({publishedWorksheets.length})
                         </CardTitle>
-                        <Button onClick={() => navigate(`/classes/${classId}/worksheets`)} size="sm" variant="outline">
-                            Quản lý bài tập →
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button onClick={() => navigate(`/classes/${classId}/gradebook`)} size="sm" variant="outline" className="bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100">
+                                <FileText className="w-4 h-4 mr-2" />
+                                Bảng điểm lớp
+                            </Button>
+                            <Button onClick={() => navigate(`/classes/${classId}/worksheets`)} size="sm" variant="outline">
+                                Quản lý bài tập →
+                            </Button>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         {publishedWorksheets.length === 0 ? (
@@ -914,9 +920,11 @@ export function ClassDetailPage() {
         <AlertDialog open={showGradeChangeAlert} onOpenChange={setShowGradeChangeAlert}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle className="flex items-center gap-2">
-                        <AlertTriangle className="w-5 h-5 text-amber-500" />
-                        Cảnh báo: Đổi khối lớp
+                    <AlertDialogTitle>
+                        <span className="flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5 text-amber-500" />
+                            Cảnh báo: Đổi khối lớp
+                        </span>
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                         Bạn sắp đổi khối lớp từ <strong>Lớp {classData?.grade}</strong> sang <strong>Lớp {editClassForm.grade}</strong>.

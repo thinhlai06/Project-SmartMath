@@ -5,6 +5,7 @@ import { CPAStepWizard } from './components/cpa/CPAStepWizard';
 import { DifferentiationWizard } from './components/differentiation/DifferentiationWizard';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { LoginPage, RegisterPage, HomePage, ClassesPage, ClassDetailPage, WorksheetsPage, WorksheetEditorPage } from './pages';
+import { GradebookPage } from './pages/GradebookPage';
 import { Navigation } from './components/Navigation';
 import ParentDashboardPage from './pages/ParentDashboardPage';
 import ParentSolutionsPage from './pages/ParentSolutionsPage';
@@ -12,6 +13,7 @@ import StudentExperiencePage from './pages/StudentExperiencePage';
 import AIGradingPage from './pages/AIGradingPage';
 import ErrorAnalyticsPage from './pages/ErrorAnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
+import GradebookHubPage from './pages/GradebookHubPage';
 import './index.css';
 
 // Protected route wrapper
@@ -99,6 +101,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <WorksheetsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/gradebook"
+        element={
+          <ProtectedRoute>
+            <GradebookHubPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/classes/:classId/gradebook"
+        element={
+          <ProtectedRoute>
+            <GradebookPage />
           </ProtectedRoute>
         }
       />

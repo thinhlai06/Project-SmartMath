@@ -3,14 +3,17 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Upload, AlertCircle, RefreshCw, FileText } from 'lucide-react';
+import { Upload, AlertCircle, RefreshCw, FileText, Save } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { GradingDiffViewer } from '@/components/redesign';
 import { AnswerBuilder, toAnswerKeyPayload, type AnswerBuilderEntry } from '@/components/ai/AnswerBuilder';
 import aiApi from '@/services/aiApi';
 import type { AnalyticsTagItem, GradeResult, GradingResponse } from '@/types/ai';
-import { classApi, type MathClass } from '@/services/classApi';
+import { classApi, studentApi, type MathClass, type Student } from '@/services/classApi';
+import { worksheetApi, type Worksheet } from '@/services/worksheetApi';
+import { gradebookApi } from '@/services/gradebookApi';
+import { useToast } from '@/components/ui/toast';
 
 interface OCRDiffState {
     resultIndex: number;
@@ -28,10 +31,15 @@ export default function AIGradingPage() {
     const [answerKeyEntries, setAnswerKeyEntries] = useState<AnswerBuilderEntry[]>([]);
     const [gradingResult, setGradingResult] = useState<GradingResponse | null>(null);
     const [ocrDiff, setOcrDiff] = useState<OCRDiffState | null>(null);
+    const { toast } = useToast();
     const [classes, setClasses] = useState<MathClass[]>([]);
     const [selectedClassId, setSelectedClassId] = useState<string>('');
+    const [students, setStudents] = useState<Student[]>([]);
+    const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+    const [worksheets, setWorksheets] = useState<Worksheet[]>([]);
+    const [selectedWorksheetId, setSelectedWorksheetId] = useState<string>('');
     const [analyticsNotice, setAnalyticsNotice] = useState<string | null>(null);
-    const [isSubmittingAnalytics, setIsSubmittingAnalytics] = useState(false);
+    const [isSavingGrade, setIsSavingGrade] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
 
@@ -95,26 +103,36 @@ export default function AIGradingPage() {
         fetchClasses();
     }, []);
 
-    const handleUploadClick = () => {
-        // kept for compatibility but primary trigger is the label below
-        fileInputRef.current?.click();
-    };
+    useEffect(() => {
+        const loadClassDetails = async () => {
+            if (!selectedClassId) {
+                setStudents([]);
+                setWorksheets([]);
+                setSelectedStudentId('');
+                setSelectedWorksheetId('');
+                return;
+            }
+            // Reset dependent selections before loading new data
+            setSelectedStudentId('');
+            setSelectedWorksheetId('');
+            try {
+                const [studentsData, worksheetsData] = await Promise.all([
+                    studentApi.getStudents(Number(selectedClassId)),
+                    worksheetApi.getWorksheets(Number(selectedClassId), 'published')
+                ]);
+                setStudents(studentsData);
+                setWorksheets(worksheetsData);
+                // Do NOT auto-select — force teacher to explicitly choose
+            } catch (err) {
+                console.error('Error loading class details', err);
+            }
+        };
+        loadClassDetails();
+    }, [selectedClassId]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const selectedFile = e.target.files[0];
-            setFile(selectedFile);
-            setPreviewUrl(URL.createObjectURL(selectedFile));
-            setError(null);
-        }
-    };
-
-    const handleDrop = (e: React.DragEvent<HTMLButtonElement>) => {
-        e.preventDefault();
-        setIsDragging(false);
-
-        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            const selectedFile = e.dataTransfer.files[0];
             setFile(selectedFile);
             setPreviewUrl(URL.createObjectURL(selectedFile));
             setError(null);
@@ -138,11 +156,11 @@ export default function AIGradingPage() {
 
             const errorTags = buildErrorTags(data.results);
             if (!selectedClassId) {
-                setAnalyticsNotice('Vui long chon lop hoc truoc khi luu thong ke da duyet.');
+                setAnalyticsNotice('Vui lòng chọn lớp học để lưu thống kê.');
             } else if (errorTags.length === 0) {
-                setAnalyticsNotice('Khong co loi sai de cap nhat thong ke.');
+                setAnalyticsNotice('Không có lỗi sai để cập nhật thống kê.');
             } else {
-                setAnalyticsNotice('Da co ket qua nhap. Vui long review/override roi bam "Luu thong ke da duyet".');
+                setAnalyticsNotice('Đã có kết quả. Xem xét câu sai bên dưới rồi nhấn "Lưu điểm vào sổ".');
             }
 
             const firstIncorrectIndex = data.results.findIndex((item) => !item.is_correct);
@@ -156,9 +174,10 @@ export default function AIGradingPage() {
                 setOcrDiff(null);
             }
             setStep('result');
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Đã xảy ra lỗi khi chấm điểm';
             console.error(err);
-            setError(err.message || "Something went wrong");
+            setError(msg);
             setStep('upload');
         }
     };
@@ -202,41 +221,68 @@ export default function AIGradingPage() {
         setOcrDiff(null);
         const refreshedErrorTags = buildErrorTags(updatedResults);
         if (refreshedErrorTags.length === 0) {
-            setAnalyticsNotice('Da cap nhat ket qua review. Khong con loi sai de luu thong ke.');
+            setAnalyticsNotice('Đã cập nhật kết quả. Không còn lỗi sai.');
         } else {
-            setAnalyticsNotice('Da cap nhat ket qua review. Bam "Luu thong ke da duyet" de dong bo dashboard.');
+            setAnalyticsNotice('Đã cập nhật kết quả. Nhấn "Lưu điểm vào sổ" để đồng bộ.');
         }
     };
 
     const handleSubmitReviewedAnalytics = async () => {
-        if (!gradingResult) {
-            return;
-        }
+        if (!gradingResult) return;
 
-        if (!selectedClassId) {
-            setAnalyticsNotice('Vui long chon lop hoc truoc khi luu thong ke.');
-            return;
-        }
-
-        const errorTags = buildErrorTags(gradingResult.results);
-        if (errorTags.length === 0) {
-            setAnalyticsNotice('Khong co loi sai de cap nhat thong ke.');
+        if (!selectedClassId || !selectedStudentId || !selectedWorksheetId) {
+            setAnalyticsNotice('Vui lòng chọn đủ Lớp, Học sinh và Bài tập trước khi lưu điểm.');
             return;
         }
 
         try {
-            setIsSubmittingAnalytics(true);
-            const submitResult = await aiApi.submitAnalytics({
-                class_id: Number(selectedClassId),
-                source: 'teacher_review',
-                error_tags: errorTags,
+            setIsSavingGrade(true);
+
+            const correctCount = gradingResult.results.filter((item) => item.is_correct).length;
+            const totalCount = gradingResult.results.length;
+            
+            // Calculate score assuming max is 10 if standard 10-point scale desired
+            // For simplicity, we just use the calculated ratio out of 10 if max_score varies
+            let finalScore = gradingResult.total_score;
+            if (gradingResult.max_score > 0 && gradingResult.max_score !== 10) {
+                finalScore = (gradingResult.total_score / gradingResult.max_score) * 10;
+            }
+            
+            // Round to 1 decimal place
+            finalScore = Math.round(finalScore * 10) / 10;
+
+            await studentApi.saveProgress(Number(selectedStudentId), {
+                worksheet_id: Number(selectedWorksheetId),
+                correct_count: correctCount,
+                total_count: totalCount,
+                score: finalScore,
+                details: {
+                    source: 'ai_grading_teacher_review',
+                    max_score: gradingResult.max_score,
+                },
             });
-            setAnalyticsNotice(`Da luu ${submitResult.records_created} nhom loi vao dashboard.`);
+
+            await gradebookApi.saveGrade(Number(selectedStudentId), Number(selectedWorksheetId), finalScore);
+            
+            toast(`Đã lưu ${finalScore} điểm cho học sinh.`, "success");
+            
+            // Optionally save analytics in the background
+            const errorTags = buildErrorTags(gradingResult.results);
+            if (errorTags.length > 0) {
+                aiApi.submitAnalytics({
+                    class_id: Number(selectedClassId),
+                    source: 'teacher_review',
+                    error_tags: errorTags,
+                }).catch(e => console.error("Analytics save failed", e));
+            }
+            
+            setAnalyticsNotice(`Đã lưu ${finalScore} điểm vào sổ điểm.`);
         } catch (submitError) {
-            console.error('Khong the luu analytics da duyet:', submitError);
-            setAnalyticsNotice('Khong the luu thong ke da duyet. Vui long thu lai.');
+            console.error('Không thể lưu điểm:', submitError);
+            setAnalyticsNotice('Lỗi khi lưu điểm. Vui lòng thử lại.');
+            toast("Không thể lưu điểm. Vui lòng thử lại.", "error");
         } finally {
-            setIsSubmittingAnalytics(false);
+            setIsSavingGrade(false);
         }
     };
 
@@ -329,22 +375,51 @@ export default function AIGradingPage() {
                             />
 
                             <div className="space-y-3 pt-4 border-t border-slate-200/50">
-                                <Label className="text-slate-700 font-bold block text-base">2. Lop hoc</Label>
+                                <Label className="text-slate-700 font-bold block text-base">2. Lớp học</Label>
                                 <select
                                     className="w-full rounded-xl border border-slate-200 bg-white/60 px-3 py-2 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:outline-none"
                                     value={selectedClassId}
                                     onChange={(e) => setSelectedClassId(e.target.value)}
                                 >
-                                    {classes.length === 0 ? (
-                                        <option value="">Chua co lop hoc de luu thong ke</option>
-                                    ) : (
-                                        classes.map((cls) => (
-                                            <option key={cls.id} value={cls.id.toString()}>
-                                                {cls.class_name}
-                                            </option>
-                                        ))
-                                    )}
+                                    <option value="">-- Chọn lớp học --</option>
+                                    {classes.map((cls) => (
+                                        <option key={cls.id} value={cls.id.toString()}>
+                                            {cls.class_name}
+                                        </option>
+                                    ))}
                                 </select>
+                                
+                                {selectedClassId && (
+                                    <>
+                                        <Label className="text-slate-700 font-bold block text-base pt-2">Học sinh</Label>
+                                        <select
+                                            className="w-full rounded-xl border border-slate-200 bg-white/60 px-3 py-2 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:outline-none"
+                                            value={selectedStudentId}
+                                            onChange={(e) => setSelectedStudentId(e.target.value)}
+                                        >
+                                            <option value="">-- Chọn học sinh --</option>
+                                            {students.map((stu) => (
+                                                <option key={stu.id} value={stu.id.toString()}>
+                                                    {stu.full_name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        
+                                        <Label className="text-slate-700 font-bold block text-base pt-2">Bài tập</Label>
+                                        <select
+                                            className="w-full rounded-xl border border-slate-200 bg-white/60 px-3 py-2 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:outline-none"
+                                            value={selectedWorksheetId}
+                                            onChange={(e) => setSelectedWorksheetId(e.target.value)}
+                                        >
+                                            <option value="">-- Chọn bài tập --</option>
+                                            {worksheets.map((ws) => (
+                                                <option key={ws.id} value={ws.id.toString()}>
+                                                    {ws.title}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </>
+                                )}
                             </div>
 
                             <div className="space-y-3 pt-4 border-t border-slate-200/50">
@@ -406,12 +481,12 @@ export default function AIGradingPage() {
                                         <div className="mt-3">
                                             <Button
                                                 type="button"
-                                                variant="outline"
-                                                className="h-9"
+                                                className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                                                 onClick={handleSubmitReviewedAnalytics}
-                                                disabled={isSubmittingAnalytics || !selectedClassId}
+                                                disabled={isSavingGrade || !selectedClassId || !selectedStudentId || !selectedWorksheetId}
                                             >
-                                                {isSubmittingAnalytics ? 'Dang luu...' : 'Luu thong ke da duyet'}
+                                                <Save className="w-4 h-4 mr-2" />
+                                                {isSavingGrade ? 'Đang lưu...' : 'Lưu điểm vào sổ'}
                                             </Button>
                                         </div>
                                     </div>

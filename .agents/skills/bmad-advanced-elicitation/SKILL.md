@@ -1,8 +1,19 @@
----
+﻿---
 name: bmad-advanced-elicitation
 description: 'Push the LLM to reconsider, refine, and improve its recent output. Use when user asks for deeper critique or mentions a known deeper critique method, e.g. socratic, first principles, pre-mortem, red team.'
 agent_party: '{project-root}/_bmad/_config/agent-manifest.csv'
 ---
+
+## Smart-MathAI Guardrails (MANDATORY)
+
+- Scope: only Vietnamese primary Math for grades 1-3.
+- Roles: only Teacher and Parent are allowed.
+- AI output must remain draft; Teacher review is required before publish.
+- Approved AI models only: qwen3:1.7b (generation), glm-ocr:latest (OCR), vietnamese-sbert (RAG).
+- Do not introduce other AI models or auto-publish flows.
+- Backend: FastAPI + SQLAlchemy ORM only (no raw SQL); enforce grade with Literal[1,2,3] when applicable.
+- Frontend: TypeScript strict mode, immutable updates, role-based rendering, Vietnamese UX/error messages.
+- Keep AI logic isolated under backend/app/services/ai and mock AI calls in tests.
 
 # Advanced Elicitation
 
@@ -135,3 +146,4 @@ x. Proceed / No Further Actions
   1. Apply to the current enhanced version of the content
   2. Show the improvements made
   3. Return to the prompt for additional elicitations or completion
+

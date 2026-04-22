@@ -5,9 +5,16 @@ from datetime import date, datetime
 import io
 
 from app.database import get_db
-from app.schemas.student import StudentCreate, StudentUpdate, StudentResponse
+from app.schemas.student import (
+    StudentCreate,
+    StudentUpdate,
+    StudentResponse,
+    StudentProgressCreate,
+    StudentProgressResponse,
+)
 from app.models.math_class import MathClass
 from app.models.student import Student
+from app.models.worksheet import Worksheet
 from app.utils.dependencies import get_current_teacher
 from app.models.user import User
 from app.services import student_service
@@ -285,3 +292,47 @@ async def delete_student(
     verify_class_ownership(db, int(student.class_id), int(current_user.id))
     student_service.delete_student(db, student)
     return None
+
+
+@router.post("/students/{student_id}/progress", response_model=StudentProgressResponse)
+async def save_student_progress(
+    student_id: int,
+    payload: StudentProgressCreate,
+    current_user: User = Depends(get_current_teacher),
+    db: Session = Depends(get_db),
+):
+    """Lưu tiến độ làm bài của học sinh sau khi giáo viên duyệt kết quả AI."""
+    student = student_service.get_student_by_id(db, student_id)
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy học sinh"
+        )
+
+    verify_class_ownership(db, int(student.class_id), int(current_user.id))
+
+    worksheet = db.query(Worksheet).filter(Worksheet.id == payload.worksheet_id).first()
+    if not worksheet:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy bài tập"
+        )
+    if int(worksheet.class_id) != int(student.class_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Bài tập không thuộc lớp của học sinh"
+        )
+
+    progress_details = dict(payload.details or {})
+    progress_details["teacher_approval_status"] = "approved"
+    if payload.score is not None:
+        progress_details["score"] = payload.score
+
+    return student_service.save_student_progress(
+        db,
+        student_id=student.id,
+        worksheet_id=payload.worksheet_id,
+        correct_count=payload.correct_count,
+        total_count=payload.total_count,
+        details=progress_details,
+    )

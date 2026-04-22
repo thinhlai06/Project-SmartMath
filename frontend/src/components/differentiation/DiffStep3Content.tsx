@@ -20,7 +20,7 @@ interface DiffStep3ContentProps {
         grade: number;
     };
     onBack: () => void;
-    onSave: () => void;
+    onSave: (content: Record<string, QuestionItem[]>) => void;
     isSaving?: boolean;
 }
 
@@ -170,7 +170,7 @@ export function DiffStep3Content({ assignments, data, onBack, onSave, isSaving =
                                 <ArrowLeft className="w-4 h-4" /> Quay lại
                             </Button>
                             <Button
-                                onClick={onSave}
+                                onClick={() => onSave(content)}
                                 disabled={isSaving}
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-bold h-11 px-8 rounded-xl shadow-md hover:shadow-lg transition-all btn-bounce"
                             >

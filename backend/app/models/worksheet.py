@@ -39,7 +39,7 @@ class Worksheet(Base):
     math_class = relationship("MathClass", back_populates="worksheets")
     exercises = relationship("WorksheetExercise", back_populates="worksheet", cascade="all, delete-orphan")
     cpa_bundles = relationship("CPABundleRecord", back_populates="worksheet", cascade="all, delete-orphan")
-    progress = relationship("StudentProgress", back_populates="worksheet", cascade="all, delete-orphan")
+    student_progress = relationship("StudentProgress", back_populates="worksheet", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Worksheet(id={self.id}, title='{self.title}', status='{self.status}')>"

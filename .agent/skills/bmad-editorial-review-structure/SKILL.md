@@ -1,7 +1,18 @@
----
+﻿---
 name: bmad-editorial-review-structure
 description: 'Structural editor that proposes cuts, reorganization, and simplification while preserving comprehension. Use when user requests structural review or editorial review of structure'
 ---
+
+## Smart-MathAI Guardrails (MANDATORY)
+
+- Scope: only Vietnamese primary Math for grades 1-3.
+- Roles: only Teacher and Parent are allowed.
+- AI output must remain draft; Teacher review is required before publish.
+- Approved AI models only: qwen3:1.7b (generation), glm-ocr:latest (OCR), vietnamese-sbert (RAG).
+- Do not introduce other AI models or auto-publish flows.
+- Backend: FastAPI + SQLAlchemy ORM only (no raw SQL); enforce grade with Literal[1,2,3] when applicable.
+- Frontend: TypeScript strict mode, immutable updates, role-based rendering, Vietnamese UX/error messages.
+- Keep AI logic isolated under backend/app/services/ai and mock AI calls in tests.
 
 # Editorial Review - Structure
 
@@ -177,3 +188,4 @@ Use the following output format:
 - HALT with error if content is empty or fewer than 3 words
 - HALT with error if reader_type is not "humans" or "llm"
 - If no structural issues found, output "No substantive changes recommended" (this is valid completion, not an error)
+

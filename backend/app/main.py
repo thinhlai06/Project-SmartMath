@@ -7,8 +7,10 @@ from app.models.student_progress import StudentProgress
 from app.models.student_analytics import StudentAnalytics
 from app.models.grading_report import GradingReport
 from app.models.cpa_bundle import CPABundleRecord
-from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, parent, announcements, dashboard, activities
+from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, parent, announcements, dashboard, activities, upload, gradebook
 from app.core.exceptions import SmartMathException, smartmath_exception_handler
+from fastapi.staticfiles import StaticFiles
+import os
 
 
 logger = logging.getLogger(__name__)
@@ -73,6 +75,11 @@ app.include_router(parent.router, prefix="/api/parent", tags=["Parent"])
 app.include_router(announcements.router, prefix="/api", tags=["Announcements"])
 app.include_router(dashboard.router, prefix="/api", tags=["Dashboard"])
 app.include_router(activities.router, prefix="/api", tags=["Activities"])
+app.include_router(upload.router, prefix="/api")
+app.include_router(gradebook.router, prefix="/api")
+
+os.makedirs("uploads/images", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # AI routers are optional so core MVP (auth/classes/worksheets) still runs without AI dependencies.
 try:
