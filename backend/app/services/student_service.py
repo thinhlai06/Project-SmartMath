@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import date
+from datetime import date, datetime
 
 from app.models.student import Student
 from app.models.student_progress import StudentProgress
@@ -115,3 +115,33 @@ def delete_student(db: Session, student: Student) -> None:
     """Delete a student."""
     db.delete(student)
     db.commit()
+
+
+def save_student_progress(
+    db: Session,
+    student_id: int,
+    worksheet_id: int,
+    correct_count: int,
+    total_count: int,
+    details: Optional[dict] = None,
+) -> StudentProgress:
+    """Create or update worksheet progress for a student."""
+    progress = db.query(StudentProgress).filter(
+        StudentProgress.student_id == student_id,
+        StudentProgress.worksheet_id == worksheet_id,
+    ).first()
+
+    if progress is None:
+        progress = StudentProgress(student_id=student_id, worksheet_id=worksheet_id)
+        db.add(progress)
+
+    progress.status = "completed"
+    progress.correct_count = correct_count
+    progress.total_count = total_count
+    progress.completed_at = datetime.utcnow()
+    progress.updated_at = datetime.utcnow()
+    progress.details = details
+
+    db.commit()
+    db.refresh(progress)
+    return progress

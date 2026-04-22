@@ -83,6 +83,7 @@ async def create_exercise(
         question=data.question,
         answer=data.answer,
         hint=data.hint,
+        image_url=data.image_url,
         exercise_type=data.exercise_type.value if hasattr(data.exercise_type, 'value') else data.exercise_type,
         difficulty_tier=data.difficulty_tier.value if hasattr(data.difficulty_tier, 'value') else data.difficulty_tier,
         order_index=data.order_index

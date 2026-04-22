@@ -334,7 +334,7 @@ function TeacherHome() {
                     </div>
                     <div
                         className="glass-panel card-hover rounded-3xl p-6 relative overflow-hidden group cursor-pointer"
-                        onClick={() => classes.length > 0 ? navigate(`/classes/${classes[0].id}/worksheets`) : null}
+                        onClick={() => navigate('/classes')}
                     >
                         <div className="absolute -right-4 -top-4 w-24 h-24 bg-orange-100 rounded-full opacity-50 transition-transform group-hover:scale-150" />
                         {isLoading ? (
@@ -342,17 +342,21 @@ function TeacherHome() {
                         ) : (
                             <p className="text-4xl font-black text-slate-800 group-hover:text-orange-600 transition-colors drop-shadow-sm">{worksheetCount}</p>
                         )}
-                        <p className="text-slate-600 font-medium mt-1 relative z-10">Bài tập</p>
-                        <p className="text-sm font-semibold text-orange-500 mt-4 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">Xem chi tiết &rarr;</p>
+                        <p className="text-slate-600 font-medium mt-1 relative z-10">Bài tập (tổng)</p>
+                        <p className="text-sm font-semibold text-orange-500 mt-4 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">Xem theo lớp &rarr;</p>
                     </div>
-                    <div className="glass-panel card-hover rounded-3xl p-6 relative overflow-hidden group">
+                    <div
+                        className="glass-panel card-hover rounded-3xl p-6 relative overflow-hidden group cursor-pointer"
+                        onClick={() => navigate('/gradebook')}
+                    >
                         <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-100 rounded-full opacity-50 transition-transform group-hover:scale-150" />
-                        <p className="text-slate-600 font-medium mt-1">Điểm TB</p>
                         {isLoading ? (
-                            <div className="h-9 w-12 bg-slate-200 rounded animate-pulse mt-2"></div>
+                            <div className="h-9 w-12 bg-slate-200 rounded animate-pulse"></div>
                         ) : (
-                            <p className={`text-4xl font-black drop-shadow-sm mt-2 ${avgScoreColor}`}>{formattedAvgScore}</p>
+                            <p className={`text-4xl font-black drop-shadow-sm ${avgScoreColor}`}>{formattedAvgScore}</p>
                         )}
+                        <p className="text-slate-600 font-medium mt-1 relative z-10">Điểm TB</p>
+                        <p className="text-sm font-semibold text-emerald-500 mt-4 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">Xem sổ điểm &rarr;</p>
                     </div>
                 </div>
 

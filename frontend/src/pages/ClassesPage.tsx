@@ -428,9 +428,11 @@ export function ClassesPage() {
         <AlertDialog open={showGradeChangeAlert} onOpenChange={setShowGradeChangeAlert}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle className="flex items-center gap-2">
-                        <AlertTriangle className="w-5 h-5 text-amber-500" />
-                        Cảnh báo: Đổi khối lớp
+                    <AlertDialogTitle>
+                        <span className="flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5 text-amber-500" />
+                            Cảnh báo: Đổi khối lớp
+                        </span>
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                         Bạn sắp đổi khối lớp từ <strong>Lớp {editingClass?.grade}</strong> sang <strong>Lớp {editClassForm.grade}</strong>.

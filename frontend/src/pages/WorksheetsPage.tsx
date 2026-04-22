@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, Copy, Trash2, Send, EyeOff, Download } from 'lucide-react';
+import { Plus, FileText } from 'lucide-react';
 import { worksheetApi } from '../services/worksheetApi';
 import { classApi } from '../services/classApi';
 import type { Worksheet, WorksheetType, WorksheetCreate } from '../services/worksheetApi';
 import type { MathClass } from '../services/classApi';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { PdfExportModal } from '../components/PdfExportModal';
@@ -160,19 +159,7 @@ export function WorksheetsPage() {
     };
 
 
-    const getStatusBadge = (status: string) => {
-        if (status === 'published') {
-            return <Badge className="bg-green-100 text-green-700">Đã xuất bản</Badge>;
-        }
-        return <Badge className="bg-gray-100 text-gray-600">Nháp</Badge>;
-    };
-
-    const getTypeBadge = (type: WorksheetType) => {
-        if (type === 'cpa') {
-            return <Badge className="bg-blue-100 text-blue-700">CPA</Badge>;
-        }
-        return <Badge className="bg-purple-100 text-purple-700">Phân hóa</Badge>;
-    };
+    // Badge helpers removed since they are now handled inside WorksheetGridCard
 
     if (isLoading) {
         return (
@@ -261,56 +248,21 @@ export function WorksheetsPage() {
                     </Card>
                 ) : (
                     <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 [content-visibility:auto]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {worksheets.map((ws) => (
-                            <div key={ws.id} className="space-y-3 group">
+                            <div key={ws.id} className="h-full">
                                 <WorksheetGridCard
                                     title={ws.title}
                                     status={ws.status === 'published' ? 'published' : 'draft'}
+                                    type={ws.worksheet_type}
+                                    exerciseCount={ws.exercise_count}
                                     editHref={`/worksheets/${ws.id}/edit`}
+                                    onPublish={() => handlePublish(ws.id)}
+                                    onUnpublish={() => handleUnpublish(ws.id)}
+                                    onDuplicate={() => handleDuplicate(ws.id)}
+                                    onDelete={() => handleDelete(ws.id)}
                                     onPdfExport={() => handleOpenPdfModal(ws)}
                                 />
-                                <div className="flex items-center justify-between rounded-2xl border border-white/40 bg-white/60 backdrop-blur-md shadow-sm px-4 py-3">
-                                    <div className="flex gap-1">
-                                        {getTypeBadge(ws.worksheet_type)}
-                                        {getStatusBadge(ws.status)}
-                                        <Badge className="bg-slate-100 text-slate-700">{ws.exercise_count} câu</Badge>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        {ws.status === 'draft' ? (
-                                            <Button size="sm" variant="outline" onClick={() => handlePublish(ws.id)}>
-                                                <Send className="w-3 h-3" />
-                                                Xuất bản
-                                            </Button>
-                                        ) : (
-                                            <Button size="sm" variant="outline" onClick={() => handleUnpublish(ws.id)}>
-                                                <EyeOff className="w-3 h-3" />
-                                                Hủy
-                                            </Button>
-                                        )}
-                                        <Button size="sm" variant="ghost" onClick={() => handleDuplicate(ws.id)} aria-label={`Nhân bản bài tập ${ws.title}`}>
-                                            <Copy className="w-3 h-3" />
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="text-orange-500 hover:text-orange-700"
-                                            onClick={() => handleOpenPdfModal(ws)}
-                                            aria-label={`Xuất PDF cho ${ws.title}`}
-                                        >
-                                            <Download className="w-3 h-3" />
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="text-red-500 hover:text-red-700"
-                                            onClick={() => handleDelete(ws.id)}
-                                            aria-label={`Xóa bài tập ${ws.title}`}
-                                        >
-                                            <Trash2 className="w-3 h-3" />
-                                        </Button>
-                                    </div>
-                                </div>
                             </div>
                         ))}
                     </div>

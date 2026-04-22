@@ -1,39 +1,50 @@
----
+﻿---
 name: ai-workflow
 description: >
-  Workflow và patterns cho Smart-MathAI AI features — sử dụng khi implement,
-  debug hoặc refactor AI question generation (qwen3:1.7b), RAG pipeline
-  (vietnamese-sbert/ChromaDB), hoặc OCR grading (glm-ocr:latest).
+  Workflow vÃ  patterns cho Smart-MathAI AI features â€” sá»­ dá»¥ng khi implement,
+  debug hoáº·c refactor AI question generation (qwen3:1.7b), RAG pipeline
+  (vietnamese-sbert/ChromaDB), hoáº·c OCR grading (glm-ocr:latest).
 ---
 
-# AI Workflow — Smart-MathAI
+## Smart-MathAI Guardrails (MANDATORY)
 
-## 3 AI Models Được Phép (KHÔNG thêm model khác)
+- Scope: only Vietnamese primary Math for grades 1-3.
+- Roles: only Teacher and Parent are allowed.
+- AI output must remain draft; Teacher review is required before publish.
+- Approved AI models only: qwen3:1.7b (generation), glm-ocr:latest (OCR), vietnamese-sbert (RAG).
+- Do not introduce other AI models or auto-publish flows.
+- Backend: FastAPI + SQLAlchemy ORM only (no raw SQL); enforce grade with Literal[1,2,3] when applicable.
+- Frontend: TypeScript strict mode, immutable updates, role-based rendering, Vietnamese UX/error messages.
+- Keep AI logic isolated under backend/app/services/ai and mock AI calls in tests.
 
-| Model | Tool | Mục đích | Khi nào dùng |
+# AI Workflow â€” Smart-MathAI
+
+## 3 AI Models ÄÆ°á»£c PhÃ©p (KHÃ”NG thÃªm model khÃ¡c)
+
+| Model | Tool | Má»¥c Ä‘Ã­ch | Khi nÃ o dÃ¹ng |
 |-------|------|----------|--------------|
-| `qwen3:1.7b` | Ollama | Tạo câu hỏi toán, giải thích từng bước | AI question generation |
-| `keepitreal/vietnamese-sbert` | HuggingFace | RAG embeddings | Tìm context từ SGK trong ChromaDB |
-| `glm-ocr:latest` | Ollama | OCR ảnh bài làm học sinh | Auto-grading từ ảnh |
+| `qwen3:1.7b` | Ollama | Táº¡o cÃ¢u há»i toÃ¡n, giáº£i thÃ­ch tá»«ng bÆ°á»›c | AI question generation |
+| `keepitreal/vietnamese-sbert` | HuggingFace | RAG embeddings | TÃ¬m context tá»« SGK trong ChromaDB |
+| `glm-ocr:latest` | Ollama | OCR áº£nh bÃ i lÃ m há»c sinh | Auto-grading tá»« áº£nh |
 
-> **LƯU Ý QUAN TRỌNG**: Đã đổi từ `qwen2.5-1.5b-instruct` → `qwen3:1.7b` và `PaddleOCR-VL` → `glm-ocr:latest`
+> **LÆ¯U Ã QUAN TRá»ŒNG**: ÄÃ£ Ä‘á»•i tá»« `qwen2.5-1.5b-instruct` â†’ `qwen3:1.7b` vÃ  `PaddleOCR-VL` â†’ `glm-ocr:latest`
 
 ## Pipeline AI Question Generation
 
 ```
-Teacher → [Chọn Grade/Topic/Difficulty]
-  → RAG: Tìm context SGK liên quan (vietnamese-sbert + ChromaDB)
-  → Qwen3: Tạo draft questions với context
-  → [Draft] → Teacher review → [Approve] → Publish
-                              → [Edit] → Save Draft
-                              → [Reject] → Discard
+Teacher â†’ [Chá»n Grade/Topic/Difficulty]
+  â†’ RAG: TÃ¬m context SGK liÃªn quan (vietnamese-sbert + ChromaDB)
+  â†’ Qwen3: Táº¡o draft questions vá»›i context
+  â†’ [Draft] â†’ Teacher review â†’ [Approve] â†’ Publish
+                              â†’ [Edit] â†’ Save Draft
+                              â†’ [Reject] â†’ Discard
 ```
 
 ## Current Runtime Mode (single mode)
 
-Question generation hiện chạy **một mode duy nhất**: luồng mới (Template-first RAG + Difficulty Ladder).
+Question generation hiá»‡n cháº¡y **má»™t mode duy nháº¥t**: luá»“ng má»›i (Template-first RAG + Difficulty Ladder).
 
-Flags sử dụng:
+Flags sá»­ dá»¥ng:
 
 - `AI_GEN_ENABLE_TEMPLATE_FILTER`
 - `AI_GEN_ENABLE_DIFFICULTY_VALIDATOR`
@@ -65,16 +76,16 @@ Bundle-specific implementation rules:
 - Output remains `draft` until teacher review.
 - AI orchestration stays inside `backend/app/services/ai/` and uses `qwen3:1.7b`.
 
-## Current Generation Strategy (đã triển khai)
+## Current Generation Strategy (Ä‘Ã£ triá»ƒn khai)
 
-1. **Template-first RAG**: retrieve bằng metadata filter theo `topic_slug`, `representation`, `difficulty_band` trước, sau đó mới similarity search.
-2. **Template seeds**: không nhét nguyên chunk SGK vào prompt; trích ra seed cấu trúc gồm dạng bài, kiến thức lõi, giới hạn, điều cấm, mẫu câu.
-3. **Difficulty ladder**: phân hóa phải sinh theo bộ 4 mức trong một lần thay vì gọi độc lập từng tier.
-4. **Validator + repair loop**: sau sinh, hệ thống chấm lại đúng topic/lớp/tier; câu fail được sửa theo lỗi cụ thể (không rewrite tự do).
+1. **Template-first RAG**: retrieve báº±ng metadata filter theo `topic_slug`, `representation`, `difficulty_band` trÆ°á»›c, sau Ä‘Ã³ má»›i similarity search.
+2. **Template seeds**: khÃ´ng nhÃ©t nguyÃªn chunk SGK vÃ o prompt; trÃ­ch ra seed cáº¥u trÃºc gá»“m dáº¡ng bÃ i, kiáº¿n thá»©c lÃµi, giá»›i háº¡n, Ä‘iá»u cáº¥m, máº«u cÃ¢u.
+3. **Difficulty ladder**: phÃ¢n hÃ³a pháº£i sinh theo bá»™ 4 má»©c trong má»™t láº§n thay vÃ¬ gá»i Ä‘á»™c láº­p tá»«ng tier.
+4. **Validator + repair loop**: sau sinh, há»‡ thá»‘ng cháº¥m láº¡i Ä‘Ãºng topic/lá»›p/tier; cÃ¢u fail Ä‘Æ°á»£c sá»­a theo lá»—i cá»¥ thá»ƒ (khÃ´ng rewrite tá»± do).
 
 ## Re-ingest Requirement for New RAG
 
-Khi bật `AI_GEN_ENABLE_TEMPLATE_FILTER=true`, bắt buộc re-ingest vector DB để có metadata sư phạm mới (`topic_slug`, `skill`, `representation`, `template_type`, `difficulty_band`, ...). Nếu chưa ingest lại, hệ thống vẫn có fallback nhưng chất lượng khóa topic giảm.
+Khi báº­t `AI_GEN_ENABLE_TEMPLATE_FILTER=true`, báº¯t buá»™c re-ingest vector DB Ä‘á»ƒ cÃ³ metadata sÆ° pháº¡m má»›i (`topic_slug`, `skill`, `representation`, `template_type`, `difficulty_band`, ...). Náº¿u chÆ°a ingest láº¡i, há»‡ thá»‘ng váº«n cÃ³ fallback nhÆ°ng cháº¥t lÆ°á»£ng khÃ³a topic giáº£m.
 
 ### Implementation Pattern
 
@@ -82,7 +93,7 @@ Khi bật `AI_GEN_ENABLE_TEMPLATE_FILTER=true`, bắt buộc re-ingest vector DB
 # services/ai/question_generator.py
 class QuestionGenerator:
     """
-    ⚠️ Output LUÔN là DRAFT — Teacher phải review trước khi publish.
+    âš ï¸ Output LUÃ”N lÃ  DRAFT â€” Teacher pháº£i review trÆ°á»›c khi publish.
     Models: qwen3:1.7b (Ollama), vietnamese-sbert (RAG)
     """
     
@@ -97,66 +108,66 @@ class QuestionGenerator:
         difficulty: str,
         count: int = 5,
     ) -> list[QuestionDraft]:
-        assert 1 <= grade <= 3, "Grade phải là 1, 2 hoặc 3"
+        assert 1 <= grade <= 3, "Grade pháº£i lÃ  1, 2 hoáº·c 3"
         
-        # 1. RAG: Lấy context SGK
+        # 1. RAG: Láº¥y context SGK
         context_chunks = await self._rag.retrieve(
-            query=f"Lớp {grade}: {topic}",
+            query=f"Lá»›p {grade}: {topic}",
             grade=grade,
             top_k=3,
         )
         
-        # 2. Build prompt với topic rules
+        # 2. Build prompt vá»›i topic rules
         prompt = self._build_grade_prompt(grade, topic, difficulty, context_chunks, count)
         
-        # 3. Gọi Ollama qwen3:1.7b
+        # 3. Gá»i Ollama qwen3:1.7b
         response = await self._llm.generate(
             model="qwen3:1.7b",
             prompt=prompt,
             options={"temperature": 0.7, "num_predict": 1024},
         )
         
-        # 4. Parse và trả về DRAFTS (không publish!)
+        # 4. Parse vÃ  tráº£ vá» DRAFTS (khÃ´ng publish!)
         return self._parse_questions(response["response"])
 ```
 
 ## Pipeline OCR Grading (glm-ocr:latest)
 
 ```
-Teacher → [Upload ảnh bài làm]
-  → GLM-OCR: Extract text từ ảnh
-  → Rule-based: So sánh với expected answers
-  → [Grade draft] → Teacher review → [Confirm/Override]
+Teacher â†’ [Upload áº£nh bÃ i lÃ m]
+  â†’ GLM-OCR: Extract text tá»« áº£nh
+  â†’ Rule-based: So sÃ¡nh vá»›i expected answers
+  â†’ [Grade draft] â†’ Teacher review â†’ [Confirm/Override]
 ```
 
 ### Typed Answer Key Contract (grade-image)
 
-`POST /api/ai/grade-image` hỗ trợ 2 định dạng `correct_answers_json` để giữ backward compatibility:
+`POST /api/ai/grade-image` há»— trá»£ 2 Ä‘á»‹nh dáº¡ng `correct_answers_json` Ä‘á»ƒ giá»¯ backward compatibility:
 
 1. Legacy:
 - `[{"id": 1, "answer": "12", "points": 10}]`
 
-2. Typed (khuyến nghị dùng từ Answer Builder):
+2. Typed (khuyáº¿n nghá»‹ dÃ¹ng tá»« Answer Builder):
 - `answer_type`: `text | number | boolean | ordered_list | unordered_list | multi_blank`
-- `grading_rule`: `all_or_nothing | per_item` (áp dụng cho list/multi_blank)
-- Ví dụ:
+- `grading_rule`: `all_or_nothing | per_item` (Ã¡p dá»¥ng cho list/multi_blank)
+- VÃ­ dá»¥:
 `[{"id":"1","answer_type":"ordered_list","grading_rule":"per_item","answer":["2","3","4"],"points":10}]`
 
-Quy tắc runtime:
-- `number`: so khớp theo giá trị số
-- `boolean`: chấp nhận biến thể `Đúng/Sai`, `true/false`, `1/0`
-- `ordered_list` và `multi_blank`: chấm theo thứ tự
-- `unordered_list`: chấm không phụ thuộc thứ tự
-- `per_item`: cho phép điểm một phần theo tỉ lệ ý đúng
+Quy táº¯c runtime:
+- `number`: so khá»›p theo giÃ¡ trá»‹ sá»‘
+- `boolean`: cháº¥p nháº­n biáº¿n thá»ƒ `ÄÃºng/Sai`, `true/false`, `1/0`
+- `ordered_list` vÃ  `multi_blank`: cháº¥m theo thá»© tá»±
+- `unordered_list`: cháº¥m khÃ´ng phá»¥ thuá»™c thá»© tá»±
+- `per_item`: cho phÃ©p Ä‘iá»ƒm má»™t pháº§n theo tá»‰ lá»‡ Ã½ Ä‘Ãºng
 
-### Analytics Submit Gate (teacher review bắt buộc)
+### Analytics Submit Gate (teacher review báº¯t buá»™c)
 
-`POST /api/v1/ai/analytics/submit` chỉ chấp nhận dữ liệu đã được giáo viên duyệt:
+`POST /api/v1/ai/analytics/submit` chá»‰ cháº¥p nháº­n dá»¯ liá»‡u Ä‘Ã£ Ä‘Æ°á»£c giÃ¡o viÃªn duyá»‡t:
 
-- `source` bắt buộc là `teacher_review`
-- Không submit analytics ngay sau OCR draft
-- Frontend phải cho giáo viên review/override trước khi lưu thống kê
-- Mục tiêu: tránh đẩy lỗi OCR chưa duyệt lên dashboard
+- `source` báº¯t buá»™c lÃ  `teacher_review`
+- KhÃ´ng submit analytics ngay sau OCR draft
+- Frontend pháº£i cho giÃ¡o viÃªn review/override trÆ°á»›c khi lÆ°u thá»‘ng kÃª
+- Má»¥c tiÃªu: trÃ¡nh Ä‘áº©y lá»—i OCR chÆ°a duyá»‡t lÃªn dashboard
 
 ### Implementation Pattern
 
@@ -165,7 +176,7 @@ Quy tắc runtime:
 class GradingService:
     """
     Model: glm-ocr:latest (Ollama)
-    ⚠️ OCR output là DRAFT — Teacher phải confirm.
+    âš ï¸ OCR output lÃ  DRAFT â€” Teacher pháº£i confirm.
     """
     
     async def grade_from_image(
@@ -174,18 +185,18 @@ class GradingService:
         expected_answers: list[str],
         confidence_threshold: float = 0.8,
     ) -> GradingDraft:
-        # 1. Gọi GLM-OCR để extract text
+        # 1. Gá»i GLM-OCR Ä‘á»ƒ extract text
         ocr_result = await self._ollama.generate(
             model="glm-ocr:latest",
             images=[image_path],
-            prompt="Đọc và trích xuất tất cả chữ số và phép tính trong ảnh.",
+            prompt="Äá»c vÃ  trÃ­ch xuáº¥t táº¥t cáº£ chá»¯ sá»‘ vÃ  phÃ©p tÃ­nh trong áº£nh.",
         )
         
         # 2. Parse OCR text
         extracted_text = ocr_result["response"]
         confidence = self._estimate_confidence(extracted_text)
         
-        # 3. Nếu confidence thấp → yêu cầu Teacher review thủ công
+        # 3. Náº¿u confidence tháº¥p â†’ yÃªu cáº§u Teacher review thá»§ cÃ´ng
         if confidence < confidence_threshold:
             return GradingDraft(
                 status="low_confidence",
@@ -197,7 +208,7 @@ class GradingService:
         # 4. Rule-based grading
         score = self._grade_answers(extracted_text, expected_answers)
         return GradingDraft(
-            status="pending_review",  # LUÔN pending — không auto-confirm
+            status="pending_review",  # LUÃ”N pending â€” khÃ´ng auto-confirm
             score=score,
             confidence=confidence,
             extracted_text=extracted_text,
@@ -208,18 +219,18 @@ class GradingService:
 ## Ollama Dynamic Loading Pattern
 
 ```python
-# Chỉ load model khi cần, unload ngay sau khi dùng xong
+# Chá»‰ load model khi cáº§n, unload ngay sau khi dÃ¹ng xong
 class OllamaModelManager:
     async def with_model(self, model_name: str):
-        """Context manager: load → use → unload"""
+        """Context manager: load â†’ use â†’ unload"""
         try:
             await self._client.pull(model_name)
             yield
         finally:
-            # Unload để giải phóng VRAM
+            # Unload Ä‘á»ƒ giáº£i phÃ³ng VRAM
             await self._client.delete(model_name)
 
-# Sử dụng
+# Sá»­ dá»¥ng
 async with ollama_manager.with_model("qwen3:1.7b"):
     result = await generate_questions(...)
 
@@ -229,23 +240,23 @@ async with ollama_manager.with_model("glm-ocr:latest"):
 
 ## Safety Rules Khi Implement AI
 
-❌ KHÔNG BAO GIỜ:
+âŒ KHÃ”NG BAO GIá»œ:
 - Auto-publish AI output (qwen3 hay glm-ocr)
-- Cho Parent gọi AI endpoints trực tiếp
-- Log raw images có thể chứa PII học sinh
-- Implement AI logic bên ngoài `services/ai/`
-- Thêm model khác ngoài danh sách 3 models đã phê duyệt
+- Cho Parent gá»i AI endpoints trá»±c tiáº¿p
+- Log raw images cÃ³ thá»ƒ chá»©a PII há»c sinh
+- Implement AI logic bÃªn ngoÃ i `services/ai/`
+- ThÃªm model khÃ¡c ngoÃ i danh sÃ¡ch 3 models Ä‘Ã£ phÃª duyá»‡t
 
-✅ LUÔN LUÔN:
+âœ… LUÃ”N LUÃ”N:
 - Log: `prompt`, `model`, `teacher_id`, `ocr_confidence`
-- Teacher approval bắt buộc trước khi lưu vào DB
-- Mock AI calls trong tests (không gọi Ollama thật khi test)
-- Handle OCR errors gracefully (low confidence → manual review)
+- Teacher approval báº¯t buá»™c trÆ°á»›c khi lÆ°u vÃ o DB
+- Mock AI calls trong tests (khÃ´ng gá»i Ollama tháº­t khi test)
+- Handle OCR errors gracefully (low confidence â†’ manual review)
 
 ## Test Pattern cho AI
 
 ```python
-# Mock Ollama — KHÔNG gọi model thật trong tests
+# Mock Ollama â€” KHÃ”NG gá»i model tháº­t trong tests
 @pytest.fixture
 def mock_ollama_qwen():
     with patch("app.services.ai.question_generator.OllamaClient") as mock:
@@ -264,7 +275,7 @@ def mock_ollama_ocr():
 
 def test_generate_questions_returns_drafts(mock_ollama_qwen):
     generator = QuestionGenerator(...)
-    drafts = await generator.generate_draft(grade=2, topic="Phép cộng có nhớ", count=5)
+    drafts = await generator.generate_draft(grade=2, topic="PhÃ©p cá»™ng cÃ³ nhá»›", count=5)
     assert all(q.status == "draft" for q in drafts)
     assert len(drafts) == 5
 
@@ -273,3 +284,4 @@ def test_ocr_low_confidence_requires_manual_review(mock_ollama_ocr):
     result = await service.grade_from_image("test.jpg", [...], threshold=0.9)
     assert result.requires_manual_review is True
 ```
+

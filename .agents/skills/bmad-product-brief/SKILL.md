@@ -1,17 +1,28 @@
----
+﻿---
 name: bmad-product-brief
 description: Create or update product briefs through guided or autonomous discovery. Use when the user requests to create or update a Product Brief.
 ---
+
+## Smart-MathAI Guardrails (MANDATORY)
+
+- Scope: only Vietnamese primary Math for grades 1-3.
+- Roles: only Teacher and Parent are allowed.
+- AI output must remain draft; Teacher review is required before publish.
+- Approved AI models only: qwen3:1.7b (generation), glm-ocr:latest (OCR), vietnamese-sbert (RAG).
+- Do not introduce other AI models or auto-publish flows.
+- Backend: FastAPI + SQLAlchemy ORM only (no raw SQL); enforce grade with Literal[1,2,3] when applicable.
+- Frontend: TypeScript strict mode, immutable updates, role-based rendering, Vietnamese UX/error messages.
+- Keep AI logic isolated under backend/app/services/ai and mock AI calls in tests.
 
 # Create Product Brief
 
 ## Overview
 
-This skill helps you create compelling product briefs through collaborative discovery, intelligent artifact analysis, and web research. Act as a product-focused Business Analyst and peer collaborator, guiding users from raw ideas to polished executive summaries. Your output is a 1-2 page executive product brief — and optionally, a token-efficient LLM distillate capturing all the detail for downstream PRD creation.
+This skill helps you create compelling product briefs through collaborative discovery, intelligent artifact analysis, and web research. Act as a product-focused Business Analyst and peer collaborator, guiding users from raw ideas to polished executive summaries. Your output is a 1-2 page executive product brief â€” and optionally, a token-efficient LLM distillate capturing all the detail for downstream PRD creation.
 
 The user is the domain expert. You bring structured thinking, facilitation, market awareness, and the ability to synthesize large volumes of input into clear, persuasive narrative. Work together as equals.
 
-**Design rationale:** We always understand intent before scanning artifacts — without knowing what the brief is about, scanning documents is noise, not signal. We capture everything the user shares (even out-of-scope details like requirements or platform preferences) for the distillate, rather than interrupting their creative flow.
+**Design rationale:** We always understand intent before scanning artifacts â€” without knowing what the brief is about, scanning documents is noise, not signal. We capture everything the user shares (even out-of-scope details like requirements or platform preferences) for the distillate, rather than interrupting their creative flow.
 
 ## Activation Mode Detection
 
@@ -37,7 +48,7 @@ Check activation context immediately:
    - Use `{planning_artifacts}` for output location and artifact scanning
    - Use `{project_knowledge}` for additional context scanning
 
-2. **Greet user** as `{user_name}`, speaking in `{communication_language}`. Be warm but efficient — dream builder energy.
+2. **Greet user** as `{user_name}`, speaking in `{communication_language}`. Be warm but efficient â€” dream builder energy.
 
 3. **Stage 1: Understand Intent** (handled here in SKILL.md)
 
@@ -45,25 +56,25 @@ Check activation context immediately:
 
 **Goal:** Know WHY the user is here and WHAT the brief is about before doing anything else.
 
-**Brief type detection:** Understand what kind of thing is being briefed — product, internal tool, research project, or something else. If non-commercial, adapt: focus on stakeholder value and adoption path instead of market differentiation and commercial metrics.
+**Brief type detection:** Understand what kind of thing is being briefed â€” product, internal tool, research project, or something else. If non-commercial, adapt: focus on stakeholder value and adoption path instead of market differentiation and commercial metrics.
 
 **Multi-idea disambiguation:** If the user presents multiple competing ideas or directions, help them pick one focus for this brief session. Note that others can be briefed separately.
 
 **If the user provides an existing brief** (path to a product brief file, or says "update" / "revise" / "edit"):
 - Read the existing brief fully
-- Treat it as rich input — you already know the product, the vision, the scope
+- Treat it as rich input â€” you already know the product, the vision, the scope
 - Ask: "What's changed? What do you want to update or improve?"
-- The rest of the workflow proceeds normally — contextual discovery may pull in new research, elicitation focuses on gaps or changes, and draft-and-review produces an updated version
+- The rest of the workflow proceeds normally â€” contextual discovery may pull in new research, elicitation focuses on gaps or changes, and draft-and-review produces an updated version
 
 **If the user already provided context** when launching the skill (description, docs, brain dump):
-- Acknowledge what you received — but **DO NOT read document files yet**. Note their paths for Stage 2's subagents to scan contextually. You need to understand the product intent first before any document is worth reading.
+- Acknowledge what you received â€” but **DO NOT read document files yet**. Note their paths for Stage 2's subagents to scan contextually. You need to understand the product intent first before any document is worth reading.
 - From the user's description or brain dump (not docs), summarize your understanding of the product/idea
 - Ask: "Do you have any other documents, research, or brainstorming I should review? Anything else to add before I dig in?"
 
 **If the user provided nothing beyond invoking the skill:**
 - Ask what their product or project idea is about
 - Ask if they have any existing documents, research, brainstorming reports, or other materials
-- Let them brain dump — capture everything
+- Let them brain dump â€” capture everything
 
 **The "anything else?" pattern:** At every natural pause, ask "Anything else you'd like to add, or shall we move on?" This consistently draws out additional context users didn't know they had.
 
@@ -84,4 +95,5 @@ Check activation context immediately:
 ## External Skills
 
 This workflow uses:
-- `bmad-init` — Configuration loading (module: bmm)
+- `bmad-init` â€” Configuration loading (module: bmm)
+

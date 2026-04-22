@@ -1,8 +1,19 @@
----
+﻿---
 name: bmad-distillator
 description: Lossless LLM-optimized compression of source documents. Use when the user requests to 'distill documents' or 'create a distillate'.
 argument-hint: "[to create provide input paths] [--validate distillate-path to confirm distillate is lossless and optimized]"
 ---
+
+## Smart-MathAI Guardrails (MANDATORY)
+
+- Scope: only Vietnamese primary Math for grades 1-3.
+- Roles: only Teacher and Parent are allowed.
+- AI output must remain draft; Teacher review is required before publish.
+- Approved AI models only: qwen3:1.7b (generation), glm-ocr:latest (OCR), vietnamese-sbert (RAG).
+- Do not introduce other AI models or auto-publish flows.
+- Backend: FastAPI + SQLAlchemy ORM only (no raw SQL); enforce grade with Literal[1,2,3] when applicable.
+- Frontend: TypeScript strict mode, immutable updates, role-based rendering, Vietnamese UX/error messages.
+- Keep AI logic isolated under backend/app/services/ai and mock AI calls in tests.
 
 # Distillator: A Document Distillation Engine
 
@@ -15,13 +26,13 @@ This is a compression task, not a summarization task. Summaries are lossy. Disti
 ## On Activation
 
 1. **Validate inputs.** The caller must provide:
-   - **source_documents** (required) — One or more file paths, folder paths, or glob patterns to distill
-   - **downstream_consumer** (optional) — What workflow/agent consumes this distillate (e.g., "PRD creation", "architecture design"). When provided, use it to judge signal vs noise. When omitted, preserve everything.
-   - **token_budget** (optional) — Approximate target size. When provided and the distillate would exceed it, trigger semantic splitting.
-   - **output_path** (optional) — Where to save. When omitted, save adjacent to the primary source document with `-distillate.md` suffix.
-   - **--validate** (flag) — Run round-trip reconstruction test after producing the distillate.
+   - **source_documents** (required) â€” One or more file paths, folder paths, or glob patterns to distill
+   - **downstream_consumer** (optional) â€” What workflow/agent consumes this distillate (e.g., "PRD creation", "architecture design"). When provided, use it to judge signal vs noise. When omitted, preserve everything.
+   - **token_budget** (optional) â€” Approximate target size. When provided and the distillate would exceed it, trigger semantic splitting.
+   - **output_path** (optional) â€” Where to save. When omitted, save adjacent to the primary source document with `-distillate.md` suffix.
+   - **--validate** (flag) â€” Run round-trip reconstruction test after producing the distillate.
 
-2. **Route** — proceed to Stage 1.
+2. **Route** â€” proceed to Stage 1.
 
 ## Stages
 
@@ -38,7 +49,7 @@ Run `scripts/analyze_sources.py --help` then run it with the source paths. Use i
 
 ### Stage 2: Compress
 
-**Single mode** (routing = `"single"`, ≤3 files, ≤15K estimated tokens):
+**Single mode** (routing = `"single"`, â‰¤3 files, â‰¤15K estimated tokens):
 
 Spawn one subagent using `agents/distillate-compressor.md` with all source file paths.
 
@@ -58,7 +69,7 @@ The compressor returns a structured JSON result containing the distillate conten
 
 After the compressor (or merge compressor) returns:
 
-1. **Completeness check.** Using the headings and named entities list returned by the compressor, verify each appears in the distillate content. If gaps are found, send them back to the compressor for a targeted fix pass — not a full recompression. Limit to 2 fix passes maximum.
+1. **Completeness check.** Using the headings and named entities list returned by the compressor, verify each appears in the distillate content. If gaps are found, send them back to the compressor for a targeted fix pass â€” not a full recompression. Limit to 2 fix passes maximum.
 
 2. **Format check.** Verify the output follows distillate format rules:
    - No prose paragraphs (only bullets)
@@ -69,7 +80,7 @@ After the compressor (or merge compressor) returns:
 
 3. **Determine output format.** Using the split prediction from Stage 1 and actual distillate size:
 
-   **Single distillate** (≤~5,000 tokens or token_budget not exceeded):
+   **Single distillate** (â‰¤~5,000 tokens or token_budget not exceeded):
 
    Save as a single file with frontmatter:
 
@@ -92,10 +103,10 @@ After the compressor (or merge compressor) returns:
 
    ```
    {base-name}-distillate/
-   ├── _index.md           # Orientation, cross-cutting items, section manifest
-   ├── 01-{topic-slug}.md  # Self-contained section
-   ├── 02-{topic-slug}.md
-   └── 03-{topic-slug}.md
+   â”œâ”€â”€ _index.md           # Orientation, cross-cutting items, section manifest
+   â”œâ”€â”€ 01-{topic-slug}.md  # Self-contained section
+   â”œâ”€â”€ 02-{topic-slug}.md
+   â””â”€â”€ 03-{topic-slug}.md
    ```
 
    The `_index.md` contains:
@@ -104,7 +115,7 @@ After the compressor (or merge compressor) returns:
    - Section manifest: each section's filename + 1-line description
    - Cross-cutting items that span multiple sections
 
-   Each section file is self-contained — loadable independently. Include a 1-line context header: "This section covers [topic]. Part N of M."
+   Each section file is self-contained â€” loadable independently. Include a 1-line context header: "This section covers [topic]. Part N of M."
 
    Source paths in frontmatter must be relative to the distillate's location.
 
@@ -131,9 +142,9 @@ After the compressor (or merge compressor) returns:
 
 ### Stage 4: Round-Trip Validation (--validate only)
 
-This stage proves the distillate is lossless by reconstructing source documents from the distillate alone. Use for critical documents where information loss is unacceptable, or as a quality gate for high-stakes downstream workflows. Not for routine use — it adds significant token cost.
+This stage proves the distillate is lossless by reconstructing source documents from the distillate alone. Use for critical documents where information loss is unacceptable, or as a quality gate for high-stakes downstream workflows. Not for routine use â€” it adds significant token cost.
 
-1. **Spawn the reconstructor agent** using `agents/round-trip-reconstructor.md`. Pass it ONLY the distillate file path (or `_index.md` path for split distillates) — it must NOT have access to the original source documents.
+1. **Spawn the reconstructor agent** using `agents/round-trip-reconstructor.md`. Pass it ONLY the distillate file path (or `_index.md` path for split distillates) â€” it must NOT have access to the original source documents.
 
    For split distillates, spawn one reconstructor per section in parallel. Each receives its section file plus the `_index.md` for cross-cutting context.
 
@@ -164,15 +175,15 @@ This stage proves the distillate is lossless by reconstructing source documents 
    - Hallucinations detected: {count}
 
    ## Gaps (information in originals but missing from reconstruction)
-   - {gap description} — Source: {which original}, Section: {where}
+   - {gap description} â€” Source: {which original}, Section: {where}
 
    ## Hallucinations (information in reconstruction not traceable to originals)
-   - {hallucination description} — appears to fill gap in: {section}
+   - {hallucination description} â€” appears to fill gap in: {section}
 
    ## Possible Gap Markers (flagged by reconstructor)
    - {marker description}
    ```
 
-5. **If gaps are found**, offer to run a targeted fix pass on the distillate — adding the missing information without full recompression. Limit to 2 fix passes maximum.
+5. **If gaps are found**, offer to run a targeted fix pass on the distillate â€” adding the missing information without full recompression. Limit to 2 fix passes maximum.
 
-6. **Clean up** — delete the temporary reconstruction files after the report is generated.
+6. **Clean up** â€” delete the temporary reconstruction files after the report is generated.

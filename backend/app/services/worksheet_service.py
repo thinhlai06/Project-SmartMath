@@ -6,6 +6,10 @@ from typing import Optional, List
 
 from app.models.worksheet import Worksheet, WorksheetStatus, WorksheetType
 from app.models.worksheet_exercise import WorksheetExercise
+from app.models.student_progress import StudentProgress
+from app.models.student_analytics import StudentAnalytics
+from app.models.cpa_bundle import CPABundleRecord
+from app.models.grade_entry import GradeEntry
 from app.schemas.worksheet import WorksheetCreate, WorksheetUpdate
 
 
@@ -78,6 +82,14 @@ def update_worksheet(
 
 def delete_worksheet(db: Session, worksheet: Worksheet) -> None:
     """Delete a worksheet and its exercises (cascade)."""
+    worksheet_id = worksheet.id
+
+    db.query(GradeEntry).filter(GradeEntry.worksheet_id == worksheet_id).delete(synchronize_session=False)
+    db.query(StudentProgress).filter(StudentProgress.worksheet_id == worksheet_id).delete(synchronize_session=False)
+    db.query(StudentAnalytics).filter(StudentAnalytics.worksheet_id == worksheet_id).delete(synchronize_session=False)
+    db.query(CPABundleRecord).filter(CPABundleRecord.worksheet_id == worksheet_id).delete(synchronize_session=False)
+    db.query(WorksheetExercise).filter(WorksheetExercise.worksheet_id == worksheet_id).delete(synchronize_session=False)
+
     db.delete(worksheet)
     db.commit()
 
@@ -124,6 +136,7 @@ def duplicate_worksheet(db: Session, worksheet: Worksheet, new_title: Optional[s
             difficulty_tier=exercise.difficulty_tier,
             question=exercise.question,
             answer=exercise.answer,
+            image_url=exercise.image_url,
             hint=exercise.hint,
             order_index=exercise.order_index
         )

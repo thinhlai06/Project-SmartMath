@@ -32,6 +32,7 @@ class WorksheetExercise(Base):
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=True)
     hint = Column(Text, nullable=True)
+    image_url = Column(String(500), nullable=True)
     order_index = Column(Integer, default=0)
 
     # Relationships

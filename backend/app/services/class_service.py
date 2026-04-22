@@ -3,6 +3,15 @@ from typing import List, Optional
 
 from app.models.math_class import MathClass, generate_class_code
 from app.models.student import Student
+from app.models.announcement import Announcement
+from app.models.parent_class_link import ParentClassLink
+from app.models.student_progress import StudentProgress
+from app.models.student_analytics import StudentAnalytics
+from app.models.grading_report import GradingReport
+from app.models.worksheet import Worksheet
+from app.models.worksheet_exercise import WorksheetExercise
+from app.models.cpa_bundle import CPABundleRecord
+from app.models.grade_entry import GradeEntry
 
 
 def get_teacher_classes(
@@ -76,6 +85,38 @@ def update_class(
 
 def delete_class(db: Session, db_class: MathClass) -> None:
     """Delete a class and all related data."""
+    class_id = db_class.id
+
+    worksheet_ids = [
+        worksheet_id
+        for (worksheet_id,) in db.query(Worksheet.id).filter(Worksheet.class_id == class_id).all()
+    ]
+    student_ids = [
+        student_id
+        for (student_id,) in db.query(Student.id).filter(Student.class_id == class_id).all()
+    ]
+
+    if worksheet_ids:
+        db.query(GradeEntry).filter(GradeEntry.worksheet_id.in_(worksheet_ids)).delete(synchronize_session=False)
+        db.query(StudentProgress).filter(StudentProgress.worksheet_id.in_(worksheet_ids)).delete(synchronize_session=False)
+        db.query(WorksheetExercise).filter(WorksheetExercise.worksheet_id.in_(worksheet_ids)).delete(synchronize_session=False)
+        db.query(CPABundleRecord).filter(CPABundleRecord.worksheet_id.in_(worksheet_ids)).delete(synchronize_session=False)
+        db.query(StudentAnalytics).filter(StudentAnalytics.worksheet_id.in_(worksheet_ids)).delete(synchronize_session=False)
+
+    if student_ids:
+        db.query(GradeEntry).filter(GradeEntry.student_id.in_(student_ids)).delete(synchronize_session=False)
+        db.query(StudentProgress).filter(StudentProgress.student_id.in_(student_ids)).delete(synchronize_session=False)
+        db.query(ParentClassLink).filter(ParentClassLink.student_id.in_(student_ids)).delete(synchronize_session=False)
+        db.query(StudentAnalytics).filter(StudentAnalytics.student_id.in_(student_ids)).delete(synchronize_session=False)
+
+    db.query(Announcement).filter(Announcement.class_id == class_id).delete(synchronize_session=False)
+    db.query(ParentClassLink).filter(ParentClassLink.class_id == class_id).delete(synchronize_session=False)
+    db.query(StudentAnalytics).filter(StudentAnalytics.class_id == class_id).delete(synchronize_session=False)
+    db.query(GradingReport).filter(GradingReport.class_id == class_id).delete(synchronize_session=False)
+
+    db.query(Worksheet).filter(Worksheet.class_id == class_id).delete(synchronize_session=False)
+    db.query(Student).filter(Student.class_id == class_id).delete(synchronize_session=False)
+
     db.delete(db_class)
     db.commit()
 

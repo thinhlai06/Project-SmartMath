@@ -44,7 +44,9 @@ export function WorksheetEditorPage() {
         question: '',
         answer: '',
         hint: '',
+        image_url: '',
     });
+    const [uploadingImage, setUploadingImage] = useState(false);
     const [aiDraft, setAiDraft] = useState('');
     const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
     const [activeSection, setActiveSection] = useState<ExerciseType | DifficultyTier | null>(null);
@@ -81,6 +83,7 @@ export function WorksheetEditorPage() {
                 question: newExercise.question,
                 answer: newExercise.answer || undefined,
                 hint: newExercise.hint || undefined,
+                image_url: newExercise.image_url || undefined,
             };
 
             // Set type based on worksheet type
@@ -91,7 +94,7 @@ export function WorksheetEditorPage() {
             }
 
             await exerciseApi.createExercise(id, createData);
-            setNewExercise({ question: '', answer: '', hint: '' });
+            setNewExercise({ question: '', answer: '', hint: '', image_url: '' });
             setActiveSection(null);
             await fetchWorksheet();
         } catch (err: any) {
@@ -109,6 +112,31 @@ export function WorksheetEditorPage() {
             await fetchWorksheet();
         } catch (err: any) {
             setError(err.response?.data?.detail || 'Không thể xóa câu hỏi');
+        }
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        try {
+            setUploadingImage(true);
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const response = await fetch('/api/upload/image', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) throw new Error('Upload failed');
+            
+            const data = await response.json();
+            setNewExercise(prev => ({ ...prev, image_url: data.image_url }));
+        } catch (err: any) {
+            setError('Không thể tải ảnh lên');
+        } finally {
+            setUploadingImage(false);
         }
     };
 
@@ -297,6 +325,11 @@ export function WorksheetEditorPage() {
                                                         <div className="text-slate-800 font-medium print:text-xl print:font-sans print:leading-loose print:text-black">
                                                             <MathFormattedText text={ex.question} />
                                                         </div>
+                                                        {ex.image_url && (
+                                                            <div className="mt-3 max-w-sm rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                                                                <img src={ex.image_url} alt="Exercise" className="w-full h-auto object-cover" />
+                                                            </div>
+                                                        )}
                                                         {ex.answer && (
                                                             <p className="text-sm text-emerald-600 mt-2 font-medium bg-emerald-50 inline-block px-2 py-1 rounded-md print:text-black print:bg-transparent print:px-0 print:py-0">Đáp án: {ex.answer}</p>
                                                         )}
@@ -356,6 +389,24 @@ export function WorksheetEditorPage() {
                                                 />
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
+                                                <div className="col-span-2">
+                                                    <Label className="text-slate-700 font-semibold">Ảnh đính kèm (tùy chọn)</Label>
+                                                    <div className="mt-1 flex items-center gap-4">
+                                                        <Input 
+                                                            type="file" 
+                                                            accept="image/png, image/jpeg, image/webp" 
+                                                            className="flex-1 cursor-pointer file:cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" 
+                                                            onChange={handleImageUpload} 
+                                                            disabled={uploadingImage}
+                                                        />
+                                                        {uploadingImage && <span className="text-sm text-indigo-600 font-medium animate-pulse">Đang tải...</span>}
+                                                        {newExercise.image_url && !uploadingImage && (
+                                                            <div className="h-12 w-12 rounded-lg border border-slate-200 overflow-hidden bg-slate-50 shrink-0">
+                                                                <img src={newExercise.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
                                                 <div>
                                                     <Label className="text-slate-700 font-semibold">Đáp án (tùy chọn)</Label>
                                                     <Input

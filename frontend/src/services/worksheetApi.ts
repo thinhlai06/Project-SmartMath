@@ -48,6 +48,7 @@ export interface Exercise {
     question: string;
     answer: string | null;
     hint: string | null;
+    image_url: string | null;
     exercise_type: ExerciseType | null;
     difficulty_tier: DifficultyTier | null;
     order_index: number;
@@ -57,6 +58,7 @@ export interface ExerciseCreate {
     question: string;
     answer?: string;
     hint?: string;
+    image_url?: string;
     exercise_type?: ExerciseType;
     difficulty_tier?: DifficultyTier;
     order_index?: number;
@@ -66,6 +68,7 @@ export interface ExerciseUpdate {
     question?: string;
     answer?: string;
     hint?: string;
+    image_url?: string;
     exercise_type?: ExerciseType;
     difficulty_tier?: DifficultyTier;
     order_index?: number;

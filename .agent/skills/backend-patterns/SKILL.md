@@ -1,22 +1,33 @@
----
+﻿---
 name: backend-patterns
 description: >
-  Patterns phổ biến cho Smart-MathAI FastAPI backend: Repository pattern, service layer,
-  dependency injection, error handling. Dùng khi implement endpoints mới, refactor
-  backend code, hoặc cần tham khảo cách tổ chức code Python/FastAPI đúng chuẩn.
+  Patterns phá»• biáº¿n cho Smart-MathAI FastAPI backend: Repository pattern, service layer,
+  dependency injection, error handling. DÃ¹ng khi implement endpoints má»›i, refactor
+  backend code, hoáº·c cáº§n tham kháº£o cÃ¡ch tá»• chá»©c code Python/FastAPI Ä‘Ãºng chuáº©n.
 ---
 
-# Backend Patterns — Smart-MathAI
+## Smart-MathAI Guardrails (MANDATORY)
+
+- Scope: only Vietnamese primary Math for grades 1-3.
+- Roles: only Teacher and Parent are allowed.
+- AI output must remain draft; Teacher review is required before publish.
+- Approved AI models only: qwen3:1.7b (generation), glm-ocr:latest (OCR), vietnamese-sbert (RAG).
+- Do not introduce other AI models or auto-publish flows.
+- Backend: FastAPI + SQLAlchemy ORM only (no raw SQL); enforce grade with Literal[1,2,3] when applicable.
+- Frontend: TypeScript strict mode, immutable updates, role-based rendering, Vietnamese UX/error messages.
+- Keep AI logic isolated under backend/app/services/ai and mock AI calls in tests.
+
+# Backend Patterns â€” Smart-MathAI
 
 ## Layered Architecture
 
 ```
-routes/          ← HTTP layer (validate inputs, call services, return responses)
-services/        ← Business logic thuần túy (không biết HTTP)
-repositories/    ← Data access layer (SQLAlchemy queries)
-models/          ← SQLAlchemy ORM models
-schemas/         ← Pydantic request/response schemas (validation)
-services/ai/     ← AI logic cô lập (qwen3:1.7b, glm-ocr:latest, RAG)
+routes/          â† HTTP layer (validate inputs, call services, return responses)
+services/        â† Business logic thuáº§n tÃºy (khÃ´ng biáº¿t HTTP)
+repositories/    â† Data access layer (SQLAlchemy queries)
+models/          â† SQLAlchemy ORM models
+schemas/         â† Pydantic request/response schemas (validation)
+services/ai/     â† AI logic cÃ´ láº­p (qwen3:1.7b, glm-ocr:latest, RAG)
 ```
 
 ## Repository Pattern
@@ -31,7 +42,7 @@ class WorksheetRepository:
         return self.db.query(Worksheet).filter(Worksheet.id == id).first()
     
     def find_published_by_class(self, class_id: int) -> list[Worksheet]:
-        """Dùng cho Parent — chỉ published worksheets"""
+        """DÃ¹ng cho Parent â€” chá»‰ published worksheets"""
         return (
             self.db.query(Worksheet)
             .filter(
@@ -42,7 +53,7 @@ class WorksheetRepository:
         )
     
     def find_all_by_class(self, class_id: int) -> list[Worksheet]:
-        """Dùng cho Teacher — tất cả worksheets kể cả draft"""
+        """DÃ¹ng cho Teacher â€” táº¥t cáº£ worksheets ká»ƒ cáº£ draft"""
         return self.db.query(Worksheet).filter(Worksheet.class_id == class_id).all()
     
     def save(self, worksheet: Worksheet) -> Worksheet:
@@ -66,13 +77,13 @@ class WorksheetService:
         teacher_id: int,
     ) -> Worksheet:
         if request.grade > 3:
-            raise DomainError("Chỉ hỗ trợ lớp 1, 2, hoặc 3")
+            raise DomainError("Chá»‰ há»— trá»£ lá»›p 1, 2, hoáº·c 3")
         
         worksheet = Worksheet(
             grade=request.grade,
             topic=request.topic,
             title=request.title,
-            status="draft",          # LUÔN bắt đầu là draft
+            status="draft",          # LUÃ”N báº¯t Ä‘áº§u lÃ  draft
             teacher_id=teacher_id,
             class_id=request.class_id,
         )
@@ -83,7 +94,7 @@ class WorksheetService:
     ) -> list[Worksheet]:
         # Verify parent belongs to this class
         if not self._class_repo.parent_belongs_to_class(parent_id, class_id):
-            raise ForbiddenError("Bạn không thuộc lớp học này")
+            raise ForbiddenError("Báº¡n khÃ´ng thuá»™c lá»›p há»c nÃ y")
         return self._repo.find_published_by_class(class_id)
 ```
 
@@ -101,12 +112,12 @@ def get_db() -> Generator:
 
 def require_teacher(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != "teacher":
-        raise HTTPException(403, detail="Chỉ giáo viên mới có quyền này")
+        raise HTTPException(403, detail="Chá»‰ giÃ¡o viÃªn má»›i cÃ³ quyá»n nÃ y")
     return current_user
 
 def require_parent(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != "parent":
-        raise HTTPException(403, detail="Tính năng này dành cho phụ huynh")
+        raise HTTPException(403, detail="TÃ­nh nÄƒng nÃ y dÃ nh cho phá»¥ huynh")
     return current_user
 
 def get_worksheet_service(db: Session = Depends(get_db)) -> WorksheetService:
@@ -124,7 +135,7 @@ router = APIRouter(prefix="/api/worksheets", tags=["worksheets"])
 async def create_worksheet(
     request: WorksheetCreateRequest,
     service: WorksheetService = Depends(get_worksheet_service),
-    current_user: User = Depends(require_teacher),  # Chỉ Teacher
+    current_user: User = Depends(require_teacher),  # Chá»‰ Teacher
 ):
     return service.create_worksheet(request, current_user.id)
 
@@ -133,12 +144,12 @@ async def create_worksheet(
 async def get_worksheets_for_parent(
     class_id: int,
     service: WorksheetService = Depends(get_worksheet_service),
-    current_user: User = Depends(require_parent),  # Chỉ Parent
+    current_user: User = Depends(require_parent),  # Chá»‰ Parent
 ):
     return service.get_worksheets_for_parent(class_id, current_user.id)
 ```
 
-## Pydantic Schema với Domain Constraints
+## Pydantic Schema vá»›i Domain Constraints
 
 ```python
 # schemas/worksheet.py
@@ -146,7 +157,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 class WorksheetCreateRequest(BaseModel):
-    grade: Literal[1, 2, 3]   # ← Pydantic tự reject grade 4+
+    grade: Literal[1, 2, 3]   # â† Pydantic tá»± reject grade 4+
     topic: str = Field(..., min_length=1, max_length=100)
     difficulty: Literal["nhan_biet", "thong_hieu", "van_dung", "van_dung_cao"]
     title: str = Field(..., min_length=1, max_length=200)
@@ -164,19 +175,20 @@ class ApiResponse(BaseModel, Generic[T]):
     data: T | None = None
     error: str | None = None
     
-# Sử dụng trong route
+# Sá»­ dá»¥ng trong route
 return ApiResponse(success=True, data=worksheet_data)
-return ApiResponse(success=False, error="Không tìm thấy bài tập")
+return ApiResponse(success=False, error="KhÃ´ng tÃ¬m tháº¥y bÃ i táº­p")
 ```
 
 ## Standard HTTP Codes
 
-| Code | Khi nào |
+| Code | Khi nÃ o |
 |------|---------|
-| 200 | Thành công (GET, PUT) |
-| 201 | Tạo thành công (POST) |
+| 200 | ThÃ nh cÃ´ng (GET, PUT) |
+| 201 | Táº¡o thÃ nh cÃ´ng (POST) |
 | 400 | Validation error |
-| 401 | Chưa đăng nhập |
+| 401 | ChÆ°a Ä‘Äƒng nháº­p |
 | 403 | Sai role |
-| 404 | Không tìm thấy |
-| 500 | Lỗi server (log chi tiết, trả về message chung) |
+| 404 | KhÃ´ng tÃ¬m tháº¥y |
+| 500 | Lá»—i server (log chi tiáº¿t, tráº£ vá» message chung) |
+

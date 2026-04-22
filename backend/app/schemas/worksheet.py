@@ -111,6 +111,7 @@ class ExerciseCreate(BaseModel):
     question: str = Field(..., min_length=1)
     answer: Optional[str] = None
     hint: Optional[str] = None
+    image_url: Optional[str] = None
     exercise_type: Optional[ExerciseType] = None  # For CPA worksheets
     difficulty_tier: Optional[DifficultyTier] = None  # For differentiation
     order_index: int = 0
@@ -121,6 +122,7 @@ class ExerciseUpdate(BaseModel):
     question: Optional[str] = Field(None, min_length=1)
     answer: Optional[str] = None
     hint: Optional[str] = None
+    image_url: Optional[str] = None
     exercise_type: Optional[ExerciseType] = None
     difficulty_tier: Optional[DifficultyTier] = None
     order_index: Optional[int] = None
@@ -133,6 +135,7 @@ class ExerciseResponse(BaseModel):
     question: str
     answer: Optional[str]
     hint: Optional[str]
+    image_url: Optional[str]
     exercise_type: Optional[ExerciseType]
     difficulty_tier: Optional[DifficultyTier]
     order_index: int

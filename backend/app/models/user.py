@@ -21,7 +21,7 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=False)
-    role = Column(SQLEnum(UserRole), nullable=False)
+    role = Column(SQLEnum(UserRole, values_callable=lambda x: [e.value for e in x]), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
