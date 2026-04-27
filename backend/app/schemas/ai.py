@@ -87,6 +87,8 @@ class QuestionGradeResult(BaseModel):
     feedback: Optional[str] = None
     reasoning: Optional[str] = None
     question_type: Optional[str] = None
+    error_type: Optional[str] = None
+    error_detail: Optional[str] = None
     ocr_confidence: Optional[float] = None
     low_confidence_tokens: Optional[List[OCRTokenConfidence]] = None
 
@@ -136,6 +138,10 @@ class AnalyticsTagItem(BaseModel):
     count: int = Field(default=1, ge=1, le=100)
     question_id: Optional[str] = None
     ocr_confidence: Optional[float] = Field(default=None, ge=0, le=100)
+    error_detail: Optional[str] = None
+    student_answer: Optional[str] = None
+    correct_answer: Optional[str] = None
+    question_text: Optional[str] = None
 
 
 class AnalyticsSubmitRequest(BaseModel):
@@ -149,3 +155,25 @@ class AnalyticsSubmitRequest(BaseModel):
 class AnalyticsSubmitResponse(BaseModel):
     message: str
     records_created: int
+
+
+class StudentErrorDetail(BaseModel):
+    id: int
+    student_id: Optional[int] = None
+    student_name: Optional[str] = None
+    error_type: str
+    error_detail: Optional[str] = None
+    question_text: Optional[str] = None
+    student_answer: Optional[str] = None
+    correct_answer: Optional[str] = None
+    created_at: str
+
+
+class StudentErrorListResponse(BaseModel):
+    errors: List[StudentErrorDetail]
+    total_count: int
+
+
+class UpdateErrorRequest(BaseModel):
+    error_type: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    error_detail: Optional[str] = None

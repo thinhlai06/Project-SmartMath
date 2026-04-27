@@ -11,6 +11,8 @@ export interface GradeResult {
     question_type?: string;
     reasoning?: string;
     feedback?: string;
+    error_type?: string;
+    error_detail?: string;
     ocr_confidence?: number;
     low_confidence_tokens?: OCRToken[];
 }
@@ -63,6 +65,10 @@ export interface AnalyticsTagItem {
     count: number;
     question_id?: string;
     ocr_confidence?: number;
+    error_detail?: string;
+    student_answer?: string;
+    correct_answer?: string;
+    question_text?: string;
 }
 
 export interface AnalyticsSubmitRequest {
@@ -76,6 +82,28 @@ export interface AnalyticsSubmitRequest {
 export interface AnalyticsSubmitResponse {
     message: string;
     records_created: number;
+}
+
+export interface StudentErrorDetail {
+    id: number;
+    student_id?: number;
+    student_name?: string;
+    error_type: string;
+    error_detail?: string;
+    question_text?: string;
+    student_answer?: string;
+    correct_answer?: string;
+    created_at: string;
+}
+
+export interface StudentErrorListResponse {
+    errors: StudentErrorDetail[];
+    total_count: number;
+}
+
+export interface UpdateErrorRecordPayload {
+    error_type?: string;
+    error_detail?: string;
 }
 
 export interface AIStatusResponse {

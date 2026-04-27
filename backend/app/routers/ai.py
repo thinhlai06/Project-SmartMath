@@ -2,7 +2,7 @@
 AI Router - API endpoints for AI-powered features.
 All endpoints require Teacher authentication.
 """
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, Query
 from sqlalchemy.orm import Session
 from typing import Dict, Optional, List, Any, cast
 
@@ -38,6 +38,8 @@ from app.schemas.ai import (
     CPABundleGenerationResponse,
     SaveCPABundlesRequest,
     SaveCPABundlesResponse,
+    StudentErrorListResponse,
+    UpdateErrorRequest,
 )
 from app.infrastructure.db.sqlalchemy.repositories.cpa_bundle_repository import (
     SqlAlchemyCPABundleRepository,
@@ -239,6 +241,61 @@ async def get_class_analytics(
 
     service = AnalyticsService(db)
     return service.analyze_class_errors(class_id)
+
+
+@router.get("/analytics/{class_id}/student-errors", response_model=StudentErrorListResponse)
+async def get_class_student_errors(
+    class_id: int,
+    student_id: Optional[int] = Query(default=None),
+    db: Session = Depends(get_db),
+    teacher: User = Depends(get_current_teacher),
+):
+    """Get per-student error records for one class."""
+    owned_class = db.query(MathClass).filter(
+        MathClass.id == class_id,
+        MathClass.teacher_id == teacher.id,
+    ).first()
+    if not owned_class:
+        raise HTTPException(status_code=403, detail="Ban khong co quyen xem thong ke lop nay")
+
+    service = AnalyticsService(db)
+    errors = service.get_student_errors(class_id=class_id, student_id=student_id)
+    return {"errors": errors, "total_count": len(errors)}
+
+
+@router.put("/analytics/errors/{record_id}")
+async def update_student_error_record(
+    record_id: int,
+    request: UpdateErrorRequest,
+    db: Session = Depends(get_db),
+    teacher: User = Depends(get_current_teacher),
+):
+    """Update one student error record (teacher ownership enforced)."""
+    service = AnalyticsService(db)
+    success = service.update_error_record(
+        record_id=record_id,
+        teacher_id=int(teacher.id),
+        updates=request.model_dump(exclude_none=True),
+    )
+    if not success:
+        raise HTTPException(status_code=404, detail="Khong tim thay ban ghi loi sai")
+
+    return {"message": "Cap nhat ban ghi thanh cong"}
+
+
+@router.delete("/analytics/errors/{record_id}")
+async def delete_student_error_record(
+    record_id: int,
+    db: Session = Depends(get_db),
+    teacher: User = Depends(get_current_teacher),
+):
+    """Delete one student error record (teacher ownership enforced)."""
+    service = AnalyticsService(db)
+    success = service.delete_error_record(record_id=record_id, teacher_id=int(teacher.id))
+    if not success:
+        raise HTTPException(status_code=404, detail="Khong tim thay ban ghi loi sai")
+
+    return {"message": "Da xoa ban ghi loi sai"}
 
 
 @router.post("/exercises/{exercise_id}/explanation", response_model=ExerciseExplanationResponse)

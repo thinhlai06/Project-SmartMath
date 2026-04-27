@@ -231,6 +231,72 @@ class OllamaService:
                         logger.warning("Could not remove temp OCR file: %s", temp_path)
 
     @staticmethod
+    def vision_recognize_cloud(
+        image_content: bytes,
+        prompt: str = "Hay doc va trich xuat toan bo noi dung chu viet tay trong anh nay. Tra ve text thuan tuy, moi dong tren mot hang.",
+        model: Optional[str] = None,
+    ) -> str:
+        """
+        Use Ollama Cloud API for OCR with Authorization bearer token.
+        """
+        if not image_content:
+            raise ValueError("Empty image data")
+
+        api_key = (settings.OLLAMA_CLOUD_API_KEY or "").strip()
+        if not api_key:
+            raise ValueError("Chua cau hinh OLLAMA_CLOUD_API_KEY")
+
+        target_model = model or settings.OLLAMA_CLOUD_VISION_MODEL
+        image_b64 = base64.b64encode(image_content).decode("utf-8")
+        endpoint = f"{settings.OLLAMA_CLOUD_API_BASE.rstrip('/')}/chat"
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": target_model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt,
+                    "images": [image_b64],
+                }
+            ],
+            "options": {"temperature": 0.1},
+            "stream": False,
+        }
+
+        _emit_info(
+            "[AI] sending_request | endpoint=%s | model=%s | timeout=%ss",
+            endpoint,
+            target_model,
+            settings.OLLAMA_CLOUD_TIMEOUT,
+        )
+
+        try:
+            resp = requests.post(
+                endpoint,
+                json=payload,
+                headers=headers,
+                timeout=settings.OLLAMA_CLOUD_TIMEOUT,
+            )
+            resp.raise_for_status()
+            return OllamaService._extract_content(resp.json())
+        except requests.exceptions.Timeout as exc:
+            logger.error("Ollama Cloud OCR timed out")
+            raise TimeoutError("Cloud OCR phan hoi qua lau. Vui long thu lai.") from exc
+        except requests.exceptions.ConnectionError as exc:
+            logger.error("Ollama Cloud OCR not reachable")
+            raise ConnectionError("Khong the ket noi Ollama Cloud OCR.") from exc
+        except requests.exceptions.HTTPError as exc:
+            logger.error("Ollama Cloud OCR HTTP error: %s", exc)
+            raise RuntimeError("Cloud OCR tra ve loi tu he thong.") from exc
+        except Exception as exc:
+            logger.error("Ollama Cloud OCR error: %s", exc)
+            raise RuntimeError("Co loi khi xu ly Cloud OCR.") from exc
+
+    @staticmethod
     def _vision_chat(prompt: str, model: str, images: List[str]) -> str:
         payload = {
             "model": model,

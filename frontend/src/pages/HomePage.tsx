@@ -152,12 +152,37 @@ function TeacherHome() {
     const [isLoading, setIsLoading] = useState(true);
     const [analyticsSummary, setAnalyticsSummary] = useState({
         totalErrors: 0,
-        mostCommonType: 'Chưa có dữ liệu',
-        criticalStudents: 0,
+        dominantErrorType: '',
+        dominantErrorLabel: 'Chưa có dữ liệu',
+        topErrorStudent: 'Chưa có dữ liệu',
+        topErrorCount: 0,
     });
 
     const formatMistakeLabel = (mistakeType: string): string => {
         return mistakeType.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+    };
+
+    const buildPedagogicalSuggestion = (errorType: string, topStudent: string, topCount: number): string => {
+        const studentHint = topCount > 0
+            ? `Ưu tiên hỗ trợ ${topStudent} với ${topCount} lỗi đã ghi nhận.`
+            : 'Tiếp tục theo dõi dữ liệu lỗi mới để cá nhân hóa phụ đạo.';
+
+        switch (errorType) {
+            case 'tinh_sai':
+                return `${studentHint} Tổ chức 5-7 phút luyện tính nhẩm đầu giờ với bộ bài ngắn.`;
+            case 'nham_phep_tinh':
+                return `${studentHint} Ôn lại dấu phép tính bằng bài tập phân loại cộng, trừ, nhân, chia theo tình huống.`;
+            case 'thieu_don_vi':
+                return `${studentHint} Yêu cầu học sinh luôn kiểm tra đơn vị ở bước cuối trước khi nộp bài.`;
+            case 'doc_de_sai':
+                return `${studentHint} Áp dụng quy trình gạch chân dữ kiện và từ khóa trước khi giải toán có lời văn.`;
+            case 'sai_loi_giai':
+                return `${studentHint} Cho học sinh trình bày lại từng bước giải bằng mẫu câu cố định.`;
+            case 'bo_sot_cau':
+                return `${studentHint} Hướng dẫn kiểm tra đáp án theo checklist số câu trước khi nộp.`;
+            default:
+                return `${studentHint} Chia nhóm học sinh theo kiểu lỗi để giao phiếu luyện tập mục tiêu.`;
+        }
     };
 
     // Fetch dashboard stats and classes on mount
@@ -181,7 +206,11 @@ function TeacherHome() {
                     const analyticsResults = await Promise.all(
                         classesData.map(async (mathClass) => {
                             try {
-                                return await aiApi.getAnalytics(mathClass.id);
+                                const [summary, errors] = await Promise.all([
+                                    aiApi.getAnalytics(mathClass.id),
+                                    aiApi.getStudentErrors(mathClass.id),
+                                ]);
+                                return { summary, errors };
                             } catch (analyticsError) {
                                 console.error(`Error fetching analytics for class ${mathClass.id}:`, analyticsError);
                                 return null;
@@ -190,19 +219,19 @@ function TeacherHome() {
                     );
 
                     const mistakeCounter: Record<string, number> = {};
+                    const studentErrorCounter: Record<string, number> = {};
                     let totalErrors = 0;
-                    let criticalStudents = 0;
 
                     analyticsResults.forEach((analyticsData) => {
                         if (!analyticsData) {
                             return;
                         }
 
-                        const commonMistakes = Array.isArray(analyticsData.common_mistakes)
-                            ? analyticsData.common_mistakes
+                        const commonMistakes = Array.isArray(analyticsData.summary.common_mistakes)
+                            ? analyticsData.summary.common_mistakes
                             : [];
-                        const studentPerformance = Array.isArray(analyticsData.student_performance)
-                            ? analyticsData.student_performance
+                        const studentErrors = Array.isArray(analyticsData.errors.errors)
+                            ? analyticsData.errors.errors
                             : [];
 
                         commonMistakes.forEach((item) => {
@@ -210,24 +239,38 @@ function TeacherHome() {
                             mistakeCounter[item.type] = (mistakeCounter[item.type] || 0) + item.count;
                         });
 
-                        criticalStudents += studentPerformance.filter((student) => student.average_score < 5).length;
+                        studentErrors.forEach((item) => {
+                            const studentName = item.student_name || 'Chưa rõ học sinh';
+                            studentErrorCounter[studentName] = (studentErrorCounter[studentName] || 0) + 1;
+                        });
                     });
 
                     const sortedMistakes = Object.entries(mistakeCounter).sort((a, b) => b[1] - a[1]);
-                    const mostCommonType = sortedMistakes.length > 0
+                    const dominantErrorType = sortedMistakes.length > 0
+                        ? sortedMistakes[0][0]
+                        : '';
+                    const dominantErrorLabel = sortedMistakes.length > 0
                         ? formatMistakeLabel(sortedMistakes[0][0])
                         : 'Chưa có dữ liệu';
 
+                    const sortedStudents = Object.entries(studentErrorCounter).sort((a, b) => b[1] - a[1]);
+                    const topErrorStudent = sortedStudents.length > 0 ? sortedStudents[0][0] : 'Chưa có dữ liệu';
+                    const topErrorCount = sortedStudents.length > 0 ? sortedStudents[0][1] : 0;
+
                     setAnalyticsSummary({
                         totalErrors,
-                        mostCommonType,
-                        criticalStudents,
+                        dominantErrorType,
+                        dominantErrorLabel,
+                        topErrorStudent,
+                        topErrorCount,
                     });
                 } else {
                     setAnalyticsSummary({
                         totalErrors: 0,
-                        mostCommonType: 'Chưa có dữ liệu',
-                        criticalStudents: 0,
+                        dominantErrorType: '',
+                        dominantErrorLabel: 'Chưa có dữ liệu',
+                        topErrorStudent: 'Chưa có dữ liệu',
+                        topErrorCount: 0,
                     });
                 }
             } catch (error) {
@@ -410,7 +453,7 @@ function TeacherHome() {
 
                         <div className="grid sm:grid-cols-2 gap-6 mb-8">
                             <div className="p-6 bg-rose-50/50 rounded-2xl border border-rose-100/50 shadow-sm">
-                                <p className="text-slate-500 font-medium mb-1">Tổng số lỗi tuần này</p>
+                                <p className="text-slate-500 font-medium mb-1">Tổng số lỗi đã ghi nhận</p>
                                 {isLoading ? (
                                     <div className="h-9 w-20 bg-rose-100 rounded animate-pulse"></div>
                                 ) : (
@@ -418,13 +461,22 @@ function TeacherHome() {
                                 )}
                             </div>
                             <div className="p-6 bg-orange-50/50 rounded-2xl border border-orange-100/50 shadow-sm">
-                                <p className="text-slate-500 font-medium mb-1">Lỗi xuất hiện nhiều nhất</p>
+                                <p className="text-slate-500 font-medium mb-1">Học sinh có lỗi nhiều nhất</p>
                                 {isLoading ? (
                                     <div className="h-7 w-40 bg-orange-100 rounded animate-pulse mt-2"></div>
                                 ) : (
-                                    <p className="text-xl font-bold text-orange-600 mt-2">{analyticsSummary.mostCommonType}</p>
+                                    <div>
+                                        <p className="text-xl font-bold text-orange-600 mt-2">{analyticsSummary.topErrorStudent}</p>
+                                        {analyticsSummary.topErrorCount > 0 && (
+                                            <p className="text-sm text-orange-500 font-semibold mt-1">{analyticsSummary.topErrorCount} lỗi</p>
+                                        )}
+                                    </div>
                                 )}
                             </div>
+                        </div>
+
+                        <div className="mb-6 rounded-xl bg-white/70 border border-rose-100 px-4 py-3 text-sm text-rose-700">
+                            <span className="font-semibold">Loại lỗi nổi trội:</span> {analyticsSummary.dominantErrorLabel}
                         </div>
 
                         <div className="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-100/50 shadow-sm">
@@ -433,7 +485,11 @@ function TeacherHome() {
                                 <div>
                                     <p className="font-bold text-indigo-900 mb-1">Gợi ý sư phạm AI</p>
                                     <p className="text-sm text-indigo-700/80 leading-relaxed font-medium">
-                                        Phát hiện <span className="font-bold text-rose-600">{analyticsSummary.criticalStudents}</span> học sinh đang gặp khó khăn với các khái niệm cốt lõi. Hệ thống đề xuất tạo Worksheet phụ đạo theo nhóm lỗi phổ biến của lớp.
+                                        {buildPedagogicalSuggestion(
+                                            analyticsSummary.dominantErrorType,
+                                            analyticsSummary.topErrorStudent,
+                                            analyticsSummary.topErrorCount
+                                        )}
                                     </p>
                                 </div>
                             </div>

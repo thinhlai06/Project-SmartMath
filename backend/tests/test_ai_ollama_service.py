@@ -69,3 +69,35 @@ def test_vision_recognize_fallback_temp_file_path() -> None:
         result = OllamaService.vision_recognize(b"fake-image")
 
     assert result == '{"raw_text":"abc"}'
+
+
+def test_vision_recognize_cloud_success() -> None:
+    payload = {
+        "message": {
+            "content": '{"raw_text":"Bai 1", "tokens": []}'
+        }
+    }
+
+    with patch("app.services.ai.ollama_service.settings.OLLAMA_CLOUD_API_KEY", "test-key"), patch(
+        "app.services.ai.ollama_service.settings.OLLAMA_CLOUD_API_BASE", "https://example.ai/api"
+    ), patch("app.services.ai.ollama_service.requests.post", return_value=_FakeResponse(200, payload)) as mock_post:
+        result = OllamaService.vision_recognize_cloud(b"fake-image")
+
+    assert "raw_text" in result
+    assert mock_post.call_args.kwargs["headers"]["Authorization"] == "Bearer test-key"
+    assert mock_post.call_args.kwargs["json"]["model"]
+
+
+def test_vision_recognize_cloud_requires_api_key() -> None:
+    with patch("app.services.ai.ollama_service.settings.OLLAMA_CLOUD_API_KEY", ""):
+        with pytest.raises(ValueError):
+            OllamaService.vision_recognize_cloud(b"fake-image")
+
+
+def test_vision_recognize_cloud_timeout() -> None:
+    with patch("app.services.ai.ollama_service.settings.OLLAMA_CLOUD_API_KEY", "test-key"), patch(
+        "app.services.ai.ollama_service.requests.post",
+        side_effect=requests.exceptions.Timeout(),
+    ):
+        with pytest.raises(TimeoutError):
+            OllamaService.vision_recognize_cloud(b"fake-image")

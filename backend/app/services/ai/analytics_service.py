@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from app.models.student_progress import StudentProgress
 from app.models.student_analytics import StudentAnalytics
 from app.models.math_class import MathClass
@@ -153,6 +153,11 @@ class AnalyticsService:
         records_created = 0
 
         for tag in error_tags:
+            try:
+                normalized_count = int(tag.get("count", 1))
+            except (TypeError, ValueError):
+                normalized_count = 1
+
             row = StudentAnalytics(
                 class_id=class_id,
                 teacher_id=teacher_id,
@@ -160,10 +165,14 @@ class AnalyticsService:
                 worksheet_id=worksheet_id,
                 source=source,
                 error_type=str(tag.get("error_type", "khac")),
-                count=max(int(tag.get("count", 1)), 1),
+                count=max(normalized_count, 1),
                 ocr_confidence=tag.get("ocr_confidence"),
                 payload={
                     "question_id": tag.get("question_id"),
+                    "error_detail": tag.get("error_detail"),
+                    "student_answer": tag.get("student_answer"),
+                    "correct_answer": tag.get("correct_answer"),
+                    "question_text": tag.get("question_text"),
                 },
             )
             self.db.add(row)
@@ -229,3 +238,75 @@ class AnalyticsService:
             source=source,
             error_tags=error_tags,
         )
+
+    def get_student_errors(
+        self,
+        class_id: int,
+        student_id: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
+        """Get per-student error records for a class, optionally filtered by student."""
+        query = self.db.query(StudentAnalytics).filter(StudentAnalytics.class_id == class_id)
+        if student_id is not None:
+            query = query.filter(StudentAnalytics.student_id == student_id)
+
+        rows = query.order_by(StudentAnalytics.created_at.desc()).all()
+
+        result: List[Dict[str, Any]] = []
+        for row in rows:
+            payload = row.payload if isinstance(row.payload, dict) else {}
+            result.append(
+                {
+                    "id": row.id,
+                    "student_id": row.student_id,
+                    "student_name": row.student.full_name if row.student else None,
+                    "error_type": row.error_type,
+                    "error_detail": payload.get("error_detail"),
+                    "question_text": payload.get("question_text"),
+                    "student_answer": payload.get("student_answer"),
+                    "correct_answer": payload.get("correct_answer"),
+                    "created_at": row.created_at.isoformat() if row.created_at else "",
+                }
+            )
+
+        return result
+
+    def update_error_record(self, record_id: int, teacher_id: int, updates: Dict[str, Any]) -> bool:
+        """Update one analytics error record with teacher ownership check."""
+        row = (
+            self.db.query(StudentAnalytics)
+            .filter(
+                StudentAnalytics.id == record_id,
+                StudentAnalytics.teacher_id == teacher_id,
+            )
+            .first()
+        )
+        if not row:
+            return False
+
+        if updates.get("error_type"):
+            row.error_type = str(updates["error_type"])
+
+        payload = dict(row.payload or {})
+        if "error_detail" in updates:
+            payload["error_detail"] = updates.get("error_detail")
+        row.payload = payload
+
+        self.db.commit()
+        return True
+
+    def delete_error_record(self, record_id: int, teacher_id: int) -> bool:
+        """Delete one analytics error record with teacher ownership check."""
+        row = (
+            self.db.query(StudentAnalytics)
+            .filter(
+                StudentAnalytics.id == record_id,
+                StudentAnalytics.teacher_id == teacher_id,
+            )
+            .first()
+        )
+        if not row:
+            return False
+
+        self.db.delete(row)
+        self.db.commit()
+        return True
