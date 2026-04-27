@@ -83,31 +83,24 @@ export default function ErrorAnalyticsPage() {
 
             setSelectedStudentId('all');
             setSummaryLoading(true);
-            setErrorsLoading(true);
             setAnalyticsError(null);
-            setErrorsError(null);
 
             const classId = Number(selectedClassId);
 
             try {
-                const [summary, classStudents, errors] = await Promise.all([
+                const [summary, classStudents] = await Promise.all([
                     aiApi.getAnalytics(classId),
                     studentApi.getStudents(classId),
-                    aiApi.getStudentErrors(classId),
                 ]);
                 setAnalytics(summary);
                 setStudents(classStudents);
-                setStudentErrors(errors.errors || []);
             } catch (error: unknown) {
                 console.error(error);
                 const message = error instanceof Error ? error.message : 'Không thể tải dữ liệu phân tích.';
                 setAnalyticsError(message);
-                setErrorsError(message);
                 setAnalytics(null);
-                setStudentErrors([]);
             } finally {
                 setSummaryLoading(false);
-                setErrorsLoading(false);
             }
         };
 
@@ -117,6 +110,7 @@ export default function ErrorAnalyticsPage() {
     useEffect(() => {
         const loadStudentErrors = async () => {
             if (!selectedClassId) {
+                setStudentErrors([]);
                 return;
             }
 

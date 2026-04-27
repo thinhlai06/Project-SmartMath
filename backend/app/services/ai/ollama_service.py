@@ -8,6 +8,7 @@ import os
 import re
 import tempfile
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlsplit, urlunsplit
 
 import requests
 
@@ -247,42 +248,66 @@ class OllamaService:
             raise ValueError("Chua cau hinh OLLAMA_CLOUD_API_KEY")
 
         target_model = model or settings.OLLAMA_CLOUD_VISION_MODEL
+        candidate_models = [target_model]
+        if target_model.endswith("-cloud"):
+            candidate_models.append(target_model[: -len("-cloud")])
+
         image_b64 = base64.b64encode(image_content).decode("utf-8")
-        endpoint = f"{settings.OLLAMA_CLOUD_API_BASE.rstrip('/')}/chat"
+        cloud_base = OllamaService._normalize_cloud_api_base(settings.OLLAMA_CLOUD_API_BASE)
+        endpoint = f"{cloud_base}/chat"
 
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         }
-        payload = {
-            "model": target_model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt,
-                    "images": [image_b64],
-                }
-            ],
-            "options": {"temperature": 0.1},
-            "stream": False,
-        }
-
-        _emit_info(
-            "[AI] sending_request | endpoint=%s | model=%s | timeout=%ss",
-            endpoint,
-            target_model,
-            settings.OLLAMA_CLOUD_TIMEOUT,
-        )
-
         try:
-            resp = requests.post(
-                endpoint,
-                json=payload,
-                headers=headers,
-                timeout=settings.OLLAMA_CLOUD_TIMEOUT,
-            )
-            resp.raise_for_status()
-            return OllamaService._extract_content(resp.json())
+            last_model_not_found_error: Optional[str] = None
+            for model_name in candidate_models:
+                payload = {
+                    "model": model_name,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": prompt,
+                            "images": [image_b64],
+                        }
+                    ],
+                    "options": {"temperature": 0.1},
+                    "stream": False,
+                }
+
+                _emit_info(
+                    "[AI] sending_request | endpoint=%s | model=%s | timeout=%ss",
+                    endpoint,
+                    model_name,
+                    settings.OLLAMA_CLOUD_TIMEOUT,
+                )
+
+                resp = requests.post(
+                    endpoint,
+                    json=payload,
+                    headers=headers,
+                    timeout=settings.OLLAMA_CLOUD_TIMEOUT,
+                )
+
+                if resp.status_code == 404:
+                    try:
+                        error_text = str(resp.json().get("error", "")).strip()
+                    except Exception:
+                        error_text = (resp.text or "").strip()
+
+                    if "model" in error_text.lower() and "not found" in error_text.lower():
+                        last_model_not_found_error = error_text
+                        logger.warning("Cloud OCR model not found on API: %s", model_name)
+                        continue
+
+                resp.raise_for_status()
+                return OllamaService._extract_content(resp.json())
+
+            if last_model_not_found_error:
+                raise RuntimeError(f"Cloud OCR tra ve loi: {last_model_not_found_error}")
+
+            raise RuntimeError("Cloud OCR tra ve loi tu he thong.")
         except requests.exceptions.Timeout as exc:
             logger.error("Ollama Cloud OCR timed out")
             raise TimeoutError("Cloud OCR phan hoi qua lau. Vui long thu lai.") from exc
@@ -290,11 +315,57 @@ class OllamaService:
             logger.error("Ollama Cloud OCR not reachable")
             raise ConnectionError("Khong the ket noi Ollama Cloud OCR.") from exc
         except requests.exceptions.HTTPError as exc:
+            detail = ""
+            response = getattr(exc, "response", None)
+            if response is not None:
+                try:
+                    payload_error = response.json().get("error", "") if isinstance(response.json(), dict) else ""
+                except Exception:
+                    payload_error = response.text or ""
+                detail = str(payload_error).strip()
+
+            if detail:
+                logger.error("Ollama Cloud OCR HTTP error: %s | detail=%s", exc, detail)
+                raise RuntimeError(f"Cloud OCR tra ve loi: {detail}") from exc
+
             logger.error("Ollama Cloud OCR HTTP error: %s", exc)
             raise RuntimeError("Cloud OCR tra ve loi tu he thong.") from exc
         except Exception as exc:
+            if isinstance(exc, RuntimeError):
+                raise
             logger.error("Ollama Cloud OCR error: %s", exc)
             raise RuntimeError("Co loi khi xu ly Cloud OCR.") from exc
+
+    @staticmethod
+    def _normalize_cloud_api_base(raw_base: Optional[str]) -> str:
+        """
+        Normalize cloud base URL to official Ollama Cloud API format:
+        https://ollama.com/api
+
+        Backward-compatible inputs auto-converted:
+        - https://api.ollama.com/v1 -> https://ollama.com/api
+        - https://ollama.com/v1 -> https://ollama.com/api
+        - https://api.ollama.com -> https://ollama.com/api
+        """
+        base = (raw_base or "").strip() or "https://ollama.com/api"
+        if "//" not in base:
+            base = f"https://{base}"
+
+        parsed = urlsplit(base)
+        netloc = parsed.netloc.lower().strip()
+        path = parsed.path.rstrip("/")
+
+        if netloc == "api.ollama.com":
+            logger.warning("Auto-correcting OLLAMA_CLOUD_API_BASE host from api.ollama.com to ollama.com")
+            netloc = "ollama.com"
+
+        if path.endswith("/chat"):
+            path = path[: -len("/chat")]
+
+        if not path or path == "/v1":
+            path = "/api"
+
+        return urlunsplit((parsed.scheme or "https", netloc, path, "", "")).rstrip("/")
 
     @staticmethod
     def _vision_chat(prompt: str, model: str, images: List[str]) -> str:

@@ -12,13 +12,14 @@ class _FakeResponse:
     def __init__(self, status_code: int, payload: dict):
         self.status_code = status_code
         self._payload = payload
+        self.text = str(payload)
 
     def json(self) -> dict:
         return self._payload
 
     def raise_for_status(self) -> None:
         if self.status_code >= 400:
-            raise requests.HTTPError(f"HTTP {self.status_code}")
+            raise requests.HTTPError(f"HTTP {self.status_code}", response=self)
 
 
 def test_ollama_is_running_true() -> None:
@@ -101,3 +102,46 @@ def test_vision_recognize_cloud_timeout() -> None:
     ):
         with pytest.raises(TimeoutError):
             OllamaService.vision_recognize_cloud(b"fake-image")
+
+
+def test_vision_recognize_cloud_model_not_found_detail() -> None:
+    error_payload = {"error": "model 'deepseek-ocr:latest-cloud' not found"}
+    with patch("app.services.ai.ollama_service.settings.OLLAMA_CLOUD_API_KEY", "test-key"), patch(
+        "app.services.ai.ollama_service.requests.post",
+        return_value=_FakeResponse(404, error_payload),
+    ):
+        with pytest.raises(RuntimeError, match="model 'deepseek-ocr:latest-cloud' not found"):
+            OllamaService.vision_recognize_cloud(b"fake-image")
+
+
+def test_vision_recognize_cloud_retries_without_cloud_suffix() -> None:
+    not_found = _FakeResponse(404, {"error": "model 'deepseek-ocr:latest-cloud' not found"})
+    success = _FakeResponse(200, {"message": {"content": '{"raw_text":"ok"}'}})
+
+    with patch("app.services.ai.ollama_service.settings.OLLAMA_CLOUD_API_KEY", "test-key"), patch(
+        "app.services.ai.ollama_service.requests.post",
+        side_effect=[not_found, success],
+    ) as mock_post:
+        result = OllamaService.vision_recognize_cloud(b"fake-image", model="deepseek-ocr:latest-cloud")
+
+    assert "raw_text" in result
+    assert mock_post.call_count == 2
+    first_model = mock_post.call_args_list[0].kwargs["json"]["model"]
+    second_model = mock_post.call_args_list[1].kwargs["json"]["model"]
+    assert first_model == "deepseek-ocr:latest-cloud"
+    assert second_model == "deepseek-ocr:latest"
+
+
+def test_normalize_cloud_api_base_auto_fixes_ollama_host() -> None:
+    normalized = OllamaService._normalize_cloud_api_base("https://api.ollama.com/v1")
+    assert normalized == "https://ollama.com/api"
+
+
+def test_normalize_cloud_api_base_adds_default_path() -> None:
+    normalized = OllamaService._normalize_cloud_api_base("https://ollama.com")
+    assert normalized == "https://ollama.com/api"
+
+
+def test_normalize_cloud_api_base_strips_chat_suffix() -> None:
+    normalized = OllamaService._normalize_cloud_api_base("https://ollama.com/api/chat")
+    assert normalized == "https://ollama.com/api"

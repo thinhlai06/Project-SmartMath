@@ -2,7 +2,7 @@
 
 > Nguồn: everything-claude-code / rules/common/security.md  
 > Tùy chỉnh cho Smart-MathAI (Educational Platform với dữ liệu học sinh)
-> AI Models: qwen3:1.7b (question gen), deepseek-ocr:latest-cloud (OCR grading), vietnamese-sbert (RAG)
+> AI Models: qwen3:1.7b (question gen), gemma4:31b (OCR grading), vietnamese-sbert (RAG)
 
 ## Mandatory Security Checks
 

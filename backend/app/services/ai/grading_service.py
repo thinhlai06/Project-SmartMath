@@ -494,10 +494,14 @@ CHỈ JSON."""
             return {"is_correct": True, "matched_items": 1, "total_items": 1, "error_hint": None}
 
         # Backward-compatible number fallback for values like "5 qua" vs "5"
-        correct_number = self._extract_number(correct)
-        student_number = self._extract_number(student)
-        if correct_number is not None and student_number is not None and abs(student_number - correct_number) < 1e-9:
-            return {"is_correct": True, "matched_items": 1, "total_items": 1, "error_hint": None}
+        student_matches = re.findall(r"-?\d+(?:[\.,]\d+)?", str(student or ""))
+        correct_matches = re.findall(r"-?\d+(?:[\.,]\d+)?", str(correct or ""))
+        
+        if len(student_matches) == 1 and len(correct_matches) == 1:
+            correct_number = self._extract_number(correct)
+            student_number = self._extract_number(student)
+            if correct_number is not None and student_number is not None and abs(student_number - correct_number) < 1e-9:
+                return {"is_correct": True, "matched_items": 1, "total_items": 1, "error_hint": None}
 
         return {
             "is_correct": False,
@@ -511,31 +515,34 @@ CHỈ JSON."""
         if not student_text:
             return "bo_sot_cau"
 
-        student_num = self._extract_number(student_text)
-        correct_num = self._extract_number(correct_ans)
+        student_matches = re.findall(r"-?\d+(?:[\.,]\d+)?", student_text)
+        correct_matches = re.findall(r"-?\d+(?:[\.,]\d+)?", str(correct_ans or ""))
 
-        if student_num is not None and correct_num is not None:
-            if abs(student_num - correct_num) < 1e-9:
-                unit_keywords = ["cm", "m", "km", "kg", "g", "l", "ml", "quả", "con", "cái", "bạn", "người"]
-                correct_str = str(correct_ans or "").lower()
-                has_unit_in_correct = any(unit in correct_str for unit in unit_keywords)
-                has_unit_in_student = any(unit in student_text.lower() for unit in unit_keywords)
-                if has_unit_in_correct and not has_unit_in_student:
-                    return "thieu_don_vi"
-                return "khac"
+        if len(student_matches) == 1 and len(correct_matches) == 1:
+            student_num = self._extract_number(student_text)
+            correct_num = self._extract_number(correct_ans)
+            if student_num is not None and correct_num is not None:
+                if abs(student_num - correct_num) < 1e-9:
+                    unit_keywords = ["cm", "m", "km", "kg", "g", "l", "ml", "quả", "con", "cái", "bạn", "người"]
+                    correct_str = str(correct_ans or "").lower()
+                    has_unit_in_correct = any(unit in correct_str for unit in unit_keywords)
+                    has_unit_in_student = any(unit in student_text.lower() for unit in unit_keywords)
+                    if has_unit_in_correct and not has_unit_in_student:
+                        return "thieu_don_vi"
+                    return "khac"
 
-            diff = abs(student_num - correct_num)
-            if diff == 1:
-                return "tinh_sai"
+                diff = abs(student_num - correct_num)
+                if diff == 1:
+                    return "tinh_sai"
 
-            student_digits = str(int(abs(student_num))) if float(student_num).is_integer() else ""
-            correct_digits = str(int(abs(correct_num))) if float(correct_num).is_integer() else ""
-            if student_digits and correct_digits and len(student_digits) == len(correct_digits):
-                if student_digits[::-1] == correct_digits:
-                    return "viet_sai_so"
+                student_digits = str(int(abs(student_num))) if float(student_num).is_integer() else ""
+                correct_digits = str(int(abs(correct_num))) if float(correct_num).is_integer() else ""
+                if student_digits and correct_digits and len(student_digits) == len(correct_digits):
+                    if student_digits[::-1] == correct_digits:
+                        return "viet_sai_so"
 
-            if answer_type in {"number", "text"} and diff >= 2:
-                return "tinh_sai"
+                if answer_type in {"number", "text"} and diff >= 2:
+                    return "tinh_sai"
 
         unit_keywords = ["cm", "m", "km", "kg", "g", "l", "ml", "quả", "con", "cái", "bạn", "người"]
         correct_str = str(correct_ans or "").lower()
@@ -554,13 +561,23 @@ CHỈ JSON."""
         Double-check correctness with deterministic rules.
         Return None when confidence is low and should not override LLM.
         """
-        student_num = self._extract_number(student)
-        correct_num = self._extract_number(correct)
-        if student_num is not None and correct_num is not None:
-            return abs(student_num - correct_num) < 1e-9
+        student_text = str(student or "")
+        correct_text = str(correct or "")
 
-        if len(student or "") < 50 and len(correct or "") < 50:
-            if self._normalize_text(student) == self._normalize_text(correct):
+        student_matches = re.findall(r"-?\d+(?:[\.,]\d+)?", student_text)
+        correct_matches = re.findall(r"-?\d+(?:[\.,]\d+)?", correct_text)
+
+        if len(student_matches) == 1 and len(correct_matches) == 1:
+            student_num = self._extract_number(student_text)
+            correct_num = self._extract_number(correct_text)
+            if student_num is not None and correct_num is not None:
+                # Chỉ trả về True nếu khớp số liệu, không trả về False.
+                # Tránh tình trạng ghi đè sai khi LLM phân tích đúng ngữ nghĩa (VD: 1 ngày = 24 giờ).
+                if abs(student_num - correct_num) < 1e-9:
+                    return True
+
+        if len(student_text) < 50 and len(correct_text) < 50:
+            if self._normalize_text(student_text) == self._normalize_text(correct_text):
                 return True
 
         return None

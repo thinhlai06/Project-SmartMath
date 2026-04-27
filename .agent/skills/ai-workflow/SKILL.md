@@ -3,7 +3,7 @@ name: ai-workflow
 description: >
   Workflow vÃ  patterns cho Smart-MathAI AI features â€” sá»­ dá»¥ng khi implement,
   debug hoáº·c refactor AI question generation (qwen3:1.7b), RAG pipeline
-    (vietnamese-sbert/ChromaDB), hoáº·c OCR grading (deepseek-ocr:latest-cloud).
+        (vietnamese-sbert/ChromaDB), hoáº·c OCR grading (gemma4:31b).
 ---
 
 ## Smart-MathAI Guardrails (MANDATORY)
@@ -11,7 +11,7 @@ description: >
 - Scope: only Vietnamese primary Math for grades 1-3.
 - Roles: only Teacher and Parent are allowed.
 - AI output must remain draft; Teacher review is required before publish.
-- Approved AI models only: qwen3:1.7b (generation), deepseek-ocr:latest-cloud (OCR), vietnamese-sbert (RAG).
+- Approved AI models only: qwen3:1.7b (generation), gemma4:31b (OCR), vietnamese-sbert (RAG).
 - Do not introduce other AI models or auto-publish flows.
 - Backend: FastAPI + SQLAlchemy ORM only (no raw SQL); enforce grade with Literal[1,2,3] when applicable.
 - Frontend: TypeScript strict mode, immutable updates, role-based rendering, Vietnamese UX/error messages.
@@ -25,9 +25,9 @@ description: >
 |-------|------|----------|--------------|
 | `qwen3:1.7b` | Ollama | Táº¡o cÃ¢u há»i toÃ¡n, giáº£i thÃ­ch tá»«ng bÆ°á»›c | AI question generation |
 | `keepitreal/vietnamese-sbert` | HuggingFace | RAG embeddings | TÃ¬m context tá»« SGK trong ChromaDB |
-| `deepseek-ocr:latest-cloud` | Ollama Cloud | OCR áº£nh bÃ i lÃ m há»c sinh | Auto-grading tá»« áº£nh |
+| `gemma4:31b` | Ollama Cloud | OCR áº£nh bÃ i lÃ m há»c sinh | Auto-grading tá»« áº£nh |
 
-> **LÆ¯U Ã QUAN TRá»ŒNG**: ÄÃ£ Ä‘á»•i tá»« `qwen2.5-1.5b-instruct` â†’ `qwen3:1.7b` vÃ  `PaddleOCR-VL` â†’ `deepseek-ocr:latest-cloud`
+> **LÆ¯U Ã QUAN TRá»ŒNG**: ÄÃ£ Ä‘á»•i tá»« `qwen2.5-1.5b-instruct` â†’ `qwen3:1.7b` vÃ  `PaddleOCR-VL` â†’ `gemma4:31b`
 
 ## Pipeline AI Question Generation
 
@@ -131,11 +131,11 @@ class QuestionGenerator:
         return self._parse_questions(response["response"])
 ```
 
-## Pipeline OCR Grading (deepseek-ocr:latest-cloud)
+## Pipeline OCR Grading (gemma4:31b)
 
 ```
 Teacher â†’ [Upload áº£nh bÃ i lÃ m]
-    â†’ DeepSeek OCR Cloud: Extract text tá»« áº£nh
+    â†’ Gemma4 Cloud Vision: Extract text tá»« áº£nh
     â†’ Fallback local OCR (`glm-ocr:latest`) náº¿u cloud timeout/lá»—i káº¿t ná»‘i
   â†’ Rule-based: So sÃ¡nh vá»›i expected answers
   â†’ [Grade draft] â†’ Teacher review â†’ [Confirm/Override]
@@ -176,7 +176,7 @@ Quy táº¯c runtime:
 # services/ai/grading_service.py
 class GradingService:
     """
-    Model chÃ­nh: deepseek-ocr:latest-cloud (Ollama Cloud)
+    Model chÃ­nh: gemma4:31b (Ollama Cloud)
     Fallback: glm-ocr:latest (Ollama local)
     âš ï¸ OCR output lÃ  DRAFT â€” Teacher pháº£i confirm.
     """
