@@ -10,17 +10,29 @@ export interface GradebookResponse {
     }[];
 }
 
+export interface GradebookProgressPayload {
+    correct_count: number;
+    total_count: number;
+    details?: Record<string, unknown>;
+}
+
 export const gradebookApi = {
     getGradebook: async (classId: number): Promise<GradebookResponse> => {
         const response = await api.get(`/gradebook/classes/${classId}`);
         return response.data;
     },
     
-    saveGrade: async (studentId: number, worksheetId: number, score: number) => {
+    saveGrade: async (
+        studentId: number,
+        worksheetId: number,
+        score: number,
+        progress?: GradebookProgressPayload,
+    ) => {
         const response = await api.post(`/gradebook/entries`, {
             student_id: studentId,
             worksheet_id: worksheetId,
-            score
+            score,
+            ...(progress ?? {}),
         });
         return response.data;
     },

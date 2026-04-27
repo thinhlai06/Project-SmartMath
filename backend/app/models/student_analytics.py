@@ -7,7 +7,16 @@ from app.database import Base
 
 
 class StudentAnalytics(Base):
-    """Persist error tags captured from AI grading for class analytics."""
+    """
+    Persist error tags captured from AI grading for class analytics.
+
+    metadata payload can include:
+    - question_id
+    - error_detail
+    - student_answer
+    - correct_answer
+    - question_text
+    """
 
     __tablename__ = "student_analytics"
 

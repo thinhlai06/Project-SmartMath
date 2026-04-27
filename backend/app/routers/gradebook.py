@@ -4,6 +4,7 @@ from app.database import get_db
 from app.core.dependencies import get_current_teacher
 from app.models.user import User
 from app.models.math_class import MathClass
+from app.models.worksheet import Worksheet
 from app.schemas.gradebook import GradebookResponse, GradeEntryCreate, GradeEntryResponse
 from app.services.gradebook_service import GradebookService
 
@@ -37,8 +38,21 @@ async def save_grade_entry(
         raise HTTPException(status_code=404, detail="Không tìm thấy học sinh")
     verify_class_ownership(db, student.class_id, int(teacher.id))
 
+    worksheet = db.query(Worksheet).filter(Worksheet.id == data.worksheet_id).first()
+    if not worksheet:
+        raise HTTPException(status_code=404, detail="Không tìm thấy bài tập")
+    if int(worksheet.class_id) != int(student.class_id):
+        raise HTTPException(status_code=400, detail="Bài tập không thuộc lớp của học sinh")
+
     service = GradebookService(db)
-    return service.upsert_grade(data.student_id, data.worksheet_id, data.score)
+    return service.upsert_grade(
+        data.student_id,
+        data.worksheet_id,
+        data.score,
+        correct_count=data.correct_count,
+        total_count=data.total_count,
+        details=data.details,
+    )
 
 @router.get("/classes/{class_id}/export")
 async def export_gradebook_excel(

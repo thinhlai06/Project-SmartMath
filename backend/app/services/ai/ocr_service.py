@@ -1,5 +1,5 @@
 """
-OCR Service using Ollama Vision API (glm-ocr:latest model).
+OCR Service using Ollama Cloud OCR first, then local Ollama OCR fallback.
 """
 import logging
 import json
@@ -19,8 +19,8 @@ class OCRService:
 
     def recognize_with_confidence(self, image_content: bytes) -> Dict[str, Any]:
         """
-        Recognize text from an image using Ollama Vision API.
-        Sends the image to glm-ocr:latest model running in Ollama.
+        Recognize text from an image using cloud OCR first.
+        Fallback to local vision OCR when cloud is unavailable.
         """
         if not image_content:
             raise ValueError("Empty image data")
@@ -40,15 +40,23 @@ class OCRService:
         )
 
         try:
-            result = OllamaService.vision_recognize(
+            result = OllamaService.vision_recognize_cloud(
                 image_content=image_content,
                 prompt=prompt
             )
             parsed = self._parse_ocr_payload(result)
             return parsed
-        except Exception as e:
-            logger.error(f"OCR Error: {e}")
-            raise
+        except Exception as cloud_error:
+            logger.warning("Cloud OCR Error, fallback to local OCR: %s", cloud_error)
+            try:
+                result = OllamaService.vision_recognize(
+                    image_content=image_content,
+                    prompt=prompt,
+                )
+                return self._parse_ocr_payload(result)
+            except Exception as local_error:
+                logger.error("OCR Error (cloud+local): %s", local_error)
+                raise RuntimeError("OCR that bai tren ca cloud va local") from local_error
 
     def _parse_ocr_payload(self, payload_text: str) -> Dict[str, Any]:
         """Parse OCR JSON payload and fallback to plain text parsing if needed."""

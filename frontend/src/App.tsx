@@ -16,9 +16,17 @@ import SettingsPage from './pages/SettingsPage';
 import GradebookHubPage from './pages/GradebookHubPage';
 import './index.css';
 
+type UserRole = 'teacher' | 'parent';
+
 // Protected route wrapper
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+function ProtectedRoute({
+  children,
+  allowedRoles,
+}: {
+  children: React.ReactNode;
+  allowedRoles?: UserRole[];
+}) {
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -30,6 +38,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    const fallback = user.role === 'parent' ? '/parent' : '/classes';
+    return <Navigate to={fallback} replace />;
   }
 
   return (
@@ -83,7 +96,7 @@ function AppRoutes() {
       <Route
         path="/classes"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['teacher']}>
             <ClassesPage />
           </ProtectedRoute>
         }
@@ -91,7 +104,7 @@ function AppRoutes() {
       <Route
         path="/classes/:classId"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['teacher']}>
             <ClassDetailPage />
           </ProtectedRoute>
         }
@@ -99,7 +112,7 @@ function AppRoutes() {
       <Route
         path="/classes/:classId/worksheets"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['teacher']}>
             <WorksheetsPage />
           </ProtectedRoute>
         }
@@ -107,7 +120,7 @@ function AppRoutes() {
       <Route
         path="/gradebook"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['teacher']}>
             <GradebookHubPage />
           </ProtectedRoute>
         }
@@ -115,7 +128,7 @@ function AppRoutes() {
       <Route
         path="/classes/:classId/gradebook"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['teacher']}>
             <GradebookPage />
           </ProtectedRoute>
         }
@@ -123,7 +136,7 @@ function AppRoutes() {
       <Route
         path="/worksheets/:worksheetId/edit"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['teacher']}>
             <WorksheetEditorPage />
           </ProtectedRoute>
         }
@@ -131,7 +144,7 @@ function AppRoutes() {
       <Route
         path="/differentiation-wizard"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['teacher']}>
             <DifferentiationWizard />
           </ProtectedRoute>
         }
@@ -139,7 +152,7 @@ function AppRoutes() {
       <Route
         path="/cpa-wizard"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['teacher']}>
             <CPAStepWizard />
           </ProtectedRoute>
         }
@@ -148,7 +161,7 @@ function AppRoutes() {
       <Route
         path="/parent"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['parent']}>
             <ParentDashboardPage />
           </ProtectedRoute>
         }
@@ -156,7 +169,7 @@ function AppRoutes() {
       <Route
         path="/parent/class/:classId"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['parent']}>
             <ParentDashboardPage />
           </ProtectedRoute>
         }
@@ -164,7 +177,7 @@ function AppRoutes() {
       <Route
         path="/parent/solutions/:worksheetId"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['parent']}>
             <ParentSolutionsPage />
           </ProtectedRoute>
         }
@@ -172,7 +185,7 @@ function AppRoutes() {
       <Route
         path="/parent/student"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['parent']}>
             <StudentExperiencePage />
           </ProtectedRoute>
         }
@@ -180,7 +193,7 @@ function AppRoutes() {
       <Route
         path="/parent/student/:studentId"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['parent']}>
             <StudentExperiencePage />
           </ProtectedRoute>
         }
@@ -188,7 +201,7 @@ function AppRoutes() {
       <Route
         path="/ai-grading"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['teacher']}>
             <AIGradingPage />
           </ProtectedRoute>
         }
@@ -196,7 +209,7 @@ function AppRoutes() {
       <Route
         path="/error-analytics"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['teacher']}>
             <ErrorAnalyticsPage />
           </ProtectedRoute>
         }
@@ -204,7 +217,7 @@ function AppRoutes() {
       <Route
         path="/settings"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['teacher', 'parent']}>
             <SettingsPage />
           </ProtectedRoute>
         }

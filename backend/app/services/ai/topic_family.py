@@ -87,10 +87,6 @@ def build_topic_generation_metadata(topic_name: str, category: str) -> TopicGene
 
     if content_family == "arithmetic":
         operation_family = resolve_arithmetic_operation_family(topic_name)
-        # If arithmetic topic has no deterministic operation (e.g. "Cac so den 10"),
-        # reclassify as number_sense so the generator can handle it gracefully.
-        if operation_family is None:
-            content_family = "number_sense"
 
     return TopicGenerationMetadata(
         topic_name=topic_name,

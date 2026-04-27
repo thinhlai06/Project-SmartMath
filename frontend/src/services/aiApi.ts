@@ -11,6 +11,8 @@ import type {
     AIStatusResponse,
     GradingReport,
     ExerciseExplanationResponse,
+    StudentErrorListResponse,
+    UpdateErrorRecordPayload,
 } from '@/types/ai';
 
 
@@ -65,6 +67,25 @@ export const aiApi = {
     /** Submit analytics tags from AI grading workflow */
     submitAnalytics: async (payload: AnalyticsSubmitRequest): Promise<AnalyticsSubmitResponse> => {
         const { data } = await api.post('/v1/ai/analytics/submit', payload);
+        return data;
+    },
+
+    /** Get per-student error records in one class */
+    getStudentErrors: async (classId: number, studentId?: number): Promise<StudentErrorListResponse> => {
+        const query = typeof studentId === 'number' ? `?student_id=${studentId}` : '';
+        const { data } = await api.get(`/ai/analytics/${classId}/student-errors${query}`);
+        return data;
+    },
+
+    /** Update one error analytics record */
+    updateErrorRecord: async (recordId: number, updates: UpdateErrorRecordPayload): Promise<{ message: string }> => {
+        const { data } = await api.put(`/ai/analytics/errors/${recordId}`, updates);
+        return data;
+    },
+
+    /** Delete one error analytics record */
+    deleteErrorRecord: async (recordId: number): Promise<{ message: string }> => {
+        const { data } = await api.delete(`/ai/analytics/errors/${recordId}`);
         return data;
     },
 

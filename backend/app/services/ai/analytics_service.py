@@ -1,5 +1,6 @@
+import json
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from app.models.student_progress import StudentProgress
 from app.models.student_analytics import StudentAnalytics
 from app.models.math_class import MathClass
@@ -10,6 +11,52 @@ from app.models.math_topic import MathTopic
 class AnalyticsService:
     def __init__(self, db: Session):
         self.db = db
+
+    def _to_int(self, value: Any, default: int = 0) -> int:
+        try:
+            return int(float(value))
+        except (TypeError, ValueError):
+            return default
+
+    def _to_bool(self, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return value != 0
+        text = str(value or "").strip().lower()
+        if text in {"true", "1", "yes", "co", "dung"}:
+            return True
+        if text in {"false", "0", "no", "khong", "sai", ""}:
+            return False
+        return False
+
+    def _extract_detail_items(self, details: Any) -> List[Dict[str, Any]]:
+        """
+        Normalize StudentProgress.details to a list of question-level dicts.
+        Handles legacy shapes: list, {results:[...]}, single dict, or JSON string.
+        """
+        if details is None:
+            return []
+
+        if isinstance(details, str):
+            try:
+                parsed = json.loads(details)
+            except json.JSONDecodeError:
+                return []
+            return self._extract_detail_items(parsed)
+
+        if isinstance(details, list):
+            return [item for item in details if isinstance(item, dict)]
+
+        if isinstance(details, dict):
+            maybe_results = details.get("results")
+            if isinstance(maybe_results, list):
+                return [item for item in maybe_results if isinstance(item, dict)]
+
+            if any(key in details for key in ["score", "max_score", "is_correct", "question_type", "error_type"]):
+                return [details]
+
+        return []
 
     def analyze_class_errors(self, class_id: int) -> Dict[str, Any]:
         """
@@ -58,34 +105,37 @@ class AnalyticsService:
             current_score = 0
             current_max = 0
             
-            if p.details:
+            detail_items = self._extract_detail_items(p.details)
+            if detail_items:
                 # Use details for precise analytics
-                for q in p.details:
-                    q_score = q.get('score', 0)
-                    q_max = q.get('max_score', 10)
-                    is_correct = q.get('is_correct', False)
-                    q_type = q.get('question_type', 'Unknown')
-                    
+                for q in detail_items:
+                    q_score = max(self._to_int(q.get('score', 0), default=0), 0)
+                    q_max = self._to_int(q.get('max_score', 10), default=10)
+                    q_max = q_max if q_max > 0 else 10
+                    is_correct = self._to_bool(q.get('is_correct', False))
+                    q_type = str(q.get('error_type') or q.get('question_type') or 'khac')
+
                     current_score += q_score
                     current_max += q_max
-                    
+
                     # Topic Stats
-                    if p.worksheet.topic_id:
-                        topic_name = p.worksheet.topic_id # Ideally join to get name, or lazy load
-                        # Using topic_id for now, will resolve name later
+                    if p.worksheet and p.worksheet.topic_id is not None:
+                        topic_name = p.worksheet.topic_id
                         if topic_name not in topic_stats:
                             topic_stats[topic_name] = {"total": 0, "correct": 0}
                         topic_stats[topic_name]["total"] += 1
                         if is_correct:
                             topic_stats[topic_name]["correct"] += 1
-                    
+
                     # Mistake Patterns
                     if not is_correct:
                         mistake_patterns[q_type] = mistake_patterns.get(q_type, 0) + 1
             else:
                 # Fallback to summary columns if no details (legacy or simple)
-                current_score = p.correct_count * 10 # Rough estimate
-                current_max = p.total_count * 10
+                safe_correct_count = self._to_int(p.correct_count, default=0)
+                safe_total_count = self._to_int(p.total_count, default=0)
+                current_score = max(safe_correct_count, 0) * 10
+                current_max = max(safe_total_count, 0) * 10
             
             student_stats[s_name]["total_score"] += current_score
             student_stats[s_name]["max_score"] += current_max
@@ -100,8 +150,8 @@ class AnalyticsService:
         # Weak Topics
         weak_topics_list = []
         # Resolve Topic Names
-        topic_ids = list(topic_stats.keys())
-        topics = self.db.query(MathTopic).filter(MathTopic.id.in_(topic_ids)).all()
+        topic_ids = [tid for tid in topic_stats.keys() if isinstance(tid, int)]
+        topics = self.db.query(MathTopic).filter(MathTopic.id.in_(topic_ids)).all() if topic_ids else []
         topic_map = {t.id: t.topic_name for t in topics}
         
         for tid, stats in topic_stats.items():
@@ -153,6 +203,11 @@ class AnalyticsService:
         records_created = 0
 
         for tag in error_tags:
+            try:
+                normalized_count = int(tag.get("count", 1))
+            except (TypeError, ValueError):
+                normalized_count = 1
+
             row = StudentAnalytics(
                 class_id=class_id,
                 teacher_id=teacher_id,
@@ -160,10 +215,14 @@ class AnalyticsService:
                 worksheet_id=worksheet_id,
                 source=source,
                 error_type=str(tag.get("error_type", "khac")),
-                count=max(int(tag.get("count", 1)), 1),
+                count=max(normalized_count, 1),
                 ocr_confidence=tag.get("ocr_confidence"),
                 payload={
                     "question_id": tag.get("question_id"),
+                    "error_detail": tag.get("error_detail"),
+                    "student_answer": tag.get("student_answer"),
+                    "correct_answer": tag.get("correct_answer"),
+                    "question_text": tag.get("question_text"),
                 },
             )
             self.db.add(row)
@@ -229,3 +288,75 @@ class AnalyticsService:
             source=source,
             error_tags=error_tags,
         )
+
+    def get_student_errors(
+        self,
+        class_id: int,
+        student_id: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
+        """Get per-student error records for a class, optionally filtered by student."""
+        query = self.db.query(StudentAnalytics).filter(StudentAnalytics.class_id == class_id)
+        if student_id is not None:
+            query = query.filter(StudentAnalytics.student_id == student_id)
+
+        rows = query.order_by(StudentAnalytics.created_at.desc()).all()
+
+        result: List[Dict[str, Any]] = []
+        for row in rows:
+            payload = row.payload if isinstance(row.payload, dict) else {}
+            result.append(
+                {
+                    "id": row.id,
+                    "student_id": row.student_id,
+                    "student_name": row.student.full_name if row.student else None,
+                    "error_type": row.error_type,
+                    "error_detail": payload.get("error_detail"),
+                    "question_text": payload.get("question_text"),
+                    "student_answer": payload.get("student_answer"),
+                    "correct_answer": payload.get("correct_answer"),
+                    "created_at": row.created_at.isoformat() if row.created_at else "",
+                }
+            )
+
+        return result
+
+    def update_error_record(self, record_id: int, teacher_id: int, updates: Dict[str, Any]) -> bool:
+        """Update one analytics error record with teacher ownership check."""
+        row = (
+            self.db.query(StudentAnalytics)
+            .filter(
+                StudentAnalytics.id == record_id,
+                StudentAnalytics.teacher_id == teacher_id,
+            )
+            .first()
+        )
+        if not row:
+            return False
+
+        if updates.get("error_type"):
+            row.error_type = str(updates["error_type"])
+
+        payload = dict(row.payload) if isinstance(row.payload, dict) else {}
+        if "error_detail" in updates:
+            payload["error_detail"] = updates.get("error_detail")
+        row.payload = payload
+
+        self.db.commit()
+        return True
+
+    def delete_error_record(self, record_id: int, teacher_id: int) -> bool:
+        """Delete one analytics error record with teacher ownership check."""
+        row = (
+            self.db.query(StudentAnalytics)
+            .filter(
+                StudentAnalytics.id == record_id,
+                StudentAnalytics.teacher_id == teacher_id,
+            )
+            .first()
+        )
+        if not row:
+            return False
+
+        self.db.delete(row)
+        self.db.commit()
+        return True

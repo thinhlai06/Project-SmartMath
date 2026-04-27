@@ -43,21 +43,24 @@ export default function AIGradingPage() {
     const [error, setError] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
 
+    const normalizeErrorType = (value?: string): string => {
+        const normalized = (value || '').trim().toLowerCase().replace(/\s+/g, '_');
+        return normalized || 'khac';
+    };
+
     const buildErrorTags = (results: GradeResult[]): AnalyticsTagItem[] => {
-        const mistakeCounter = results.reduce<Record<string, number>>((acc, item) => {
-            if (item.is_correct) {
-                return acc;
-            }
-
-            const normalizedType = (item.question_type || 'khac').trim().toLowerCase().replace(/\s+/g, '_');
-            acc[normalizedType] = (acc[normalizedType] || 0) + 1;
-            return acc;
-        }, {});
-
-        return Object.entries(mistakeCounter).map(([error_type, count]) => ({
-            error_type,
-            count,
-        }));
+        return results
+            .filter((item) => !item.is_correct)
+            .map((item) => ({
+                error_type: normalizeErrorType(item.error_type || item.question_type),
+                count: 1,
+                question_id: item.question_id,
+                ocr_confidence: item.ocr_confidence,
+                error_detail: item.error_detail || item.feedback,
+                student_answer: item.student_answer,
+                correct_answer: item.correct_answer,
+                question_text: item.question_text,
+            }));
     };
 
     const extractFirstNumber = (value: string): number | null => {
@@ -209,6 +212,8 @@ export default function AIGradingPage() {
                 is_correct: isCorrect,
                 score: isCorrect ? item.max_score : item.score,
                 feedback: isCorrect ? 'Giáo viên đã xác nhận kết quả OCR.' : item.feedback,
+                error_type: isCorrect ? undefined : item.error_type,
+                error_detail: isCorrect ? undefined : item.error_detail,
             };
         });
 
@@ -251,18 +256,14 @@ export default function AIGradingPage() {
             // Round to 1 decimal place
             finalScore = Math.round(finalScore * 10) / 10;
 
-            await studentApi.saveProgress(Number(selectedStudentId), {
-                worksheet_id: Number(selectedWorksheetId),
+            await gradebookApi.saveGrade(Number(selectedStudentId), Number(selectedWorksheetId), finalScore, {
                 correct_count: correctCount,
                 total_count: totalCount,
-                score: finalScore,
                 details: {
                     source: 'ai_grading_teacher_review',
                     max_score: gradingResult.max_score,
                 },
             });
-
-            await gradebookApi.saveGrade(Number(selectedStudentId), Number(selectedWorksheetId), finalScore);
             
             toast(`Đã lưu ${finalScore} điểm cho học sinh.`, "success");
             
@@ -271,6 +272,8 @@ export default function AIGradingPage() {
             if (errorTags.length > 0) {
                 aiApi.submitAnalytics({
                     class_id: Number(selectedClassId),
+                    student_id: Number(selectedStudentId),
+                    worksheet_id: Number(selectedWorksheetId),
                     source: 'teacher_review',
                     error_tags: errorTags,
                 }).catch(e => console.error("Analytics save failed", e));
@@ -305,7 +308,7 @@ export default function AIGradingPage() {
                         <p className="text-slate-500 font-medium mt-2">Tải lên ảnh bài làm và cung cấp đáp án để AI chấm điểm ngoài giờ.</p>
                     </div>
                     <Badge className="bg-purple-100/80 text-purple-700 hover:bg-purple-200 px-4 py-1.5 text-sm font-semibold rounded-xl">
-                        Powered by GLM-OCR
+                        Powered by Gemma4 Cloud Vision
                     </Badge>
                 </div>
 
@@ -542,6 +545,19 @@ export default function AIGradingPage() {
                                                         <div className="mt-2 text-xs text-gray-600 bg-white/50 p-2 rounded">
                                                             {res.reasoning && <p><strong>Giải thích:</strong> {res.reasoning}</p>}
                                                             {res.feedback && <p className="mt-1 text-red-600"><strong>Nhận xét:</strong> {res.feedback}</p>}
+                                                        </div>
+                                                    )}
+
+                                                    {!res.is_correct && (res.error_type || res.error_detail) && (
+                                                        <div className="mt-2 text-xs rounded-md border border-amber-200 bg-amber-50 p-2">
+                                                            {res.error_type && (
+                                                                <p className="font-semibold text-amber-700">
+                                                                    Loại lỗi: {res.error_type.replace(/_/g, ' ')}
+                                                                </p>
+                                                            )}
+                                                            {res.error_detail && (
+                                                                <p className="mt-1 text-amber-800">{res.error_detail}</p>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>

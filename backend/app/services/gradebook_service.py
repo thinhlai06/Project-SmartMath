@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.student import Student
 from app.models.worksheet import Worksheet
 from app.models.grade_entry import GradeEntry
+from app.models.student_progress import StudentProgress
 from app.schemas.gradebook import GradebookResponse, StudentGradeRecord
 import io
 import openpyxl
@@ -54,7 +55,15 @@ class GradebookService:
             student_records=records
         )
 
-    def upsert_grade(self, student_id: int, worksheet_id: int, score: float) -> GradeEntry:
+    def upsert_grade(
+        self,
+        student_id: int,
+        worksheet_id: int,
+        score: float,
+        correct_count: int | None = None,
+        total_count: int | None = None,
+        details: dict | None = None,
+    ) -> GradeEntry:
         grade = self.db.query(GradeEntry).filter(
             GradeEntry.student_id == student_id,
             GradeEntry.worksheet_id == worksheet_id
@@ -70,6 +79,27 @@ class GradebookService:
                 score=score
             )
             self.db.add(grade)
+
+        if correct_count is not None and total_count is not None:
+            progress = self.db.query(StudentProgress).filter(
+                StudentProgress.student_id == student_id,
+                StudentProgress.worksheet_id == worksheet_id,
+            ).first()
+
+            if progress is None:
+                progress = StudentProgress(student_id=student_id, worksheet_id=worksheet_id)
+                self.db.add(progress)
+
+            merged_details = dict(details or {})
+            merged_details["teacher_approval_status"] = "approved"
+            merged_details["score"] = score
+
+            progress.status = "completed"
+            progress.correct_count = correct_count
+            progress.total_count = total_count
+            progress.completed_at = datetime.utcnow()
+            progress.updated_at = datetime.utcnow()
+            progress.details = merged_details
         
         self.db.commit()
         self.db.refresh(grade)
