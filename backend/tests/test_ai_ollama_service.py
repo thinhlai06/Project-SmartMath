@@ -30,12 +30,12 @@ def test_ollama_is_running_true() -> None:
 def test_get_loaded_models_from_ps() -> None:
     response = {
         "models": [
-            {"name": "phi4-mini-reasoning:latest"},
+            {"name": "qwen2.5:3b"},
             {"model": "nomic-embed-text:latest"},
         ]
     }
     with patch("app.services.ai.ollama_service.requests.get", return_value=_FakeResponse(200, response)):
-        assert OllamaService.get_loaded_models() == ["phi4-mini-reasoning:latest", "nomic-embed-text:latest"]
+        assert OllamaService.get_loaded_models() == ["qwen2.5:3b", "nomic-embed-text:latest"]
 
 
 def test_generate_strips_think_tags() -> None:
@@ -136,12 +136,12 @@ def test_normalize_cloud_api_base_strips_chat_suffix() -> None:
     assert normalized == "https://ollama.com/api"
 
 
-def test_generate_uses_default_phi4_model() -> None:
+def test_generate_uses_default_qwen_model() -> None:
     payload = {"message": {"content": "ok"}}
-    with patch("app.services.ai.ollama_service.settings.OLLAMA_TEXT_MODEL", "phi4-mini-reasoning:latest"), patch(
+    with patch("app.services.ai.ollama_service.settings.OLLAMA_TEXT_MODEL", "qwen2.5:3b"), patch(
         "app.services.ai.ollama_service.requests.post",
         return_value=_FakeResponse(200, payload),
     ) as mock_post:
         OllamaService.generate("test prompt")
 
-    assert mock_post.call_args.kwargs["json"]["model"] == "phi4-mini-reasoning:latest"
+    assert mock_post.call_args.kwargs["json"]["model"] == "qwen2.5:3b"

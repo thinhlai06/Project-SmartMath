@@ -110,6 +110,9 @@ class OllamaService:
         system: Optional[str] = None,
         temperature: float = 0.7,
         model: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        think: bool = False,
+        format: Optional[str] = None,
     ) -> str:
         """Generate text using Ollama chat API with configurable keep_alive."""
         target_model = model or settings.OLLAMA_TEXT_MODEL
@@ -119,13 +122,20 @@ class OllamaService:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
 
-        payload = {
+        options: Dict[str, Any] = {"temperature": temperature}
+        if max_tokens:
+            options["num_predict"] = max_tokens
+
+        payload: Dict[str, Any] = {
             "model": target_model,
             "messages": messages,
-            "options": {"temperature": temperature},
+            "options": options,
             "keep_alive": settings.OLLAMA_KEEP_ALIVE,
             "stream": False,
+            "think": think,
         }
+        if format:
+            payload["format"] = format
 
         try:
             OllamaService._log_runtime_models("text_generation", target_model)
@@ -146,6 +156,8 @@ class OllamaService:
                     system=system,
                     temperature=temperature,
                     model=target_model,
+                    max_tokens=max_tokens,
+                    format=format,
                 )
             resp.raise_for_status()
             return OllamaService._extract_content(resp.json())
@@ -167,16 +179,24 @@ class OllamaService:
         system: Optional[str],
         temperature: float,
         model: str,
+        max_tokens: Optional[int] = None,
+        format: Optional[str] = None,
     ) -> str:
         """Fallback to /generate endpoint for compatibility."""
+        options: Dict[str, Any] = {"temperature": temperature}
+        if max_tokens:
+            options["num_predict"] = max_tokens
+
         payload = {
             "model": model,
             "prompt": prompt,
             "system": system,
-            "options": {"temperature": temperature},
+            "options": options,
             "keep_alive": settings.OLLAMA_KEEP_ALIVE,
             "stream": False,
         }
+        if format:
+            payload["format"] = format
         _emit_info(
             "[AI] fallback_request | endpoint=/generate | model=%s | temperature=%.2f | timeout=%ss",
             model,
@@ -220,81 +240,89 @@ class OllamaService:
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         }
-        try:
-            last_model_not_found_error: Optional[str] = None
-            for model_name in candidate_models:
-                payload = {
-                    "model": model_name,
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": prompt,
-                            "images": [image_b64],
-                        }
-                    ],
-                    "options": {"temperature": 0.1},
-                    "stream": False,
-                }
+        max_retries = 2
+        last_timeout_exc: Optional[Exception] = None
+        for attempt in range(1, max_retries + 1):
+            try:
+                last_model_not_found_error: Optional[str] = None
+                for model_name in candidate_models:
+                    payload = {
+                        "model": model_name,
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": prompt,
+                                "images": [image_b64],
+                            }
+                        ],
+                        "options": {"temperature": 0.1},
+                        "stream": False,
+                    }
 
-                _emit_info(
-                    "[AI] sending_request | endpoint=%s | model=%s | timeout=%ss",
-                    endpoint,
-                    model_name,
-                    settings.OLLAMA_CLOUD_TIMEOUT,
-                )
+                    _emit_info(
+                        "[AI] sending_request | endpoint=%s | model=%s | timeout=%ss | attempt=%d/%d",
+                        endpoint,
+                        model_name,
+                        settings.OLLAMA_CLOUD_TIMEOUT,
+                        attempt,
+                        max_retries,
+                    )
 
-                resp = requests.post(
-                    endpoint,
-                    json=payload,
-                    headers=headers,
-                    timeout=settings.OLLAMA_CLOUD_TIMEOUT,
-                )
+                    resp = requests.post(
+                        endpoint,
+                        json=payload,
+                        headers=headers,
+                        timeout=settings.OLLAMA_CLOUD_TIMEOUT,
+                    )
 
-                if resp.status_code == 404:
+                    if resp.status_code == 404:
+                        try:
+                            error_text = str(resp.json().get("error", "")).strip()
+                        except Exception:
+                            error_text = (resp.text or "").strip()
+
+                        if "model" in error_text.lower() and "not found" in error_text.lower():
+                            last_model_not_found_error = error_text
+                            logger.warning("Cloud OCR model not found on API: %s", model_name)
+                            continue
+
+                    resp.raise_for_status()
+                    return OllamaService._extract_content(resp.json())
+
+                if last_model_not_found_error:
+                    raise RuntimeError(f"Cloud OCR tra ve loi: {last_model_not_found_error}")
+
+                raise RuntimeError("Cloud OCR tra ve loi tu he thong.")
+            except requests.exceptions.Timeout as exc:
+                last_timeout_exc = exc
+                logger.warning("Ollama Cloud OCR timed out (attempt %d/%d)", attempt, max_retries)
+                if attempt < max_retries:
+                    continue
+                raise TimeoutError("Cloud OCR phan hoi qua lau. Vui long thu lai.") from exc
+            except requests.exceptions.ConnectionError as exc:
+                logger.error("Ollama Cloud OCR not reachable")
+                raise ConnectionError("Khong the ket noi Ollama Cloud OCR.") from exc
+            except requests.exceptions.HTTPError as exc:
+                detail = ""
+                response = getattr(exc, "response", None)
+                if response is not None:
                     try:
-                        error_text = str(resp.json().get("error", "")).strip()
+                        payload_error = response.json().get("error", "") if isinstance(response.json(), dict) else ""
                     except Exception:
-                        error_text = (resp.text or "").strip()
+                        payload_error = response.text or ""
+                    detail = str(payload_error).strip()
 
-                    if "model" in error_text.lower() and "not found" in error_text.lower():
-                        last_model_not_found_error = error_text
-                        logger.warning("Cloud OCR model not found on API: %s", model_name)
-                        continue
+                if detail:
+                    logger.error("Ollama Cloud OCR HTTP error: %s | detail=%s", exc, detail)
+                    raise RuntimeError(f"Cloud OCR tra ve loi: {detail}") from exc
 
-                resp.raise_for_status()
-                return OllamaService._extract_content(resp.json())
-
-            if last_model_not_found_error:
-                raise RuntimeError(f"Cloud OCR tra ve loi: {last_model_not_found_error}")
-
-            raise RuntimeError("Cloud OCR tra ve loi tu he thong.")
-        except requests.exceptions.Timeout as exc:
-            logger.error("Ollama Cloud OCR timed out")
-            raise TimeoutError("Cloud OCR phan hoi qua lau. Vui long thu lai.") from exc
-        except requests.exceptions.ConnectionError as exc:
-            logger.error("Ollama Cloud OCR not reachable")
-            raise ConnectionError("Khong the ket noi Ollama Cloud OCR.") from exc
-        except requests.exceptions.HTTPError as exc:
-            detail = ""
-            response = getattr(exc, "response", None)
-            if response is not None:
-                try:
-                    payload_error = response.json().get("error", "") if isinstance(response.json(), dict) else ""
-                except Exception:
-                    payload_error = response.text or ""
-                detail = str(payload_error).strip()
-
-            if detail:
-                logger.error("Ollama Cloud OCR HTTP error: %s | detail=%s", exc, detail)
-                raise RuntimeError(f"Cloud OCR tra ve loi: {detail}") from exc
-
-            logger.error("Ollama Cloud OCR HTTP error: %s", exc)
-            raise RuntimeError("Cloud OCR tra ve loi tu he thong.") from exc
-        except Exception as exc:
-            if isinstance(exc, RuntimeError):
-                raise
-            logger.error("Ollama Cloud OCR error: %s", exc)
-            raise RuntimeError("Co loi khi xu ly Cloud OCR.") from exc
+                logger.error("Ollama Cloud OCR HTTP error: %s", exc)
+                raise RuntimeError("Cloud OCR tra ve loi tu he thong.") from exc
+            except Exception as exc:
+                if isinstance(exc, RuntimeError):
+                    raise
+                logger.error("Ollama Cloud OCR error: %s", exc)
+                raise RuntimeError("Co loi khi xu ly Cloud OCR.") from exc
 
     @staticmethod
     def _normalize_cloud_api_base(raw_base: Optional[str]) -> str:

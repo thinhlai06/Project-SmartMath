@@ -23,7 +23,7 @@ Nguồn: [affaan-m/everything-claude-code](https://github.com/affaan-m/everythin
 │
 ├── skills/           ← ✅ ANTIGRAVITY SKILLS (AI tự gợi ý hoặc đọc khi cần)
 │   ├── frontend-design/SKILL.md
-│   ├── ai-workflow/SKILL.md      ← AI gen (phi4-mini-reasoning:latest) + OCR (gemma4:31b Cloud OCR) + RAG
+│   ├── ai-workflow/SKILL.md      ← AI gen (phi4-mini:latest) + OCR (gemma4:31b Cloud OCR) + RAG
 │   └── backend-patterns/SKILL.md ← FastAPI, Repository, Service Layer patterns
 │
 ├── rules/            ← Coding rules (AI áp dụng ngầm)
@@ -67,7 +67,7 @@ Skills được AI **tự đọc** khi nhận ra yêu cầu phù hợp với `de
 
 | Skill | Khi nào được gợi ý |
 |-------|-------------------|
-| `ai-workflow` | Implement/debug AI features (phi4-mini-reasoning, gemma4 Cloud OCR, RAG) |
+| `ai-workflow` | Implement/debug AI features (phi4-mini, gemma4 Cloud OCR, RAG) |
 | `backend-patterns` | Viết endpoints mới, refactor backend |
 | `frontend-design` | Build UI components, pages |
 
@@ -77,7 +77,7 @@ Skills được AI **tự đọc** khi nhận ra yêu cầu phù hợp với `de
 
 | Model | Tool | Dùng cho |
 |-------|------|---------|
-| `phi4-mini-reasoning:latest` | Ollama | Tạo câu hỏi toán học |
+| `phi4-mini:latest` | Ollama | Tạo câu hỏi toán học |
 | `gemma4:31b` | Ollama Cloud OCR | OCR ảnh bài làm học sinh |
 | `vietnamese-sbert` | HuggingFace | RAG embeddings từ SGK |
 

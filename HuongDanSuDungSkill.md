@@ -42,7 +42,7 @@ Trong khung chat của Antigravity, bạn chỉ cần gõ ký tự đầu tiên 
 
 Bạn không cần gõ lệnh cho các file này, AI sẽ tự động đọc chúng khi nhận thấy bạn đang làm việc liên quan:
 
-*   **`ai-workflow`**: AI sẽ luôn nhớ dùng `phi4-mini-reasoning:latest` để sinh câu hỏi và `gemma4:31b` (Cloud OCR) để chấm bài. Nó cũng nhớ quy tắc: AI output phải luôn là `Draft`.
+*   **`ai-workflow`**: AI sẽ luôn nhớ dùng `qwen2.5:3b` để sinh câu hỏi + chấm bài text và `gemma4:31b` (Cloud OCR) để nhận diện chữ viết tay. Nó cũng nhớ quy tắc: AI output phải luôn là `Draft`.
 *   **`backend-patterns`**: Giúp AI viết code FastAPI theo đúng cấu trúc: Controller -> Service -> Repository.
 *   **`frontend-design`**: Đảm bảo giao diện hiện đại, cao cấp, không bị cảm giác "AI tạo ra".
 

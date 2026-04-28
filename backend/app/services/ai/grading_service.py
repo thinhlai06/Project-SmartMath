@@ -132,20 +132,17 @@ class GradingService:
 
     def _grade_without_key(self, text: str, ocr_tokens: List[Dict[str, Any]], ocr_avg_confidence: float) -> Dict[str, Any]:
         """
-        Two-step strategy for small model stability:
-        1) extract + solve
-        2) grade + classify errors
+        Single-pass strategy: extract, solve, grade, and classify errors
+        in one LLM call for speed.
         """
         try:
-            extracted = self._extract_and_solve(text)
-            if not extracted:
+            results = self._auto_solve_and_grade(text)
+            if not results:
                 return {
                     "error": "Failed to auto-grade",
                     "details": "Khong trich xuat duoc cau hoi tu OCR",
                     "raw_text": text,
                 }
-
-            results = self._grade_and_analyze(extracted, text)
 
             normalized_results = []
             for item in results:
@@ -179,21 +176,119 @@ class GradingService:
                 "raw_text": text
             }
 
-    def _extract_and_solve(self, text: str) -> List[Dict[str, Any]]:
-        prompt = f"""Bạn là giáo viên Toán tiểu học. Đọc bài OCR và làm 2 việc:
-1. Xác định từng câu hỏi (tìm "Câu", "Bài", số thứ tự)
-2. Với mỗi câu: ghi lại đề bài, đáp án học sinh viết, và tự giải tìm đáp án đúng
+    def _auto_solve_and_grade(self, text: str) -> List[Dict[str, Any]]:
+        """Single-pass: extract, solve, grade, and classify errors in one LLM call."""
+        prompt = f"""Ban la giao vien Toan tieu hoc Viet Nam.
+Doc van ban OCR ben duoi va thuc hien:
+- Buoc 1: Tim cau hoi (tim "Cau", "Bai", so thu tu).
+- Buoc 2: Ghi lai DE BAI nguyen van.
+- Buoc 3: Ghi lai DAP AN HOC SINH da viet (copy chinh xac tu van ban OCR).
+- Buoc 4: Tu giai bai de tim DAP AN DUNG.
+- Buoc 5: So sanh dap an hoc sinh voi dap an dung, cham diem (10 diem moi cau).
+- Buoc 6: Neu sai, phan loai loi.
 
-Bài OCR:
+Loai loi: tinh_sai|nham_phep_tinh|thieu_don_vi|sai_loi_giai|doc_de_sai|viet_sai_so|bo_sot_cau|khac
+
+VAN BAN OCR:
 ---
 {text}
 ---
 
-Trả về JSON array, mỗi item:
-{{"id":"1","question":"đề bài","student":"đáp án HS","correct":"đáp án đúng"}}
-CHỈ JSON."""
+Tra ve JSON array. Vi du voi cau dung:
+[{{"question_id":"1","question_text":"2+3=?","student_answer":"5","correct_answer":"5","is_correct":true,"score":10,"max_score":10,"error_type":null,"error_detail":null}}]
 
-        response = OllamaService.generate(prompt, temperature=0.1)
+Vi du voi cau sai:
+[{{"question_id":"1","question_text":"2+3=?","student_answer":"4","correct_answer":"5","is_correct":false,"score":0,"max_score":10,"error_type":"tinh_sai","error_detail":"Hoc sinh tinh sai 2+3=4, dap an dung la 5"}}]
+
+QUAN TRONG:
+- student_answer PHAI la dap an thuc te hoc sinh viet trong van ban OCR, KHONG duoc de trong.
+- correct_answer PHAI la dap an dung do ban tu giai.
+- CHI tra ve JSON array, KHONG giai thich gi them."""
+
+        response = OllamaService.generate(prompt, temperature=0.1, max_tokens=4096)
+        raw_results = self._safe_parse_json_array(response)
+
+        normalized: List[Dict[str, Any]] = []
+        for item in raw_results:
+            if not isinstance(item, dict):
+                continue
+            qid = str(item.get("question_id") or item.get("id") or "").strip()
+            if not qid:
+                continue
+
+            student_answer = str(item.get("student_answer") or item.get("student") or "").strip()
+            correct_answer = str(item.get("correct_answer") or item.get("correct") or "").strip()
+            question_text = str(item.get("question_text") or item.get("question") or "").strip()
+            is_correct = bool(item.get("is_correct", False))
+            max_score = self._normalize_points(item.get("max_score", 10))
+            try:
+                score = int(item.get("score", max_score if is_correct else 0))
+            except (TypeError, ValueError):
+                score = max_score if is_correct else 0
+            score = max(0, min(max_score, score))
+
+            rule_check = self._verify_correctness(student_answer, correct_answer)
+            if rule_check is not None and rule_check != is_correct:
+                logger.info(
+                    "Overriding LLM is_correct for Q%s: LLM=%s -> Rule=%s",
+                    qid, is_correct, rule_check,
+                )
+                is_correct = rule_check
+                score = max_score if is_correct else 0
+
+            if is_correct:
+                error_type = None
+                error_detail = None
+                score = max_score
+            else:
+                # BUG FIX: LUÔN ép score=0 khi sai — không tin giá trị score từ LLM.
+                # LLM đôi khi trả is_correct:false nhưng vẫn để score:10 (contradiction).
+                score = 0
+                error_type = self._normalize_error_type(item.get("error_type"))
+                error_detail = str(item.get("error_detail") or "").strip() or None
+                if not error_type:
+                    error_type = self._detect_error_hint(student_answer, correct_answer, "text")
+                if not error_detail:
+                    error_detail = self._generate_rule_based_detail({
+                        "error_type": error_type,
+                        "student_answer": student_answer,
+                        "correct_answer": correct_answer,
+                    })
+
+            normalized.append({
+                "question_id": qid,
+                "question_text": question_text,
+                "student_answer": student_answer,
+                "correct_answer": correct_answer,
+                "is_correct": is_correct,
+                "score": score,
+                "max_score": max_score,
+                "reasoning": str(item.get("reasoning") or "").strip() or None,
+                "feedback": str(item.get("feedback") or "").strip() or None,
+                "error_type": error_type,
+                "error_detail": error_detail,
+                "question_type": str(item.get("question_type") or "").strip() or None,
+            })
+
+        return normalized
+
+    def _extract_and_solve(self, text: str) -> List[Dict[str, Any]]:
+        prompt = f"""Ban la giao vien Toan tieu hoc. Doc van ban OCR va lam 2 viec:
+1. Tim cau hoi (tim "Cau", "Bai", so thu tu)
+2. Voi moi cau: ghi lai de bai, dap an hoc sinh da viet, va tu giai tim dap an dung
+
+VAN BAN OCR:
+---
+{text}
+---
+
+Tra ve JSON array. Vi du:
+[{{"id":"1","question":"5+3=?","student":"8","correct":"8"}}]
+
+QUAN TRONG: student PHAI la dap an thuc te hoc sinh viet trong van ban OCR.
+CHI tra ve JSON array."""
+
+        response = OllamaService.generate(prompt, temperature=0.1, max_tokens=2048)
         parsed = self._safe_parse_json_array(response)
 
         normalized: List[Dict[str, Any]] = []
@@ -227,13 +322,13 @@ CHỈ JSON."""
 Với mỗi câu SAI, chọn error_type:
 tinh_sai|nham_phep_tinh|thieu_don_vi|sai_loi_giai|doc_de_sai|viet_sai_so|bo_sot_cau|khac
 
-JSON array, mỗi item:
-{{"question_id":"1","question_text":"...","correct_answer":"...","student_answer":"...",
-"is_correct":true,"score":10,"max_score":10,"reasoning":"cách giải",
-"feedback":"nhận xét","error_type":null,"error_detail":null}}
-CHỈ JSON."""
+Tra ve JSON array. Vi du cau dung:
+[{{"question_id":"1","question_text":"5+3=?","correct_answer":"8","student_answer":"8","is_correct":true,"score":10,"max_score":10,"reasoning":"5+3=8","feedback":"Dung","error_type":null,"error_detail":null}}]
+Vi du cau sai:
+[{{"question_id":"1","question_text":"5+3=?","correct_answer":"8","student_answer":"7","is_correct":false,"score":0,"max_score":10,"reasoning":"5+3=8 khong phai 7","feedback":"Tinh sai","error_type":"tinh_sai","error_detail":"Hoc sinh tinh 5+3=7, dap an dung la 8"}}]
+CHI tra ve JSON array."""
 
-        response = OllamaService.generate(prompt, temperature=0.1)
+        response = OllamaService.generate(prompt, temperature=0.1, max_tokens=4096)
         raw_results = self._safe_parse_json_array(response)
         normalized_results: List[Dict[str, Any]] = []
 
@@ -273,6 +368,8 @@ CHỈ JSON."""
             error_type = self._normalize_error_type(item.get("error_type"))
             error_detail = str(item.get("error_detail") or "").strip() or None
             if not is_correct:
+                # BUG FIX: LUÔN ép score=0 khi sai — không tin giá trị score từ LLM.
+                score = 0
                 if not error_type:
                     error_type = self._detect_error_hint(student_answer, correct_answer, "text")
                 if not error_detail:
@@ -311,6 +408,9 @@ CHỈ JSON."""
         """Enrich rule-based wrong answers with short Vietnamese details from LLM."""
         wrong = [item for item in results if not item.get("is_correct") and item.get("error_type")]
         if not wrong:
+            return results
+
+        if all(item.get("error_detail") for item in wrong):
             return results
 
         summary = "\n".join(
@@ -559,7 +659,7 @@ CHỈ JSON."""
     def _verify_correctness(self, student: str, correct: str) -> Optional[bool]:
         """
         Double-check correctness with deterministic rules.
-        Return None when confidence is low and should not override LLM.
+        Return True/False khi có đủ bằng chứng; None khi không chắc (để LLM quyết định).
         """
         student_text = str(student or "")
         correct_text = str(correct or "")
@@ -567,6 +667,22 @@ CHỈ JSON."""
         student_matches = re.findall(r"-?\d+(?:[\.,]\d+)?", student_text)
         correct_matches = re.findall(r"-?\d+(?:[\.,]\d+)?", correct_text)
 
+        # --- So sánh danh sách nhiều số theo thứ tự (VD: "1,5,7,9,2" vs "1,2,3,4,5") ---
+        # Trường hợp này LLM hay mắc lỗi confusion nên cần rule-based override hoàn toàn.
+        if len(student_matches) >= 2 and len(correct_matches) >= 2:
+            if len(student_matches) != len(correct_matches):
+                # Số lượng phần tử khác nhau → chắc chắn sai
+                return False
+            student_nums = [self._extract_number(n) for n in student_matches]
+            correct_nums = [self._extract_number(n) for n in correct_matches]
+            all_match = all(
+                s is not None and c is not None and abs(s - c) < 1e-9
+                for s, c in zip(student_nums, correct_nums)
+            )
+            # Trả về True/False chắc chắn — danh sách số không cần "ngữ nghĩa" LLM
+            return True if all_match else False
+
+        # --- So sánh 1 số đơn ---
         if len(student_matches) == 1 and len(correct_matches) == 1:
             student_num = self._extract_number(student_text)
             correct_num = self._extract_number(correct_text)
@@ -576,11 +692,13 @@ CHỈ JSON."""
                 if abs(student_num - correct_num) < 1e-9:
                     return True
 
+        # --- So sánh text ngắn (< 50 ký tự) ---
         if len(student_text) < 50 and len(correct_text) < 50:
             if self._normalize_text(student_text) == self._normalize_text(correct_text):
                 return True
 
         return None
+
 
     def _generate_rule_based_detail(self, result: Dict[str, Any]) -> str:
         error_type = self._normalize_error_type(result.get("error_type"))
@@ -692,7 +810,7 @@ Ví dụ JSON:
 CHỈ TRẢ VỀ JSON."""
         
         try:
-            response = OllamaService.generate(prompt, temperature=0.1)
+            response = OllamaService.generate(prompt, temperature=0.1, max_tokens=2048)
             clean = re.sub(r"<think>.*?</think>", "", response, flags=re.DOTALL | re.IGNORECASE)
             clean = re.sub(r"```json|```", "", clean).strip()
 

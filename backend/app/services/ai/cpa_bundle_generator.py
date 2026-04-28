@@ -488,13 +488,15 @@ class CPABundleGenerator:
         prompt = self._build_bundle_prompt(math_core, topic, grade, objective, seeds, bundle_index)
         system = (
             "Ban la chuyen gia giao duc Toan tieu hoc Viet Nam. "
-            "Sinh JSON object dung schema, khong chen mo ta ngoai JSON."
+            "Sinh JSON object dung schema, khong chen mo ta ngoai JSON. CHI TRA VE JSON HOP LE, KHONG DUNG MARKDOWN."
         )
 
         response = OllamaService.generate(
             prompt=prompt,
             system=system,
             temperature=0.2,
+            max_tokens=4096,
+            format="json",
         )
         payload = self._extract_json_object(response)
 
@@ -515,7 +517,7 @@ class CPABundleGenerator:
                 "Sua JSON CPA bundle sau cho hop le, KHONG doi math_core.",
                 "LOI CAN SUA:",
                 *issue_lines,
-                "OUTPUT CHI LA JSON object voi 3 key: concrete, pictorial, abstract",
+                "OUTPUT CHI LA JSON object voi 3 key: concrete, pictorial, abstract. KHONG GIAI THICH, KHONG DUNG MARKDOWN.",
                 json.dumps(
                     {
                         "math_core": bundle.math_core.model_dump(),
@@ -527,7 +529,7 @@ class CPABundleGenerator:
                 ),
             ]
         )
-        repaired_text = OllamaService.generate(prompt=prompt, temperature=0.1)
+        repaired_text = OllamaService.generate(prompt=prompt, temperature=0.1, max_tokens=4096, format="json")
         payload = self._extract_json_object(repaired_text)
 
         try:
@@ -597,6 +599,7 @@ OUTPUT JSON OBJECT:
     "show_blank": true
   }}
 }}
+TRA VE DUY NHAT JSON OBJECT. KHONG GIAI THICH, KHONG DUNG MARKDOWN.
 """.strip()
 
     def _bundle_from_ai_payload(self, math_core: MathCore, payload: Dict[str, Any]) -> CPABundle:

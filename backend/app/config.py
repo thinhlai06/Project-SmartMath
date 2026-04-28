@@ -24,15 +24,15 @@ class Settings(BaseSettings):
     
     # Ollama AI Configuration
     OLLAMA_API_BASE: str = "http://localhost:11434/api"
-    OLLAMA_TEXT_MODEL: str = "phi4-mini-reasoning:latest"
-    OLLAMA_TIMEOUT: int = 180
-    OLLAMA_KEEP_ALIVE: str = "3m"
+    OLLAMA_TEXT_MODEL: str = "qwen2.5:3b"
+    OLLAMA_TIMEOUT: int = 300
+    OLLAMA_KEEP_ALIVE: str = "30m"
 
     # Ollama Cloud OCR Configuration
     OLLAMA_CLOUD_API_BASE: str = "https://ollama.com/api"
     OLLAMA_CLOUD_API_KEY: str = ""
     OLLAMA_CLOUD_VISION_MODEL: str = "gemma4:31b"
-    OLLAMA_CLOUD_TIMEOUT: int = 120
+    OLLAMA_CLOUD_TIMEOUT: int = 180
 
     # AI generation controls (single mode: new pipeline only)
     AI_GEN_ENABLE_TEMPLATE_FILTER: bool = True

@@ -20,7 +20,7 @@ pip install -r requirements.txt
 # Install and start Ollama (separate terminal)
 # https://ollama.com/download
 # Then pull approved text model once:
-# ollama pull phi4-mini-reasoning:latest
+# ollama pull qwen2.5:3b
 # Configure OLLAMA_CLOUD_API_KEY for OCR model gemma4:31b
 
 # Run migrations
@@ -37,7 +37,7 @@ uvicorn app.main:app --reload --port 8000
 
 - Default Ollama API: `http://localhost:11434/api`
 - Models used by backend:
-	- Text generation: `phi4-mini-reasoning:latest`
+	- Text generation: `qwen2.5:3b`
 	- Vision OCR: `gemma4:31b` via Ollama Cloud
 - Keep-alive policy is configurable through `OLLAMA_KEEP_ALIVE` (default `3m`).
 

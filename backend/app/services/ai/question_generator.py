@@ -1,5 +1,5 @@
 """
-Question Generator - Generates CPA-style math questions using RAG + Qwen3.
+Question Generator - Generates CPA-style math questions using RAG + Ollama.
 """
 import json
 import logging
@@ -169,7 +169,7 @@ class QuestionGenerator:
             )
 
             logger.info("[AI] Generating %d %s questions (CPA Sync)...", count, level)
-            response = OllamaService.generate(prompt, system=system, temperature=0.3)
+            response = OllamaService.generate(prompt, system=system, temperature=0.3, max_tokens=4096, format="json")
             questions = self._parse_json(response)
             result[level] = questions
 
@@ -212,7 +212,7 @@ class QuestionGenerator:
             )
             
             logger.info("[AI] Generating %d %s questions (Refined RAG)...", count, tier)
-            response = OllamaService.generate(prompt, system=system, temperature=0.3)
+            response = OllamaService.generate(prompt, system=system, temperature=0.3, max_tokens=4096, format="json")
             questions = self._parse_json(response)
             result["content"][tier] = questions
 
@@ -272,9 +272,9 @@ class QuestionGenerator:
             )
             system = (
                 "Ban la chuyen gia giao duc Toan tieu hoc Viet Nam. "
-                "Chi sinh bai moi trong bien topic duoc khoa. Tra ve JSON array."
+                "Chi sinh bai moi trong bien topic duoc khoa. Tra ve DUY NHAT JSON array, KHONG DUNG MARKDOWN."
             )
-            response = OllamaService.generate(prompt, system=system, temperature=0.2)
+            response = OllamaService.generate(prompt, system=system, temperature=0.2, max_tokens=4096, format="json")
             result[level] = self._parse_json(response)
 
         result["rag_sources"] = sorted(list(all_sources))
@@ -313,9 +313,9 @@ class QuestionGenerator:
         )
         system = (
             "Ban la chuyen gia giao duc Toan tieu hoc Viet Nam. "
-            "Tao difficulty ladder tang dan do kho va khong trung dang giua cac muc."
+            "Tao difficulty ladder tang dan do kho va khong trung dang giua cac muc. CHI TRA VE JSON HOP LE, KHONG DUNG MARKDOWN."
         )
-        response = OllamaService.generate(prompt, system=system, temperature=0.2)
+        response = OllamaService.generate(prompt, system=system, temperature=0.2, max_tokens=4096, format="json")
         parsed_content = self._parse_ladder_json(response, normalized_tiers)
 
         validation = {
@@ -515,6 +515,7 @@ RANG BUOC:
 DINH DANG DAU RA:
 - JSON array duy nhat: [{{"question":"...","answer":"...","hint":"..."}}]
 - Khong tra ve van ban ngoai JSON.
+- TRA VE DUY NHAT JSON ARRAY. KHONG GIAI THICH, KHONG DUNG MARKDOWN.
 """
 
     def _build_ladder_prompt(
@@ -568,6 +569,7 @@ JSON object duy nhat theo mau:
     "advanced": [{{"question":"...","answer":"...","hint":"..."}}]
   }}
 }}
+- TRA VE DUY NHAT JSON OBJECT. KHONG GIAI THICH, KHONG DUNG MARKDOWN.
 """
 
     # ------------------------------------------------------------------
@@ -683,11 +685,14 @@ YEU CAU:
 - Giu nguyen tier va cau dung.
 - Khong duoc doi topic.
 - Tra ve duy nhat JSON object theo key 'content'.
+- TRA VE DUY NHAT JSON OBJECT. KHONG GIAI THICH, KHONG DUNG MARKDOWN.
 """
         response = OllamaService.generate(
             prompt=prompt,
             system="Ban la giao vien sua bai, sua dung loi va giu nguyen chu de.",
             temperature=0.1,
+            max_tokens=4096,
+            format="json",
         )
         return self._parse_ladder_json(response, tiers)
 
