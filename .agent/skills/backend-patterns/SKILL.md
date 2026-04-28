@@ -1,4 +1,4 @@
-﻿---
+---
 name: backend-patterns
 description: >
   Patterns phá»• biáº¿n cho Smart-MathAI FastAPI backend: Repository pattern, service layer,
@@ -11,7 +11,7 @@ description: >
 - Scope: only Vietnamese primary Math for grades 1-3.
 - Roles: only Teacher and Parent are allowed.
 - AI output must remain draft; Teacher review is required before publish.
-- Approved AI models only: qwen3:1.7b (generation), glm-ocr:latest (OCR), vietnamese-sbert (RAG).
+- Approved AI models only: qwen2.5:3b (generation + grading text, local), gemma4:31b via Ollama Cloud (OCR image), vietnamese-sbert (RAG).
 - Do not introduce other AI models or auto-publish flows.
 - Backend: FastAPI + SQLAlchemy ORM only (no raw SQL); enforce grade with Literal[1,2,3] when applicable.
 - Frontend: TypeScript strict mode, immutable updates, role-based rendering, Vietnamese UX/error messages.

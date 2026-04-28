@@ -39,7 +39,7 @@ Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Gi�
 - **Backend:** Python (FastAPI), SQLAlchemy (SQLite), LangChain.
 - **Frontend:** React (Vite), Tailwind CSS, Shadcn/UI, Recharts.
 - **AI/ML:**
-    - LLM: `phi4-mini-reasoning:latest` (chạy local qua Ollama).
+    - LLM: `qwen2.5:3b` (chạy local qua Ollama).
     - Embeddings: `keepitreal/vietnamese-sbert`.
     - Vector DB: ChromaDB.
     - OCR: `gemma4:31b` (Ollama Cloud OCR).
@@ -58,7 +58,7 @@ Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Gi�
 Sử dụng **Ollama** để chạy các model AI cục bộ:
 1. Tải và cài đặt [Ollama](https://ollama.com/download).
 2. Pull model text generation:
-    - `phi4-mini-reasoning:latest`
+    - `qwen2.5:3b`
 3. Cấu hình thêm `OLLAMA_CLOUD_API_KEY` để dùng Cloud OCR (`gemma4:31b`).
 4. Khởi chạy daemon:
     - `ollama serve`
@@ -98,7 +98,7 @@ Bạn cần mở 3 terminal riêng biệt để chạy toàn bộ hệ thống:
 ```powershell
 ollama serve
 ```
-*(Dam bao da pull model `phi4-mini-reasoning:latest` truoc khi chay backend va da cau hinh Cloud OCR key)*
+*(Dam bao da pull model `qwen2.5:3b` truoc khi chay backend va da cau hinh Cloud OCR key)*
 
 **Terminal 2: Backend API**
 ```powershell
