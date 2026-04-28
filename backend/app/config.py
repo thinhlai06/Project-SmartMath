@@ -24,9 +24,7 @@ class Settings(BaseSettings):
     
     # Ollama AI Configuration
     OLLAMA_API_BASE: str = "http://localhost:11434/api"
-    OLLAMA_TEXT_MODEL: str = "qwen3:1.7b"
-    # Local OCR fallback model (used only when cloud OCR fails)
-    OLLAMA_VISION_MODEL: str = "glm-ocr:latest"
+    OLLAMA_TEXT_MODEL: str = "phi4-mini-reasoning:latest"
     OLLAMA_TIMEOUT: int = 180
     OLLAMA_KEEP_ALIVE: str = "3m"
 

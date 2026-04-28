@@ -23,7 +23,7 @@ Nguồn: [affaan-m/everything-claude-code](https://github.com/affaan-m/everythin
 │
 ├── skills/           ← ✅ ANTIGRAVITY SKILLS (AI tự gợi ý hoặc đọc khi cần)
 │   ├── frontend-design/SKILL.md
-│   ├── ai-workflow/SKILL.md      ← AI gen (qwen3:1.7b) + OCR (glm-ocr:latest) + RAG
+│   ├── ai-workflow/SKILL.md      ← AI gen (phi4-mini-reasoning:latest) + OCR (gemma4:31b Cloud OCR) + RAG
 │   └── backend-patterns/SKILL.md ← FastAPI, Repository, Service Layer patterns
 │
 ├── rules/            ← Coding rules (AI áp dụng ngầm)
@@ -67,7 +67,7 @@ Skills được AI **tự đọc** khi nhận ra yêu cầu phù hợp với `de
 
 | Skill | Khi nào được gợi ý |
 |-------|-------------------|
-| `ai-workflow` | Implement/debug AI features (qwen3, glm-ocr, RAG) |
+| `ai-workflow` | Implement/debug AI features (phi4-mini-reasoning, gemma4 Cloud OCR, RAG) |
 | `backend-patterns` | Viết endpoints mới, refactor backend |
 | `frontend-design` | Build UI components, pages |
 
@@ -77,8 +77,8 @@ Skills được AI **tự đọc** khi nhận ra yêu cầu phù hợp với `de
 
 | Model | Tool | Dùng cho |
 |-------|------|---------|
-| `qwen3:1.7b` | Ollama | Tạo câu hỏi toán học |
-| `glm-ocr:latest` | Ollama | OCR ảnh bài làm học sinh |
+| `phi4-mini-reasoning:latest` | Ollama | Tạo câu hỏi toán học |
+| `gemma4:31b` | Ollama Cloud OCR | OCR ảnh bài làm học sinh |
 | `vietnamese-sbert` | HuggingFace | RAG embeddings từ SGK |
 
 ---
@@ -90,6 +90,6 @@ Skills được AI **tự đọc** khi nhận ra yêu cầu phù hợp với `de
 | Grade 1-3 only | `grade: Literal[1, 2, 3]` — không bao giờ > 3 |
 | Teacher creates | Role check mandatory trên mọi write endpoint |
 | Parent reads | Chỉ published worksheets của class đã join |
-| AI = Draft | Output qwen3/glm-ocr → pending Teacher review |
+| AI = Draft | Output phi4/gemma4 → pending Teacher review |
 | Tiếng Việt | UI messages và AI output |
 | Isolated AI | `services/ai/` không mix vào controller |
