@@ -495,7 +495,6 @@ class CPABundleGenerator:
             prompt=prompt,
             system=system,
             temperature=0.2,
-            model="qwen3:1.7b",
         )
         payload = self._extract_json_object(response)
 
@@ -528,8 +527,9 @@ class CPABundleGenerator:
                 ),
             ]
         )
-        repaired_text = OllamaService.generate(prompt=prompt, temperature=0.1, model="qwen3:1.7b")
+        repaired_text = OllamaService.generate(prompt=prompt, temperature=0.1)
         payload = self._extract_json_object(repaired_text)
+
         try:
             parsed = json.loads(payload)
             return self._bundle_from_ai_payload(bundle.math_core, parsed)

@@ -13,7 +13,7 @@
 ```
 Backend:   Python 3.11+ / FastAPI / SQLAlchemy / SQLite
 Frontend:  TypeScript / React / Vite
-AI:        Ollama (qwen3:1.7b) / ChromaDB + vietnamese-sbert (RAG) / Ollama (glm-ocr:latest)
+AI:        Ollama (phi4-mini-reasoning:latest) / ChromaDB + vietnamese-sbert (RAG) / Ollama Cloud OCR (gemma4:31b)
 ```
 
 ## Domain Constraints (BẮT BUỘC tuân thủ)
@@ -21,7 +21,7 @@ AI:        Ollama (qwen3:1.7b) / ChromaDB + vietnamese-sbert (RAG) / Ollama (glm
 1. **Chỉ Toán học Lớp 1–3** — Không implement content ngoài phạm vi này
 2. **2 Roles duy nhất**: Teacher và Parent
 3. **AI output = Draft** — Teacher review bắt buộc, không auto-publish
-4. **AI models được duyệt**: `qwen3:1.7b` (câu hỏi), `glm-ocr:latest` (OCR), `vietnamese-sbert` (RAG) — không thêm model khác
+4. **AI models được duyệt**: `phi4-mini-reasoning:latest` (câu hỏi), `gemma4:31b` qua Ollama Cloud (OCR), `vietnamese-sbert` (RAG) — không thêm model khác
 5. **Tiếng Việt** — UI và AI output bằng tiếng Việt
 
 ## Khi làm việc với Backend (`backend/`)

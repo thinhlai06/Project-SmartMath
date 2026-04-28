@@ -1,17 +1,14 @@
 """
-OCR Service using Ollama Cloud OCR first, then local Ollama OCR fallback.
+OCR Service using Ollama Cloud OCR.
 """
-import logging
 import json
 import re
 from typing import Any, Dict, List
 from .ollama_service import OllamaService
 
-logger = logging.getLogger(__name__)
-
 
 class OCRService:
-    """OCR service that uses Ollama Vision model for text recognition."""
+    """OCR service that uses Ollama Cloud OCR for text recognition."""
 
     def recognize(self, image_content: bytes) -> str:
         payload = self.recognize_with_confidence(image_content)
@@ -19,8 +16,7 @@ class OCRService:
 
     def recognize_with_confidence(self, image_content: bytes) -> Dict[str, Any]:
         """
-        Recognize text from an image using cloud OCR first.
-        Fallback to local vision OCR when cloud is unavailable.
+        Recognize text from an image using cloud OCR.
         """
         if not image_content:
             raise ValueError("Empty image data")
@@ -39,24 +35,11 @@ class OCRService:
             "Không được trả về markdown, không được thêm giải thích ngoài JSON."
         )
 
-        try:
-            result = OllamaService.vision_recognize_cloud(
-                image_content=image_content,
-                prompt=prompt
-            )
-            parsed = self._parse_ocr_payload(result)
-            return parsed
-        except Exception as cloud_error:
-            logger.warning("Cloud OCR Error, fallback to local OCR: %s", cloud_error)
-            try:
-                result = OllamaService.vision_recognize(
-                    image_content=image_content,
-                    prompt=prompt,
-                )
-                return self._parse_ocr_payload(result)
-            except Exception as local_error:
-                logger.error("OCR Error (cloud+local): %s", local_error)
-                raise RuntimeError("OCR that bai tren ca cloud va local") from local_error
+        result = OllamaService.vision_recognize_cloud(
+            image_content=image_content,
+            prompt=prompt,
+        )
+        return self._parse_ocr_payload(result)
 
     def _parse_ocr_payload(self, payload_text: str) -> Dict[str, Any]:
         """Parse OCR JSON payload and fallback to plain text parsing if needed."""

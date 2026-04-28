@@ -1,12 +1,10 @@
 """
 Ollama Service - Wrapper for Ollama native API.
-Handles both text generation (Qwen3) and vision OCR (GLM OCR).
+Handles text generation and cloud OCR requests.
 """
 import base64
 import logging
-import os
 import re
-import tempfile
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlsplit, urlunsplit
 
@@ -88,7 +86,7 @@ class OllamaService:
 
     @staticmethod
     def _strip_thinking(text: str) -> str:
-        """Remove qwen3 thinking blocks to improve JSON parsing stability."""
+        """Remove thinking blocks to improve JSON parsing stability."""
         if not text:
             return ""
         cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.IGNORECASE | re.DOTALL)
@@ -192,44 +190,6 @@ class OllamaService:
         )
         resp.raise_for_status()
         return OllamaService._extract_content(resp.json())
-
-    @staticmethod
-    def vision_recognize(
-        image_content: bytes,
-        prompt: str = "Hay doc va trich xuat toan bo noi dung chu viet tay trong anh nay. Tra ve text thuan tuy, moi dong tren mot hang.",
-        model: Optional[str] = None,
-    ) -> str:
-        """
-        Use Ollama vision model (glm-ocr:latest) to recognize text from an image.
-        First tries base64 inline image; if not compatible, falls back to temp file path.
-        """
-        if not image_content:
-            raise ValueError("Empty image data")
-
-        target_model = model or settings.OLLAMA_VISION_MODEL
-        image_b64 = base64.b64encode(image_content).decode("utf-8")
-        OllamaService._log_runtime_models("vision_ocr", target_model)
-
-        try:
-            return OllamaService._vision_chat(prompt=prompt, model=target_model, images=[image_b64])
-        except Exception as first_error:
-            logger.warning("Inline image payload failed, trying temp-file fallback: %s", first_error)
-            temp_path = ""
-            try:
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
-                    temp_file.write(image_content)
-                    temp_path = temp_file.name
-                return OllamaService._vision_chat(
-                    prompt=prompt,
-                    model=target_model,
-                    images=[temp_path],
-                )
-            finally:
-                if temp_path and os.path.exists(temp_path):
-                    try:
-                        os.remove(temp_path)
-                    except OSError:
-                        logger.warning("Could not remove temp OCR file: %s", temp_path)
 
     @staticmethod
     def vision_recognize_cloud(
@@ -366,61 +326,6 @@ class OllamaService:
             path = "/api"
 
         return urlunsplit((parsed.scheme or "https", netloc, path, "", "")).rstrip("/")
-
-    @staticmethod
-    def _vision_chat(prompt: str, model: str, images: List[str]) -> str:
-        payload = {
-            "model": model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt,
-                    "images": images,
-                }
-            ],
-            "options": {"temperature": 0.1},
-            "keep_alive": settings.OLLAMA_KEEP_ALIVE,
-            "stream": False,
-        }
-
-        _emit_info(
-            "[AI] sending_request | endpoint=/chat(vision) | model=%s | timeout=%ss",
-            model,
-            settings.OLLAMA_TIMEOUT,
-        )
-
-        resp = requests.post(
-            f"{settings.OLLAMA_API_BASE}/chat",
-            json=payload,
-            timeout=settings.OLLAMA_TIMEOUT,
-        )
-        if resp.status_code == 404:
-            return OllamaService._vision_generate(prompt=prompt, model=model, images=images)
-        resp.raise_for_status()
-        return OllamaService._extract_content(resp.json())
-
-    @staticmethod
-    def _vision_generate(prompt: str, model: str, images: List[str]) -> str:
-        payload = {
-            "model": model,
-            "prompt": prompt,
-            "images": images,
-            "options": {"temperature": 0.1},
-            "keep_alive": settings.OLLAMA_KEEP_ALIVE,
-            "stream": False,
-        }
-        _emit_info(
-            "[AI] fallback_request | endpoint=/generate(vision) | model=%s | timeout=%ss",
-            model,
-            settings.OLLAMA_TIMEOUT,
-        )
-        resp = requests.post(
-            f"{settings.OLLAMA_API_BASE}/generate",
-            json=payload,
-            timeout=settings.OLLAMA_TIMEOUT,
-        )
-        resp.raise_for_status()
-        return OllamaService._extract_content(resp.json())
 
     @staticmethod
     def unload_model(model: Optional[str] = None) -> None:

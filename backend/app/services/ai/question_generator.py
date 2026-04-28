@@ -274,7 +274,7 @@ class QuestionGenerator:
                 "Ban la chuyen gia giao duc Toan tieu hoc Viet Nam. "
                 "Chi sinh bai moi trong bien topic duoc khoa. Tra ve JSON array."
             )
-            response = OllamaService.generate(prompt, system=system, temperature=0.2, model="qwen3:1.7b")
+            response = OllamaService.generate(prompt, system=system, temperature=0.2)
             result[level] = self._parse_json(response)
 
         result["rag_sources"] = sorted(list(all_sources))
@@ -315,7 +315,7 @@ class QuestionGenerator:
             "Ban la chuyen gia giao duc Toan tieu hoc Viet Nam. "
             "Tao difficulty ladder tang dan do kho va khong trung dang giua cac muc."
         )
-        response = OllamaService.generate(prompt, system=system, temperature=0.2, model="qwen3:1.7b")
+        response = OllamaService.generate(prompt, system=system, temperature=0.2)
         parsed_content = self._parse_ladder_json(response, normalized_tiers)
 
         validation = {
@@ -688,7 +688,6 @@ YEU CAU:
             prompt=prompt,
             system="Ban la giao vien sua bai, sua dung loi va giu nguyen chu de.",
             temperature=0.1,
-            model="qwen3:1.7b",
         )
         return self._parse_ladder_json(response, tiers)
 

@@ -28,7 +28,7 @@ Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Gi�
     - **CPA Wizard:** Sinh câu hỏi theo quy trình Cụ thể - Hình ảnh - Trừu tượng.
     - **Differentiation:** Sinh bài tập phân hóa 4 cấp độ (Cơ bản -> Nâng cao).
 - **Chấm điểm tự động (AI Grading):**
-    - **OCR:** Nhận diện chữ viết tay tiếng Việt qua model `glm-ocr:latest` (Ollama).
+    - **OCR:** Nhận diện chữ viết tay tiếng Việt qua Cloud OCR model `gemma4:31b`.
     - **Auto-Grade:** Chấm điểm, nhận xét chi tiết và giải thích lỗi sai.
 - **Phân tích lỗi (Analytics):** Thống kê các chủ đề yếu và lỗi sai phổ biến của cả lớp.
 
@@ -39,10 +39,10 @@ Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Gi�
 - **Backend:** Python (FastAPI), SQLAlchemy (SQLite), LangChain.
 - **Frontend:** React (Vite), Tailwind CSS, Shadcn/UI, Recharts.
 - **AI/ML:**
-    - LLM: `qwen3:1.7b` (chạy qua Ollama).
+    - LLM: `phi4-mini-reasoning:latest` (chạy local qua Ollama).
     - Embeddings: `keepitreal/vietnamese-sbert`.
     - Vector DB: ChromaDB.
-    - OCR: `glm-ocr:latest` (chạy qua Ollama).
+    - OCR: `gemma4:31b` (Ollama Cloud OCR).
 
 ---
 
@@ -57,10 +57,10 @@ Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Gi�
 ### 2. Setup AI Models
 Sử dụng **Ollama** để chạy các model AI cục bộ:
 1. Tải và cài đặt [Ollama](https://ollama.com/download).
-2. Pull 2 model sau:
-    - `qwen3:1.7b`
-    - `glm-ocr:latest`
-3. Khởi chạy daemon:
+2. Pull model text generation:
+    - `phi4-mini-reasoning:latest`
+3. Cấu hình thêm `OLLAMA_CLOUD_API_KEY` để dùng Cloud OCR (`gemma4:31b`).
+4. Khởi chạy daemon:
     - `ollama serve`
 
 ### 3. Setup Backend
@@ -98,7 +98,7 @@ Bạn cần mở 3 terminal riêng biệt để chạy toàn bộ hệ thống:
 ```powershell
 ollama serve
 ```
-*(Dam bao da pull model `qwen3:1.7b` va `glm-ocr:latest` truoc khi chay backend)*
+*(Dam bao da pull model `phi4-mini-reasoning:latest` truoc khi chay backend va da cau hinh Cloud OCR key)*
 
 **Terminal 2: Backend API**
 ```powershell
@@ -149,7 +149,7 @@ c:\project smartstudy\
 
 ## 📝 Ghi chú quan trọng
 
-1. **OCR Data:** Đảm bảo bạn đã tải model `glm-ocr:latest` trên Ollama để nhận diện chữ viết tay.
+1. **OCR Data:** Hệ thống OCR dùng Cloud model `gemma4:31b`, cần cấu hình `OLLAMA_CLOUD_API_KEY` hợp lệ.
 2. **Performance:** Tốc độ sinh câu hỏi và chấm điểm phụ thuộc vào cấu hình máy (RAM/GPU) và chính sách `OLLAMA_KEEP_ALIVE`.
 3. **Restart:** Nếu gặp lỗi "Internal Server Error" sau khi cập nhật code, hãy thử khởi động lại Backend server.
 
