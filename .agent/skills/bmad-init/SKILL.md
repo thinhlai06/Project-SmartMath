@@ -1,4 +1,4 @@
-﻿---
+---
 name: bmad-init
 description: "Initialize BMad project configuration and load config variables. Use when any skill needs module-specific configuration values, or when setting up a new BMad project."
 argument-hint: "[--module=module_code] [--vars=var1:default1,var2] [--skill-path=/path/to/calling/skill]"
@@ -9,7 +9,7 @@ argument-hint: "[--module=module_code] [--vars=var1:default1,var2] [--skill-path
 - Scope: only Vietnamese primary Math for grades 1-3.
 - Roles: only Teacher and Parent are allowed.
 - AI output must remain draft; Teacher review is required before publish.
-- Approved AI models only: qwen3:1.7b (generation), glm-ocr:latest (OCR), vietnamese-sbert (RAG).
+- Approved AI models only: gemma3:12b (question generation via Ollama Cloud), qwen2.5:3b (grading/explanation local), gemma4:31b (OCR via Ollama Cloud), vietnamese-sbert (RAG).
 - Do not introduce other AI models or auto-publish flows.
 - Backend: FastAPI + SQLAlchemy ORM only (no raw SQL); enforce grade with Literal[1,2,3] when applicable.
 - Frontend: TypeScript strict mode, immutable updates, role-based rendering, Vietnamese UX/error messages.
@@ -19,14 +19,14 @@ argument-hint: "[--module=module_code] [--vars=var1:default1,var2] [--skill-path
 
 This skill is the configuration entry point for all BMad skills. It has two modes:
 
-- **Fast path**: Config exists for the requested module â€” returns vars as JSON. Done.
-- **Init path**: Config is missing â€” walks the user through configuration, writes config files, then returns vars.
+- **Fast path**: Config exists for the requested module — returns vars as JSON. Done.
+- **Init path**: Config is missing — walks the user through configuration, writes config files, then returns vars.
 
-Every BMad skill should call this on activation to get its config vars. The caller never needs to know whether init happened â€” they just get their config back.
+Every BMad skill should call this on activation to get its config vars. The caller never needs to know whether init happened — they just get their config back.
 
 The script `bmad_init.py` is located in this skill's `scripts/` directory. Locate and run it using python for all commands below.
 
-## On Activation â€” Fast Path
+## On Activation — Fast Path
 
 Run the `bmad_init.py` script with the `load` subcommand. Pass `--project-root` set to the project root directory.
 
@@ -35,11 +35,11 @@ Run the `bmad_init.py` script with the `load` subcommand. Pass `--project-root` 
 - To request specific variables with defaults, use `--vars var1:default1,var2`
 - If no module was specified, omit `--module` to get core vars only
 
-**If the script returns JSON vars** â€” store them as `{var-name}` and return to the calling skill. Done.
+**If the script returns JSON vars** — store them as `{var-name}` and return to the calling skill. Done.
 
-**If the script returns an error or `init_required`** â€” proceed to the Init Path below.
+**If the script returns an error or `init_required`** — proceed to the Init Path below.
 
-## Init Path â€” First-Time Setup
+## Init Path — First-Time Setup
 
 When the fast path fails (config missing for a module), run this init flow.
 
@@ -49,15 +49,15 @@ Run `bmad_init.py` with the `check` subcommand, passing `--module {module_code}`
 
 The response tells you what's needed:
 
-- `"status": "ready"` â€” Config is fine. Re-run load.
-- `"status": "no_project"` â€” Can't find project root. Ask user to confirm the project path.
-- `"status": "core_missing"` â€” Core config doesn't exist. Must ask core questions first.
-- `"status": "module_missing"` â€” Core exists but module config doesn't. Ask module questions.
+- `"status": "ready"` — Config is fine. Re-run load.
+- `"status": "no_project"` — Can't find project root. Ask user to confirm the project path.
+- `"status": "core_missing"` — Core config doesn't exist. Must ask core questions first.
+- `"status": "module_missing"` — Core exists but module config doesn't. Ask module questions.
 
 The response includes:
-- `core_module` â€” Core module.yaml questions (when core setup needed)
-- `target_module` â€” Target module.yaml questions (when module setup needed, discovered from `--skill-path` or `_bmad/{module}/`)
-- `core_vars` â€” Existing core config values (when core exists but module doesn't)
+- `core_module` — Core module.yaml questions (when core setup needed)
+- `target_module` — Target module.yaml questions (when module setup needed, discovered from `--skill-path` or `_bmad/{module}/`)
+- `core_vars` — Existing core config values (when core exists but module doesn't)
 
 ### Step 2: Ask core questions (if `core_missing`)
 

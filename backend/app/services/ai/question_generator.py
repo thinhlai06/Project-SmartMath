@@ -18,8 +18,10 @@ TỪ VỰNG TẠO BÀI TOÁN (Hãy chọn ngẫu nhiên để bài toán đa d�
 - Đồ vật: quả táo, cái kẹo, quyển vở, viên bi, đồ chơi, quả bóng, hộp sữa...
 - Con vật: con chó, con mèo, con gà, con thỏ, con bò...
 - Nhân vật: bạn An, bạn Bình, bạn Lan, bé Nam, mẹ, bố, cô giáo...
-- Bối cảnh: trong lớp học, ở nhà, ngoài sân trường, trong cửa hàng...
-- Hình học & Đo lường: hình vuông, hình tròn, tam giác, cạnh, góc, cm, kg, lít...
+- Bối cảnh: trong lớp học, ở nhà, ngoài sân trường, trong cửa hàng, vườn trường...
+- Hình học (nhận biết hình): hình vuông, hình tròn, hình tam giác, hình chữ nhật; cạnh, đỉnh, góc vuông; viên gạch/tờ giấy (hình chữ nhật), đồng hồ/bánh xe (hình tròn), biển báo/nón lá (hình tam giác)...
+- Hình học (tính toán): chiều dài, chiều rộng, cạnh, chu vi C =, diện tích S =, m², cm²...
+- Đo lường: cm, m, km; kg, g; lít, ml; giờ, phút; dài hơn, ngắn hơn, nặng hơn, nhẹ hơn, bằng nhau...
 """
 
 TOPIC_RULES = {
@@ -85,13 +87,114 @@ TOPIC_METADATA_PROFILES = {
     },
 }
 
+_OPERATION_TO_FAMILY: Dict[str, str] = {
+    "hinh_hoc": "geometry",
+    "do_luong": "measurement",
+    "cong": "arithmetic",
+    "tru": "arithmetic",
+    "nhan": "arithmetic",
+    "chia": "arithmetic",
+    "tong_hop": "arithmetic",
+}
+
+FAMILY_CONSTRAINT_OVERRIDES: Dict[str, Dict[str, str]] = {
+    "geometry": {
+        "operations": "KHONG bat buoc phep tinh so hoc thuan tuy. Tap trung: nhan biet/phan biet hinh dang, dem hinh, tinh chu vi/dien tich bang cong thuc phu hop cap do.",
+        "steps": "1 yeu cau ro rang: nhan biet HOAC tinh theo 1 cong thuc duy nhat.",
+    },
+    "measurement": {
+        "operations": "Phep cong/tru de tinh toan do luong va doi don vi. BAT BUOC ghi ro don vi do kem theo moi ket qua.",
+        "steps": "1-2 buoc; it nhat 1 buoc lien quan truc tiep den don vi do.",
+    },
+}
+
 TIER_ORDER = ["foundation", "standard", "extension", "advanced"]
 
-TIER_GUIDE = {
-    "foundation": "Yeu cau truc tiep, 1 buoc, du kien ro rang.",
-    "standard": "Yeu cau van la truc tiep, co the can 1-2 buoc.",
-    "extension": "Yeu cau xu ly du kien truoc khi tinh, 2 buoc tro len.",
-    "advanced": "Yeu cau suy luan gian tiep hoac dao bai, khong trung voi extension.",
+GRADE_NUMBER_CONSTRAINTS = {
+    1: {
+        "range": "Chi dung so tu 0 den 20 (toi da 100 cho bai dem so). TUYET DOI KHONG dung so lon hon 100.",
+        "operations": "Chi phep cong va phep tru. KHONG nhan, KHONG chia.",
+        "steps": "Moi bai chi 1 buoc tinh duy nhat.",
+        "language": "Cau van cuc ngan, don gian, dung tu quen thuoc: keo, bi, ban An, qua tao.",
+        "forbidden": "CAM: tong day so, chuoi so, phan so, %, so thap phan, nhieu buoc tinh.",
+    },
+    2: {
+        "range": "Pham vi so den 1000. Phep nhan/chia chi bang 2,3,4,5.",
+        "operations": "Cong/tru co nho trong pham vi 100. Nhan/chia co ban.",
+        "steps": "Toi da 2 buoc tinh.",
+        "language": "Van phong SGK lop 2, cau truc ro rang.",
+        "forbidden": "CAM: phan so, %, so thap phan, kien thuc lop 3.",
+    },
+    3: {
+        "range": "Pham vi so den 100.000. Nhan so co 1-2 chu so. Chia so co 1 chu so.",
+        "operations": "Cong/tru/nhan/chia. Co the chia co du.",
+        "steps": "2-3 buoc tinh.",
+        "language": "Van phong SGK lop 3.",
+        "forbidden": "CAM: phan so phuc tap, so thap phan, hinh hoc cap 2.",
+    },
+}
+
+TIER_GUIDE_BY_GRADE: Dict[int, Dict[str, Dict[str, str]]] = {
+    1: {
+        "arithmetic": {
+            "foundation": "Phep tinh 1 buoc cuc don gian (pham vi 10). VD: 3 + 2 = ?",
+            "standard": "Bai toan loi van 1 buoc them/bot (pham vi 20). VD: An co 5 qua tao, me cho them 3 qua. Hoi An co tat ca bao nhieu qua?",
+            "extension": "Bai toan so sanh nhieu hon/it hon (pham vi 20). VD: Lan co 7 cai keo, nhieu hon Binh 3 cai. Hoi Binh co may cai keo?",
+            "advanced": "Bai toan tim so chua biet / dao nguoc (pham vi 20). VD: ? + 4 = 9. Tim so can dien.",
+        },
+        "geometry": {
+            "foundation": "Nhan biet ten hinh tu hinh ve/anh. VD: Trong tranh co may hinh vuong? Chi ra chung.",
+            "standard": "Phan biet va dem cac loai hinh trong mot tranh co nhieu hinh. VD: Dem xem co bao nhieu hinh tam giac va bao nhieu hinh tron.",
+            "extension": "Lien he hinh voi do vat thuc te. VD: Ke ten 2 do vat trong lop co dang hinh vuong va 2 do vat co dang hinh tron.",
+            "advanced": "Mo ta dac diem hinh de phan biet. VD: Hinh nao co 3 canh? Hinh nao co 4 canh bang nhau? Giai thich tai sao.",
+        },
+        "measurement": {
+            "foundation": "Doc gia tri do duoc tu vat cu the (don vi cm). VD: Cay but nay dai bao nhieu cm?",
+            "standard": "So sanh do dai 2 vat bang don vi cm. VD: Bam chu dai 12cm, but chi dai 9cm. Bam chu dai hon but chi bao nhieu cm?",
+            "extension": "Uoc tinh do dai bang don vi tu nhien (gang tay, buoc chan). VD: Do bang gang tay, ban hoc rong khoang bao nhieu gang tay?",
+            "advanced": "Bai toan co loi van 1 buoc ve do dai. VD: Day ruy bang dai 15cm, cat di 6cm. Con lai bao nhieu cm?",
+        },
+    },
+    2: {
+        "arithmetic": {
+            "foundation": "Tinh nham hoac dat tinh truc tiep (pham vi 100). VD: 47 + 35 = ?",
+            "standard": "Bai toan loi van 1-2 buoc (pham vi 1000). VD: Mot cua hang co 125 quyen vo, ban di 47 quyen. Con bao nhieu quyen?",
+            "extension": "Bai toan ket hop cong/tru va nhan/chia co ban. VD: Co 4 hop, moi hop 5 but, bo them 3 but. Tong cong bao nhieu but?",
+            "advanced": "Bai toan 2 buoc co suy luan gian tiep. VD: Me mua 3 tui cam, moi tui 5 qua, cho ba 7 qua. Me con lai bao nhieu qua?",
+        },
+        "geometry": {
+            "foundation": "Tinh chu vi hinh vuong/HCN bang cach dem va cong canh. VD: Hinh vuong canh 4cm, chu vi = ?",
+            "standard": "Tinh chu vi HCN biet chieu dai va chieu rong. VD: HCN dai 8cm rong 5cm, chu vi = ?",
+            "extension": "Bai toan chu vi co doi don vi (m va cm). VD: Vuon hinh chu nhat dai 2m, rong 80cm. Chu vi bang bao nhieu cm?",
+            "advanced": "Tim canh khi biet chu vi. VD: Hinh vuong co chu vi 32cm. Tinh do dai canh hinh vuong.",
+        },
+        "measurement": {
+            "foundation": "Doi don vi don gian trong pham vi nho (m↔cm, kg↔g). VD: 2m = ? cm",
+            "standard": "Bai toan 1 buoc ve do luong co don vi. VD: Soi day dai 85cm, cat di 37cm. Con lai bao nhieu cm?",
+            "extension": "Doi don vi va tinh toan ket hop. VD: An co 1m 20cm vai, may het 65cm. Con lai bao nhieu cm?",
+            "advanced": "Bai toan 2 buoc ve do luong. VD: Cuon len 3m vai, cat 2 doan moi 70cm. Con lai bao nhieu cm?",
+        },
+    },
+    3: {
+        "arithmetic": {
+            "foundation": "Thuc hien phep tinh co ban (pham vi 10.000). VD: 234 x 3 = ?",
+            "standard": "Bai toan loi van 2 buoc (pham vi 100.000). VD: Truong co 245 hoc sinh nam va 198 hoc sinh nu. Tong cong bao nhieu?",
+            "extension": "Bai toan tong hop 2-3 buoc, du kien can xu ly truoc. VD: Mua 5 hop but, moi hop 12 cai, da dung 23 cai. Con lai bao nhieu cai?",
+            "advanced": "Bai toan tu duy / tim quy luat. VD: Tim so tu nhien x biet x chia 7 du 3 va x < 50.",
+        },
+        "geometry": {
+            "foundation": "Tinh dien tich HCN truc tiep theo cong thuc S = dai x rong. VD: HCN dai 6cm rong 4cm, S = ?",
+            "standard": "Bai toan loi van tinh dien tich 1 buoc. VD: San choi HCN dai 20m rong 12m, dien tich bang bao nhieu?",
+            "extension": "Tinh dien tich khi phai tinh them 1 chieu truoc. VD: HCN co chu vi 36cm, chieu dai gap 2 chieu rong. Tinh dien tich.",
+            "advanced": "Bai toan dien tich 2-3 buoc co suy luan. VD: Manh dat HCN 10mx6m, cat di 1 goc hinh vuong 2mx2m. Dien tich phan con lai?",
+        },
+        "measurement": {
+            "foundation": "Doi don vi pham vi kilo (km↔m, kg↔g, l↔ml). VD: 3km = ? m",
+            "standard": "Bai toan loi van 1-2 buoc ve do luong. VD: Xe chay 4 gio, moi gio 45km. Tinh quang duong.",
+            "extension": "Doi don vi va ap dung thuc te. VD: Binh chua 3l 5dl nuoc, can them bao nhieu dl de day 5 lit?",
+            "advanced": "Bai toan 2-3 buoc co suy luan ve do luong. VD: 3 binh chua tong 12 lit, binh lon gap 3 binh nho. Tinh so lit moi binh.",
+        },
+    },
 }
 
 
@@ -169,7 +272,7 @@ class QuestionGenerator:
             )
 
             logger.info("[AI] Generating %d %s questions (CPA Sync)...", count, level)
-            response = OllamaService.generate(prompt, system=system, temperature=0.3, max_tokens=4096, format="json")
+            response = OllamaService.generate_cloud(prompt, system=system, temperature=0.3, max_tokens=2048, format="json")
             questions = self._parse_json(response)
             result[level] = questions
 
@@ -212,7 +315,7 @@ class QuestionGenerator:
             )
             
             logger.info("[AI] Generating %d %s questions (Refined RAG)...", count, tier)
-            response = OllamaService.generate(prompt, system=system, temperature=0.3, max_tokens=4096, format="json")
+            response = OllamaService.generate_cloud(prompt, system=system, temperature=0.3, max_tokens=2048, format="json")
             questions = self._parse_json(response)
             result["content"][tier] = questions
 
@@ -274,7 +377,7 @@ class QuestionGenerator:
                 "Ban la chuyen gia giao duc Toan tieu hoc Viet Nam. "
                 "Chi sinh bai moi trong bien topic duoc khoa. Tra ve DUY NHAT JSON array, KHONG DUNG MARKDOWN."
             )
-            response = OllamaService.generate(prompt, system=system, temperature=0.2, max_tokens=4096, format="json")
+            response = OllamaService.generate_cloud(prompt, system=system, temperature=0.2, max_tokens=2048, format="json")
             result[level] = self._parse_json(response)
 
         result["rag_sources"] = sorted(list(all_sources))
@@ -315,7 +418,7 @@ class QuestionGenerator:
             "Ban la chuyen gia giao duc Toan tieu hoc Viet Nam. "
             "Tao difficulty ladder tang dan do kho va khong trung dang giua cac muc. CHI TRA VE JSON HOP LE, KHONG DUNG MARKDOWN."
         )
-        response = OllamaService.generate(prompt, system=system, temperature=0.2, max_tokens=4096, format="json")
+        response = OllamaService.generate_cloud(prompt, system=system, temperature=0.2, max_tokens=2048, format="json")
         parsed_content = self._parse_ladder_json(response, normalized_tiers)
 
         validation = {
@@ -492,10 +595,16 @@ class QuestionGenerator:
                 f"mau_cau={seed['mau_cau']}"
             )
 
+        _profile = self._topic_profile(topic)
+        _family = _OPERATION_TO_FAMILY.get(_profile.get("operation", ""), "arithmetic")
+        _abstract_hint = {
+            "geometry": "Bieu dien bang ky hieu/cong thuc (S = dai x rong, C = ...). KHONG mo ta bang loi.",
+            "measurement": "Bieu dien bang bieu thuc co don vi do ro rang (VD: 3m + 50cm = ? cm).",
+        }.get(_family, "Bieu dien bang so va phep tinh ro rang.")
         level_hint = {
             "concrete": "Dung ngu canh vat that gan gui, tranh phep tinh tran trai neu khong can.",
-            "pictorial": "Mo ta bang hinh anh/so do don gian.",
-            "abstract": "Bieu dien bang so va phep tinh ro rang.",
+            "pictorial": "Mo ta bang hinh anh/so do/hinh ve don gian, co chu thich.",
+            "abstract": _abstract_hint,
         }.get(level, "Bam sat dang bai da khoa.")
 
         return f"""NHIEM VU: Sinh {count} cau hoi CPA cho lop {grade}.
@@ -534,8 +643,21 @@ DINH DANG DAU RA:
                 f"hanh_dong={seed['hanh_dong']}; dieu_cam={seed['dieu_cam']}; mau_cau={seed['mau_cau']}"
             )
 
-        tier_rules = [f"- {tier}: {TIER_GUIDE.get(tier, '')}" for tier in tiers]
         profile = self._topic_profile(topic)
+        operation = profile.get("operation", "")
+        content_family = _OPERATION_TO_FAMILY.get(operation, "arithmetic")
+
+        grade_tier_guide = TIER_GUIDE_BY_GRADE.get(grade, TIER_GUIDE_BY_GRADE[3])
+        family_tier_guide = grade_tier_guide.get(content_family, grade_tier_guide["arithmetic"])
+        tier_rules = [f"- {tier}: {family_tier_guide.get(tier, '')}" for tier in tiers]
+
+        grade_constraints = GRADE_NUMBER_CONSTRAINTS.get(grade, GRADE_NUMBER_CONSTRAINTS[3])
+        family_overrides = FAMILY_CONSTRAINT_OVERRIDES.get(content_family, {})
+        effective_operations = family_overrides.get("operations", grade_constraints["operations"])
+        effective_steps = family_overrides.get("steps", grade_constraints["steps"])
+
+        topic_rule = TOPIC_RULES.get(topic)
+        topic_rule_text = topic_rule if topic_rule else "Khong co quy tac rieng, bam sat seeds va dung trinh do lop da chon."
 
         return f"""NHIEM VU: Tao bo difficulty ladder cho Toan lop {grade}.
 CHU DE: {topic}
@@ -546,6 +668,16 @@ SO CAU MOI TIER: {per_tier_count}
 TEMPLATE SEEDS (CHI DUOC BIEN DOI TU CAC SEED NAY):
 {chr(10).join(seed_lines)}
 
+RANG BUOC LOP {grade} (BAT BUOC TUAN THU):
+- Pham vi so: {grade_constraints['range']}
+- Phep tinh / yeu cau chinh: {effective_operations}
+- So buoc: {effective_steps}
+- Ngon ngu: {grade_constraints['language']}
+- {grade_constraints['forbidden']}
+
+RANG BUOC CHU DE (BAT BUOC):
+- {topic_rule_text}
+
 RUBRIC TANG DO KHO:
 {chr(10).join(tier_rules)}
 
@@ -555,9 +687,13 @@ RANG BUOC TOPIC:
 - dieu_cam: {', '.join(profile.get('forbidden', [])) or 'khong vuot topic'}
 
 YEU CAU CHAT LUONG:
+- Bam sat ngon ngu va dang bai trong TEMPLATE SEEDS, khong duoc nhay sang dang bai ngoai SGK lop nay.
 - Moi cau phai day du ngu nghia, du du kien de tra loi.
 - Extension va Advanced KHONG duoc trung cau truc.
 - Advanced phai kho hon Extension ve suy luan, khong chi tang so.
+
+GOI Y TU VUNG TU NHIEN:
+{VOCABULARY_SUGGESTIONS}
 
 DINH DANG DAU RA:
 JSON object duy nhat theo mau:
@@ -621,6 +757,18 @@ JSON object duy nhat theo mau:
                     issues.append({"tier": tier, "reason": f"Cau {idx} lech topic da khoa."})
                 if not self._is_grade_compliant(question=question, grade=grade):
                     issues.append({"tier": tier, "reason": f"Cau {idx} vuot muc do lop {grade}."})
+
+                numbers_in_q = re.findall(r"\d+", f"{question} {answer}")
+                max_allowed = {1: 100, 2: 1000, 3: 100000}
+                limit = max_allowed.get(grade, 100000)
+                for num_str in numbers_in_q:
+                    if len(num_str) <= 8 and int(num_str) > limit:
+                        issues.append(
+                            {
+                                "tier": tier,
+                                "reason": f"Cau {idx} chua so {num_str} vuot pham vi lop {grade}.",
+                            }
+                        )
 
         if "extension" in content and "advanced" in content:
             ext_q = " ".join([str(i.get("question", "")) for i in content.get("extension", [])]).lower()
@@ -687,11 +835,11 @@ YEU CAU:
 - Tra ve duy nhat JSON object theo key 'content'.
 - TRA VE DUY NHAT JSON OBJECT. KHONG GIAI THICH, KHONG DUNG MARKDOWN.
 """
-        response = OllamaService.generate(
+        response = OllamaService.generate_cloud(
             prompt=prompt,
             system="Ban la giao vien sua bai, sua dung loi va giu nguyen chu de.",
             temperature=0.1,
-            max_tokens=4096,
+            max_tokens=2048,
             format="json",
         )
         return self._parse_ladder_json(response, tiers)
@@ -702,6 +850,12 @@ YEU CAU:
         topic_norm = self._normalize_for_checks(topic)
         if topic_norm == "hinh hoc co ban":
             return not any(op in q for op in ["+", "-", "x", ":", "nhan", "chia"]) and "hinh" in q
+        if topic_norm == "dien tich hinh chu nhat":
+            has_area_keyword = any(kw in q or kw in a for kw in ["dien tich", "s =", "s=", "m2", "cm2"])
+            return has_area_keyword
+        if topic_norm == "do do dai (cm, m)" or topic_norm == "do do dai":
+            has_unit = any(u in q or u in a for u in ["cm", " m ", "met", "km", "mm"])
+            return has_unit
         if topic_norm == "phep chia co du":
             return ("du" in q) or ("du" in a)
         if "phep cong" in topic_norm:
@@ -712,8 +866,23 @@ YEU CAU:
 
     def _is_grade_compliant(self, question: str, grade: int) -> bool:
         q = self._normalize_for_checks(question)
+        numbers = re.findall(r"\d+", question)
+        int_numbers = [int(n) for n in numbers if len(n) <= 8]
+
         if grade == 1:
-            if any(token in q for token in ["phan so", "%", "thap phan"]):
+            if any(n > 100 for n in int_numbers):
+                return False
+            if any(token in q for token in ["phan so", "%", "thap phan", "tong day so", "tong cac so tu"]):
+                return False
+            if re.search(r"\d+\s*[x:]\s*\d+", q):
+                return False
+            if any(token in q for token in ["phep nhan", "phep chia", "bang nhan", "bang chia"]):
+                return False
+        if grade == 2:
+            if any(n > 1000 for n in int_numbers):
+                return False
+        if grade == 3:
+            if any(n > 100000 for n in int_numbers):
                 return False
         if grade in (1, 2):
             if any(token in q for token in ["phuong trinh", "lap luan chung minh"]):

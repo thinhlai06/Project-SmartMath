@@ -27,7 +27,7 @@ services/        â† Business logic thuáº§n tÃºy (khÃ´ng biáº¿t HT
 repositories/    â† Data access layer (SQLAlchemy queries)
 models/          â† SQLAlchemy ORM models
 schemas/         â† Pydantic request/response schemas (validation)
-services/ai/     â† AI logic cÃ´ láº­p (qwen3:1.7b, glm-ocr:latest, RAG)
+services/ai/     ← AI logic cô lập (gemma3:12b Cloud, qwen2.5:3b local, gemma4:31b Cloud OCR, RAG)
 ```
 
 ## Repository Pattern

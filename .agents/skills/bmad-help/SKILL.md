@@ -1,4 +1,4 @@
-﻿---
+---
 name: bmad-help
 description: 'Analyzes current state and user query to answer BMad questions or recommend the next skill(s) to use. Use when user asks for help, bmad help, what to do next, or what to start with in BMad.'
 ---
@@ -8,7 +8,7 @@ description: 'Analyzes current state and user query to answer BMad questions or 
 - Scope: only Vietnamese primary Math for grades 1-3.
 - Roles: only Teacher and Parent are allowed.
 - AI output must remain draft; Teacher review is required before publish.
-- Approved AI models only: qwen3:1.7b (generation), glm-ocr:latest (OCR), vietnamese-sbert (RAG).
+- Approved AI models only: gemma3:12b (question generation via Ollama Cloud), qwen2.5:3b (grading/explanation local), gemma4:31b (OCR via Ollama Cloud), vietnamese-sbert (RAG).
 - Do not introduce other AI models or auto-publish flows.
 - Backend: FastAPI + SQLAlchemy ORM only (no raw SQL); enforce grade with Literal[1,2,3] when applicable.
 - Frontend: TypeScript strict mode, immutable updates, role-based rendering, Vietnamese UX/error messages.
@@ -24,16 +24,16 @@ Help the user understand where they are in their BMad workflow and what to do ne
 
 When this skill completes, the user should:
 
-1. **Know where they are** â€” which module and phase they're in, what's already been completed
-2. **Know what to do next** â€” the next recommended and/or required step, with clear reasoning
-3. **Know how to invoke it** â€” skill name, menu code, action context, and any args that shortcut the conversation
-4. **Get offered a quick start** â€” when a single skill is the clear next step, offer to run it for the user right now rather than just listing it
-5. **Feel oriented, not overwhelmed** â€” surface only what's relevant to their current position; don't dump the entire catalog
+1. **Know where they are** — which module and phase they're in, what's already been completed
+2. **Know what to do next** — the next recommended and/or required step, with clear reasoning
+3. **Know how to invoke it** — skill name, menu code, action context, and any args that shortcut the conversation
+4. **Get offered a quick start** — when a single skill is the clear next step, offer to run it for the user right now rather than just listing it
+5. **Feel oriented, not overwhelmed** — surface only what's relevant to their current position; don't dump the entire catalog
 
 ## Data Sources
 
-- **Catalog**: `{project-root}/_bmad/_config/bmad-help.csv` â€” assembled manifest of all installed module skills
-- **Config**: `config.yaml` and `user-config.yaml` files in `{project-root}/_bmad/` and its subfolders â€” resolve `output-location` variables, provide `communication_language` and `project_knowledge`
+- **Catalog**: `{project-root}/_bmad/_config/bmad-help.csv` — assembled manifest of all installed module skills
+- **Config**: `config.yaml` and `user-config.yaml` files in `{project-root}/_bmad/` and its subfolders — resolve `output-location` variables, provide `communication_language` and `project_knowledge`
 - **Artifacts**: Files matching `outputs` patterns at resolved `output-location` paths reveal which steps are possibly completed; their content may also provide grounding context for recommendations
 - **Project knowledge**: If `project_knowledge` resolves to an existing path, read it for grounding context. Never fabricate project-specific details.
 
@@ -46,31 +46,31 @@ module,skill,display-name,menu-code,description,action,args,phase,after,before,r
 ```
 
 **Phases** determine the high-level flow:
-- `anytime` â€” available regardless of workflow state
+- `anytime` — available regardless of workflow state
 - Numbered phases (`1-analysis`, `2-planning`, etc.) flow in order; naming varies by module
 
 **Dependencies** determine ordering within and across phases:
-- `after` â€” skills that should ideally complete before this one
-- `before` â€” skills that should run after this one
+- `after` — skills that should ideally complete before this one
+- `before` — skills that should run after this one
 - Format: `skill-name` for single-action skills, `skill-name:action` for multi-action skills
 
 **Required gates**:
 - `required=true` items must complete before the user can meaningfully proceed to later phases
-- A phase with no required items is entirely optional â€” recommend it but be clear about what's actually required next
+- A phase with no required items is entirely optional — recommend it but be clear about what's actually required next
 
 **Completion detection**:
 - Search resolved output paths for `outputs` patterns
 - Fuzzy-match found files to catalog rows
 - User may also state completion explicitly, or it may be evident from the current conversation
 
-**Descriptions carry routing context** â€” some contain cycle info and alternate paths (e.g., "back to DS if fixes needed"). Read them as navigation hints, not just display text.
+**Descriptions carry routing context** — some contain cycle info and alternate paths (e.g., "back to DS if fixes needed"). Read them as navigation hints, not just display text.
 
 ## Response Format
 
 For each recommended item, present:
-- `[menu-code]` **Display name** â€” e.g., "[CP] Create PRD"
-- Skill name in backticks â€” e.g., `bmad-create-prd`
-- For multi-action skills: action invocation context â€” e.g., "tech-writer lets create a mermaid diagram!"
+- `[menu-code]` **Display name** — e.g., "[CP] Create PRD"
+- Skill name in backticks — e.g., `bmad-create-prd`
+- For multi-action skills: action invocation context — e.g., "tech-writer lets create a mermaid diagram!"
 - Description if present in CSV; otherwise your existing knowledge of the skill suffices
 - Args if available
 
@@ -80,6 +80,6 @@ For each recommended item, present:
 
 - Present all output in `{communication_language}`
 - Recommend running each skill in a **fresh context window**
-- Match the user's tone â€” conversational when they're casual, structured when they want specifics
+- Match the user's tone — conversational when they're casual, structured when they want specifics
 - If the active module is ambiguous, ask rather than guess
 

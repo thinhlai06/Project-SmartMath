@@ -61,11 +61,15 @@ class GenerateCPABundleUseCase:
         except ValueError as exc:
             message = str(exc)
             normalized = message.lower()
-            error_code = (
-                "unsupported_bundle_family"
-                if "unsupported" in normalized or "chua ho tro" in normalized
-                else "bundle_generation_error"
-            )
+            if (
+                "unsupported" in normalized
+                or "chua ho tro" in normalized
+                or "no generator" in normalized
+                or ("requires" in normalized and "operation" in normalized)
+            ):
+                error_code = "unsupported_bundle_family"
+            else:
+                error_code = "bundle_generation_error"
             raise HTTPException(
                 status_code=422,
                 detail={

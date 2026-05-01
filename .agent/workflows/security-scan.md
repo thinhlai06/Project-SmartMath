@@ -23,8 +23,8 @@ Thực hiện security scan toàn diện:
 
 4. **Educational Data Safety (CRITICAL)**
    - Không expose thông tin học sinh cho bên thứ ba
-   - Images gửi qua `glm-ocr:latest` không được log có PII
-   - AI (qwen3:1.7b) không giải bài trực tiếp cho Parent
+   - Images gửi qua `gemma4:31b` (Cloud OCR) không được log có PII
+   - AI (`gemma3:12b`/`qwen2.5:3b`) không giải bài trực tiếp cho Parent
    - Teacher review mandatory trước publish
 
 5. **API Security**

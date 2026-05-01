@@ -54,16 +54,20 @@ $backendJob = Start-Job -Name "backend" -ArgumentList $backendPath, $pythonExec 
 
     if ($python -like "py *") {
         $parts = $python.Split(" ", 2)
-        & $parts[0] $parts[1] -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 2>&1
+        & $parts[0] $parts[1] -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --reload-dir app 2>&1
     } else {
-        & $python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 2>&1
+        & $python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --reload-dir app 2>&1
     }
 }
 
 $frontendJob = Start-Job -Name "frontend" -ArgumentList $frontendPath -ScriptBlock {
     param($path)
     Set-Location $path
-    npm run dev 2>&1
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+        npm run dev 2>&1
+    } else {
+        & "C:\Program Files\nodejs\npm.cmd" run dev 2>&1
+    }
 }
 
 $jobs = @($backendJob, $frontendJob)

@@ -51,7 +51,7 @@ class CPABundleGenerator:
 
         if topic_metadata.content_family == "arithmetic":
             if topic_metadata.operation_family is None:
-                raise ValueError("arithmetic topic requires a deterministic operation family")
+                return self._generate_number_sense_bundles(topic_metadata, grade, count), rag_sources
 
             math_cores = (
                 existing_math_cores
@@ -491,11 +491,11 @@ class CPABundleGenerator:
             "Sinh JSON object dung schema, khong chen mo ta ngoai JSON. CHI TRA VE JSON HOP LE, KHONG DUNG MARKDOWN."
         )
 
-        response = OllamaService.generate(
+        response = OllamaService.generate_cloud(
             prompt=prompt,
             system=system,
             temperature=0.2,
-            max_tokens=4096,
+            max_tokens=2048,
             format="json",
         )
         payload = self._extract_json_object(response)
@@ -529,7 +529,7 @@ class CPABundleGenerator:
                 ),
             ]
         )
-        repaired_text = OllamaService.generate(prompt=prompt, temperature=0.1, max_tokens=4096, format="json")
+        repaired_text = OllamaService.generate_cloud(prompt=prompt, temperature=0.1, max_tokens=2048, format="json")
         payload = self._extract_json_object(repaired_text)
 
         try:

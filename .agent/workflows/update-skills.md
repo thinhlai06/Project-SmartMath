@@ -30,7 +30,7 @@ Khi người dùng gõ `/update-skills`, AI phải thực thi NGHIÊM NGẶT cá
 
 ### Bước 3: Kiểm Toán (Audit) và Nâng Cấp Từng Skill
 Với mỗi file `SKILL.md` tìm được:
-1. **Kiểm tra độ vênh lệch:** Nội dung hướng dẫn xử lý của Skill đó có đang vi phạm các Rule mới nhất ở Bước 1 không? (Ví dụ: Skill backend đang xúi dùng Flask thay vì FastAPI? Skill đang gợi ý tạo model AI khác thay vì `qwen3:1.7b`?)
+1. **Kiểm tra độ vênh lệch:** Nội dung hướng dẫn xử lý của Skill đó có đang vi phạm các Rule mới nhất ở Bước 1 không? (Ví dụ: Skill backend đang xúi dùng Flask thay vì FastAPI? Skill đang gợi ý tạo model AI khác thay vì `gemma3:12b` / `qwen2.5:3b` / `gemma4:31b`?)
 2. **Cập nhật & Chinh phạt:** Nếu nội dung lạc hậu hoặc chung chung, AI **bắt buộc dùng công cụ chỉnh sửa file (ví dụ: `replace_file_content` hoặc `multi_replace_file_content`)** để viết lại `SKILL.md`. 
 3. **Tiêu chuẩn viêt:** Phải đảm bảo nội dung mới của Skill đó chứa các từ khóa ràng buộc của dự án (Lớp 1-3 v.v.) để lúc AI dùng skill đạt hiệu suất cao nhất.
 

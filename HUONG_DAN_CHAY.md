@@ -48,13 +48,14 @@ Backend được xây dựng bằng **FastAPI** và **SQLAlchemy**.
    SECRET_KEY=yoursecretkey_hoac_random_chuoi_bat_ky
    ALGORITHM=HS256
    
-   # Cấu hình AI thông qua Ollama
+   # Ollama Local (grading + explanation)
    OLLAMA_API_BASE=http://localhost:11434/api
    OLLAMA_TEXT_MODEL=qwen2.5:3b
    OLLAMA_KEEP_ALIVE=3m
 
-   # Cloud OCR (Ollama Cloud)
+   # Ollama Cloud (Question Generation + OCR)
    OLLAMA_CLOUD_API_KEY=your_ollama_cloud_api_key
+   OLLAMA_CLOUD_TEXT_MODEL=gemma3:12b
    OLLAMA_CLOUD_VISION_MODEL=gemma4:31b
    ```
 
@@ -102,11 +103,13 @@ Frontend được phát triển trên **React** cùng công cụ Build tool **Vi
 Du an ket noi truc tiep voi **Ollama** de load model khi can va giai phong tai nguyen theo `keep_alive`.
 
 1. Tải và cài đặt **[Ollama](https://ollama.com/download)**.
-2. Tải model text generation đã phê duyệt:
+2. Tải model local (dùng cho grading/explanation):
    ```bash
    ollama pull qwen2.5:3b
    ```
-3. Thiết lập `OLLAMA_CLOUD_API_KEY` để gọi Cloud OCR model `gemma4:31b`.
+3. Thiết lập `OLLAMA_CLOUD_API_KEY` để gọi Ollama Cloud:
+   - `gemma3:12b` — sinh câu hỏi CPA/Differentiation
+   - `gemma4:31b` — OCR ảnh bài làm
 4. Khởi chạy daemon Ollama (nếu chưa tự chạy nền):
    ```bash
    ollama serve
@@ -122,7 +125,7 @@ Du an ket noi truc tiep voi **Ollama** de load model khi can va giai phong tai n
 
 - **Import Errors (Lỗi báo biến đỏ IDE):** Gần đây chúng tôi đã thiết lập `.vscode/settings.json` và `pyrightconfig.json`. Nếu dùng VS Code, bạn cần sử dụng Ctrl+Shift+P -> `Python: Select Interpreter` để chọn trỏ đúng vào thư mục `backend\venv\Scripts\python.exe` hoặc môi trường Conda tương ứng để thoát khỏi lỗi cảnh báo nhập vòng lặp ảo. Mọi đoạn code thực tế lúc chạy Server (`uvicorn`) vẫn hoàn toàn bình thường.
 - Ngôn ngữ mặc định cho các thành phần tạo đề tự động trong AI đã được ràng buộc bằng Prompts (Tiếng Việt lớp 1-3).
-- AI text model dùng `qwen2.5:3b`, OCR dùng `gemma4:31b` qua Ollama Cloud.
+- AI question gen dùng `gemma3:12b` (Ollama Cloud), grading/explanation dùng `qwen2.5:3b` (local), OCR dùng `gemma4:31b` (Ollama Cloud).
 
 ---
 

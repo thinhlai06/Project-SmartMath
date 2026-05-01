@@ -17,7 +17,9 @@ existing_patterns_found: 5
 - **Frontend:** React 19, TypeScript 5.9, Vite 7, Tailwind v4
 - **State Management & UI:** TanStack Query v5 (Server state), Shadcn UI (Radix), Recharts
 - **Backend:** Python 3.10+, FastAPI, SQLAlchemy (ORM)
-- **Local AI / OCR:** qwen2.5:3b (Text generation + grading text reasoning), gemma4:31b qua Ollama Cloud (Vision/OCR ảnh), vietnamese-sbert (Embeddings)
+- **Local AI:** qwen2.5:3b (grading text reasoning + explanation local)
+- **Cloud AI:** gemma3:12b qua Ollama Cloud (sinh câu hỏi CPA/Differentiation), gemma4:31b qua Ollama Cloud (Vision/OCR ảnh)
+- **Embeddings:** vietnamese-sbert
 - **Vector DB:** ChromaDB
 
 ---

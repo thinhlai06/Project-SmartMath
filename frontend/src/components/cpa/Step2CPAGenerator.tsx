@@ -33,6 +33,7 @@ export function Step2CPAGenerator({ data, onNext, onBack }: Step2CPAGeneratorPro
     const [isGenerating, setIsGenerating] = useState(true);
     const [generatedContent, setGeneratedContent] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
+    const [hasGenerated, setHasGenerated] = useState(false);
 
     const formatQuestions = (items: QuestionItem[]) => {
         return items.map((item, i) =>
@@ -78,8 +79,11 @@ export function Step2CPAGenerator({ data, onNext, onBack }: Step2CPAGeneratorPro
     };
 
     useEffect(() => {
-        generateAI();
-    }, []);
+        if (!hasGenerated) {
+            generateAI();
+            setHasGenerated(true);
+        }
+    }, [hasGenerated]);
 
     const handleRegenerate = () => {
         generateAI();
