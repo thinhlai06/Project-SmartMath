@@ -212,6 +212,100 @@ class OllamaService:
         return OllamaService._extract_content(resp.json())
 
     @staticmethod
+    def generate_cloud(
+        prompt: str,
+        system: Optional[str] = None,
+        temperature: float = 0.7,
+        model: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        format: Optional[str] = None,
+    ) -> str:
+        """Generate text via Ollama Cloud API (e.g. gemma3:12b).
+
+        Uses the same Cloud base URL and API key as vision_recognize_cloud.
+        Intended for question generation only; OCR and RAG still use local Ollama.
+        """
+        api_key = (settings.OLLAMA_CLOUD_API_KEY or "").strip()
+        if not api_key:
+            raise ValueError(
+                "Chua cau hinh OLLAMA_CLOUD_API_KEY. "
+                "Vui long dat OLLAMA_CLOUD_API_KEY trong file .env."
+            )
+
+        target_model = model or settings.OLLAMA_CLOUD_TEXT_MODEL
+        cloud_base = OllamaService._normalize_cloud_api_base(settings.OLLAMA_CLOUD_API_BASE)
+        endpoint = f"{cloud_base}/chat"
+
+        messages: List[Dict[str, Any]] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        options: Dict[str, Any] = {"temperature": temperature}
+        if max_tokens:
+            options["num_predict"] = max_tokens
+
+        payload: Dict[str, Any] = {
+            "model": target_model,
+            "messages": messages,
+            "options": options,
+            "stream": False,
+        }
+        if format:
+            payload["format"] = format
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+
+        try:
+            _emit_info(
+                "[AI] cloud_text | endpoint=%s | model=%s | temperature=%.2f | timeout=%ss",
+                endpoint,
+                target_model,
+                temperature,
+                settings.OLLAMA_CLOUD_TEXT_TIMEOUT,
+            )
+            resp = requests.post(
+                endpoint,
+                json=payload,
+                headers=headers,
+                timeout=settings.OLLAMA_CLOUD_TEXT_TIMEOUT,
+            )
+            resp.raise_for_status()
+            return OllamaService._extract_content(resp.json())
+        except requests.exceptions.ConnectionError as exc:
+            logger.error("Ollama Cloud text not reachable")
+            raise ConnectionError(
+                "Khong the ket noi Ollama Cloud. Vui long kiem tra ket noi mang."
+            ) from exc
+        except requests.exceptions.Timeout as exc:
+            logger.error("Ollama Cloud text timed out after %ss", settings.OLLAMA_CLOUD_TEXT_TIMEOUT)
+            raise TimeoutError(
+                "Ollama Cloud phan hoi qua lau. Vui long thu lai hoac giam do phuc tap cau hoi."
+            ) from exc
+        except requests.exceptions.HTTPError as exc:
+            detail = ""
+            response = getattr(exc, "response", None)
+            if response is not None:
+                try:
+                    payload_error = response.json().get("error", "") if isinstance(response.json(), dict) else ""
+                except Exception:
+                    payload_error = response.text or ""
+                detail = str(payload_error).strip()
+            if detail:
+                logger.error("Ollama Cloud text HTTP error: %s | detail=%s", exc, detail)
+                raise RuntimeError(f"Ollama Cloud tra ve loi: {detail}") from exc
+            logger.error("Ollama Cloud text HTTP error: %s", exc)
+            raise RuntimeError("Ollama Cloud tra ve loi tu he thong.") from exc
+        except Exception as exc:
+            if isinstance(exc, (RuntimeError, ConnectionError, TimeoutError, ValueError)):
+                raise
+            logger.error("Ollama Cloud text error: %s", exc)
+            raise RuntimeError("Co loi khi goi Ollama Cloud sinh cau hoi.") from exc
+
+    @staticmethod
     def vision_recognize_cloud(
         image_content: bytes,
         prompt: str = "Hay doc va trich xuat toan bo noi dung chu viet tay trong anh nay. Tra ve text thuan tuy, moi dong tren mot hang.",

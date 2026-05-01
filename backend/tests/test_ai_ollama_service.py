@@ -136,7 +136,7 @@ def test_normalize_cloud_api_base_strips_chat_suffix() -> None:
     assert normalized == "https://ollama.com/api"
 
 
-def test_generate_uses_default_qwen_model() -> None:
+def test_generate_local_uses_configured_text_model() -> None:
     payload = {"message": {"content": "ok"}}
     with patch("app.services.ai.ollama_service.settings.OLLAMA_TEXT_MODEL", "qwen2.5:3b"), patch(
         "app.services.ai.ollama_service.requests.post",

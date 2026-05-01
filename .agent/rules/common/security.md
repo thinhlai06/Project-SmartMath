@@ -2,7 +2,7 @@
 
 > Nguồn: everything-claude-code / rules/common/security.md  
 > Tùy chỉnh cho Smart-MathAI (Educational Platform với dữ liệu học sinh)
-> AI Models: qwen3:1.7b (question gen), gemma4:31b (OCR grading), vietnamese-sbert (RAG)
+> AI Models: gemma3:12b (question gen, Cloud), qwen2.5:3b (grading/explanation, local), gemma4:31b (OCR, Cloud), vietnamese-sbert (RAG)
 
 ## Mandatory Security Checks
 
@@ -54,7 +54,7 @@ def require_teacher(current_user: User = Depends(get_current_user)):
 
 - Không bao giờ expose thông tin cá nhân học sinh cho bên thứ ba
 - Không log raw images của học sinh
-- AI `qwen3:1.7b` không giải bài tập trực tiếp cho phụ huynh
+- AI `gemma3:12b`/`qwen2.5:3b` không giải bài tập trực tiếp cho phụ huynh
 - Teacher luôn phải review AI output trước khi publish
 
 ## AI Safety Rules

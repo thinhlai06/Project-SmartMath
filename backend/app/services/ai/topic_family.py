@@ -76,6 +76,8 @@ def resolve_arithmetic_operation_family(topic_name: str) -> Optional[ArithmeticO
         return "subtraction"
     if "bang nhan" in normalized or "phep nhan" in normalized:
         return "multiplication"
+    if "bang chia" in normalized or "phep chia" in normalized:
+        return "division_with_remainder"
 
     # Topics like "Cac so den 100" are not yet supported by bundle-v1.
     return None

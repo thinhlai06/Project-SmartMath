@@ -42,10 +42,11 @@ Smart-MathAI is a strict Role-Based platform comprising exactly two user roles:
 - Build distinct dashboards for the Teacher (full management) and the Parent (view and tracking).
 
 ## AI / RAG Rules
-If an AI feature is required, ONLY use the following three designated models:
-1. **`qwen3:1.7b`**: Used for generating Math questions and explaining solutions step-by-step (CPA Method). Output is strictly Vietnamese, Grade 1-3 level.
-2. **`keepitreal/vietnamese-sbert`**: Used solely for generating Embeddings to query the ChromaDB Vector database (RAG). DO NOT use for text generation. This grounds the AI purely in textbook (SGK/SGV) context.
-3. **`glm-ocr:latest`**: Used to extract handwritten text from images. The OCR logic does NOT evaluate correct/incorrect; its output is validated against expected text via rule-based logic or AI. A Confidence Threshold must be defined, and Teacher override is required.
+If an AI feature is required, ONLY use the following designated models:
+1. **`gemma3:12b`** (Ollama Cloud): Used for generating Math questions — CPA bundles and Differentiation Ladder. Output is strictly Vietnamese, Grade 1-3 level.
+2. **`qwen2.5:3b`** (Ollama Local): Used for grading text reasoning and explaining solutions step-by-step. Does NOT generate questions.
+3. **`keepitreal/vietnamese-sbert`**: Used solely for generating Embeddings to query the ChromaDB Vector database (RAG). DO NOT use for text generation. This grounds the AI purely in textbook (SGK/SGV) context.
+4. **`gemma4:31b`** (Ollama Cloud): Used to extract handwritten text from images (OCR). The OCR logic does NOT evaluate correct/incorrect; its output is validated against expected text via rule-based logic or AI. A Confidence Threshold must be defined, and Teacher override is required.
 
 ## Allowed Changes vs Forbidden Changes
 - **Allowed**: Extending teacher dashboards, optimizing the AI service layer, implementing additional RAG controls, adding OCR overrides, refactoring internal API responses.

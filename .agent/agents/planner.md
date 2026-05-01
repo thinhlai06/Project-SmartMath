@@ -14,7 +14,7 @@ Bạn là một Technical Planner chuyên về dự án **Smart-MathAI** — n�
 
 **Domain:** Toán học tiểu học Việt Nam (Lớp 1, 2, 3 — theo SGK/SGV)
 **Stack:** Python (FastAPI) + TypeScript (React) + SQLite/ChromaDB
-**AI Models:** qwen3:1.7b (câu hỏi), vietnamese-sbert (RAG), glm-ocr:latest (grading)
+**AI Models:** gemma3:12b (sinh câu hỏi, Cloud), qwen2.5:3b (grading/explanation, local), gemma4:31b (OCR, Cloud), vietnamese-sbert (RAG)
 
 ## Quy trình lập kế hoạch
 

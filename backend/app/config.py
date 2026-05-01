@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     AUTH_COOKIE_SAMESITE: str = "lax"
     AUTH_COOKIE_DOMAIN: str | None = None
     
-    # Ollama AI Configuration
+    # Ollama Local (chấm bài + giải thích — KHÔNG dùng để sinh câu hỏi)
     OLLAMA_API_BASE: str = "http://localhost:11434/api"
     OLLAMA_TEXT_MODEL: str = "qwen2.5:3b"
     OLLAMA_TIMEOUT: int = 300
@@ -34,10 +34,14 @@ class Settings(BaseSettings):
     OLLAMA_CLOUD_VISION_MODEL: str = "gemma4:31b"
     OLLAMA_CLOUD_TIMEOUT: int = 180
 
+    # Ollama Cloud Text Generation (question generator)
+    OLLAMA_CLOUD_TEXT_MODEL: str = "gemma3:12b"
+    OLLAMA_CLOUD_TEXT_TIMEOUT: int = 600
+
     # AI generation controls (single mode: new pipeline only)
     AI_GEN_ENABLE_TEMPLATE_FILTER: bool = True
     AI_GEN_ENABLE_DIFFICULTY_VALIDATOR: bool = True
-    AI_GEN_MAX_REPAIR_ROUNDS: int = 2
+    AI_GEN_MAX_REPAIR_ROUNDS: int = 1
 
     class Config:
         env_file = ".env"

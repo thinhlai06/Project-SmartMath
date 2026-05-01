@@ -39,10 +39,11 @@ Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Gi�
 - **Backend:** Python (FastAPI), SQLAlchemy (SQLite), LangChain.
 - **Frontend:** React (Vite), Tailwind CSS, Shadcn/UI, Recharts.
 - **AI/ML:**
-    - LLM: `qwen2.5:3b` (chạy local qua Ollama).
+    - Question Gen (Cloud): `gemma3:12b` qua Ollama Cloud.
+    - Grading/Explanation (Local): `qwen2.5:3b` qua Ollama local.
+    - OCR: `gemma4:31b` qua Ollama Cloud.
     - Embeddings: `keepitreal/vietnamese-sbert`.
     - Vector DB: ChromaDB.
-    - OCR: `gemma4:31b` (Ollama Cloud OCR).
 
 ---
 
@@ -57,9 +58,11 @@ Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Gi�
 ### 2. Setup AI Models
 Sử dụng **Ollama** để chạy các model AI cục bộ:
 1. Tải và cài đặt [Ollama](https://ollama.com/download).
-2. Pull model text generation:
-    - `qwen2.5:3b`
-3. Cấu hình thêm `OLLAMA_CLOUD_API_KEY` để dùng Cloud OCR (`gemma4:31b`).
+2. Pull model local (dùng cho grading/explanation):
+    - `ollama pull qwen2.5:3b`
+3. Cấu hình `OLLAMA_CLOUD_API_KEY` trong `backend/.env` để dùng Cloud:
+    - `gemma3:12b` — sinh câu hỏi CPA/Differentiation
+    - `gemma4:31b` — OCR ảnh bài làm
 4. Khởi chạy daemon:
     - `ollama serve`
 
@@ -98,7 +101,7 @@ Bạn cần mở 3 terminal riêng biệt để chạy toàn bộ hệ thống:
 ```powershell
 ollama serve
 ```
-*(Dam bao da pull model `qwen2.5:3b` truoc khi chay backend va da cau hinh Cloud OCR key)*
+*(Dam bao da pull model `qwen2.5:3b` (grading local) va da cau hinh `OLLAMA_CLOUD_API_KEY` cho question gen + OCR)*
 
 **Terminal 2: Backend API**
 ```powershell

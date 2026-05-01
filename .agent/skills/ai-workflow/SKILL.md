@@ -1,8 +1,8 @@
----
+﻿---
 name: ai-workflow
 description: >
   Workflow vÃ  patterns cho Smart-MathAI AI features â€” sá»­ dá»¥ng khi implement,
-  debug hoáº·c refactor AI question generation (qwen2.5:3b), RAG pipeline
+  debug hoáº·c refactor AI question generation (gemma3:12b Cloud), RAG pipeline
         (vietnamese-sbert/ChromaDB), hoáº·c OCR grading (gemma4:31b).
 ---
 
@@ -11,7 +11,7 @@ description: >
 - Scope: only Vietnamese primary Math for grades 1-3.
 - Roles: only Teacher and Parent are allowed.
 - AI output must remain draft; Teacher review is required before publish.
-- Approved AI models only: qwen2.5:3b (generation + grading text), gemma4:31b (OCR), vietnamese-sbert (RAG).
+- Approved AI models only: gemma3:12b (question generation via Ollama Cloud), qwen2.5:3b (grading/explanation local), gemma4:31b (OCR via Ollama Cloud), vietnamese-sbert (RAG).
 - Do not introduce other AI models or auto-publish flows.
 - Backend: FastAPI + SQLAlchemy ORM only (no raw SQL); enforce grade with Literal[1,2,3] when applicable.
 - Frontend: TypeScript strict mode, immutable updates, role-based rendering, Vietnamese UX/error messages.
@@ -23,11 +23,11 @@ description: >
 
 | Model | Tool | Má»¥c Ä‘Ã­ch | Khi nÃ o dÃ¹ng |
 |-------|------|----------|--------------|
-| `qwen2.5:3b` | Ollama | Táº¡o cÃ¢u há»i toÃ¡n, giáº£i thÃ­ch tá»«ng bÆ°á»›c | AI question generation |
+| `gemma3:12b` | Ollama Cloud | Sinh cau hoi CPA/Differentiation | AI question generation |
 | `keepitreal/vietnamese-sbert` | HuggingFace | RAG embeddings | TÃ¬m context tá»« SGK trong ChromaDB |
 | `gemma4:31b` | Ollama Cloud | OCR áº£nh bÃ i lÃ m há»c sinh | Auto-grading tá»« áº£nh |
 
-> **LÆ¯U Ã QUAN TRá»ŒNG**: ÄÃ£ Ä‘á»•i tá»« `qwen2.5-1.5b-instruct` â†’ `qwen2.5:3b` vÃ  `PaddleOCR-VL` â†’ `gemma4:31b`
+> **LÆ¯U Ã QUAN TRá»ŒNG**: ÄÃ£ Ä‘á»•i tá»« `qwen2.5-1.5b-instruct` -> `gemma3:12b` (Cloud), `PaddleOCR-VL` -> `gemma4:31b` (Cloud OCR)
 
 ## Pipeline AI Question Generation
 
@@ -74,7 +74,7 @@ Bundle-specific implementation rules:
 - Non-arithmetic families use `content_family + family_payload` as core envelope.
 - RAG only supplies pedagogy/language seeds and must not decide arithmetic operands.
 - Output remains `draft` until teacher review.
-- AI orchestration stays inside `backend/app/services/ai/` and uses `qwen2.5:3b`.
+- AI orchestration stays inside `backend/app/services/ai/` and uses `gemma3:12b` (Cloud) for generation, `qwen2.5:3b` (local) for grading.
 
 ## Current Generation Strategy (Ä‘Ã£ triá»ƒn khai)
 
@@ -94,7 +94,7 @@ Khi báº­t `AI_GEN_ENABLE_TEMPLATE_FILTER=true`, báº¯t buá»™c re-ingest
 class QuestionGenerator:
     """
     âš ï¸ Output LUÃ”N lÃ  DRAFT â€” Teacher pháº£i review trÆ°á»›c khi publish.
-    Models: qwen2.5:3b (Ollama), vietnamese-sbert (RAG)
+    Models: gemma3:12b (Ollama Cloud - question gen), qwen2.5:3b (local - grading), vietnamese-sbert (RAG)
     """
     
     def __init__(self, rag_service: RAGService, ollama_client: OllamaClient):
@@ -232,7 +232,7 @@ class OllamaModelManager:
             await self._client.delete(model_name)
 
 # Sá»­ dá»¥ng
-async with ollama_manager.with_model("qwen2.5:3b"):
+async with ollama_manager.with_model("gemma3:12b"):  # Cloud - question gen only
     result = await generate_questions(...)
 
 # OCR cloud model khÃ´ng cáº§n pull/delete local; local fallback váº«n dÃ¹ng glm-ocr:latest khi cloud fail.
@@ -241,7 +241,7 @@ async with ollama_manager.with_model("qwen2.5:3b"):
 ## Safety Rules Khi Implement AI
 
 âŒ KHÃ”NG BAO GIá»œ:
-- Auto-publish AI output (qwen3 hay glm-ocr)
+- Auto-publish AI output (gemma3:12b / qwen2.5:3b / gemma4:31b)
 - Cho Parent gá»i AI endpoints trá»±c tiáº¿p
 - Log raw images cÃ³ thá»ƒ chá»©a PII há»c sinh
 - Implement AI logic bÃªn ngoÃ i `services/ai/`

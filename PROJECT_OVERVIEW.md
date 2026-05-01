@@ -32,8 +32,9 @@ Cả Frontend và Backend đều đang trong quá trình chuyển đổi toàn d
 - **Vector Storage:** ChromaDB.
 
 ## 7. AI Module & RAG Pipeline
-Kiến trúc AI hiện tại kết hợp local generation + cloud OCR để tối ưu độ ổn định:
-- **`qwen2.5:3b`:** Mô hình text local qua Ollama, đảm nhận việc generate bài tập (CPA/Differentiation) và phân tích kết quả chấm bài (text reasoning).
+Kiến trúc AI hiện tại kết hợp local grading + cloud generation + cloud OCR:
+- **`gemma3:12b` (Cloud Question Gen):** Mô hình sinh câu hỏi CPA và Differentiation Ladder qua Ollama Cloud API.
+- **`qwen2.5:3b` (Local):** Mô hình text local qua Ollama, đảm nhận chấm bài text reasoning và giải thích bài.
 - **`gemma4:31b` (Cloud OCR):** Mô hình OCR trên Ollama Cloud để bóc tách điểm số và nội dung từ ảnh chụp bài làm.
 - **`vietnamese-sbert`:** Xử lý nhúng độc lập.
 - **RAG System:** Tuân thủ phân lập dữ liệu nghiêm ngặt theo Grades (Lớp 1 không được lẫn RAG của Lớp 3) để tránh tình trạng sinh logic quá tầm hiểu biết của lứa tuổi.

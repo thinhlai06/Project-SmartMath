@@ -35,7 +35,7 @@ opencv-python-headless>=4.8.0
 numpy>=1.24.0,<2.0.0
 
 # AI / Embeddings / RAG
-langchain-community==0.0.19
-langchain-huggingface==0.0.2
-sentence-transformers==2.3.1
+langchain-community>=0.0.19
+langchain-huggingface>=0.0.2
+sentence-transformers>=2.6.0
 chromadb==0.4.22

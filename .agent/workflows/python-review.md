@@ -19,7 +19,7 @@ Review Python backend code theo checklist Smart-MathAI:
    - Grade validation: `grade: Literal[1, 2, 3]`
    - Parent không được tạo/sửa worksheets
    - Parent chỉ thấy worksheets published của class mình
-   - AI output (qwen3:1.7b / glm-ocr:latest) luôn là Draft
+   - AI output (gemma3:12b / qwen2.5:3b / gemma4:31b) luôn là Draft
    - AI logic nằm trong `app/services/ai/` (isolated)
 
 4. **Error Handling**

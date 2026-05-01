@@ -110,10 +110,7 @@ export const cpaBundleApi = {
             return data;
         } catch (error: any) {
             const statusCode = error?.response?.status;
-            const detail = error?.response?.data?.detail;
-            const errorCode = typeof detail === 'object' ? detail?.error_code : undefined;
-
-            if (statusCode !== 422 || errorCode !== 'unsupported_bundle_family') {
+            if (statusCode !== 422) {
                 throw error;
             }
 

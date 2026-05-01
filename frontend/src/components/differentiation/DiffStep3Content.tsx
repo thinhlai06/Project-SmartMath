@@ -28,6 +28,7 @@ export function DiffStep3Content({ assignments, data, onBack, onSave, isSaving =
     const [isGenerating, setIsGenerating] = useState(true);
     const [content, setContent] = useState<Record<string, QuestionItem[]>>({});
     const [error, setError] = useState<string | null>(null);
+    const [hasGenerated, setHasGenerated] = useState(false);
 
     const generateContent = async () => {
         setIsGenerating(true);
@@ -60,8 +61,11 @@ export function DiffStep3Content({ assignments, data, onBack, onSave, isSaving =
     };
 
     useEffect(() => {
-        generateContent();
-    }, []);
+        if (!hasGenerated) {
+            generateContent();
+            setHasGenerated(true);
+        }
+    }, [hasGenerated]);
 
     return (
         <Card className="max-w-4xl mx-auto glass-panel border-white/50 rounded-3xl overflow-hidden shadow-soft">
