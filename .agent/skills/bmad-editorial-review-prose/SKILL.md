@@ -6,7 +6,7 @@ description: 'Clinical copy-editor that reviews text for communication issues. U
 ## Smart-MathAI Guardrails (MANDATORY)
 
 - Scope: only Vietnamese primary Math for grades 1-3.
-- Roles: only Teacher and Parent are allowed.
+- Roles: Teacher only. No Parent role exists.
 - AI output must remain draft; Teacher review is required before publish.
 - Approved AI models only: gemma3:12b (question generation via Ollama Cloud), qwen2.5:3b (grading/explanation local), gemma4:31b (OCR via Ollama Cloud), vietnamese-sbert (RAG).
 - Do not introduce other AI models or auto-publish flows.

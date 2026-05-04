@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { UserPlus, Mail, Lock, User, AlertCircle, GraduationCap, Users } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, AlertCircle, GraduationCap } from 'lucide-react';
 import type { UserRole } from '../types';
 
 export function RegisterPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
-    const [role, setRole] = useState<UserRole>('teacher');
+    const role: UserRole = 'teacher';
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { register } = useAuth();
@@ -55,43 +55,12 @@ export function RegisterPage() {
                             </div>
                         )}
 
-                        {/* Role Selection */}
-                        <div className="space-y-3">
-                            <label className="block text-sm font-semibold text-slate-700 ml-1">
-                                Bạn là:
-                            </label>
-                            <div className="grid grid-cols-2 gap-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setRole('teacher')}
-                                    className={`btn-bounce p-5 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${role === 'teacher'
-                                            ? 'border-indigo-500 bg-indigo-50 shadow-soft'
-                                            : 'border-slate-200 bg-white/50 hover:border-indigo-300 hover:bg-white'
-                                        }`}
-                                >
-                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${role === 'teacher' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
-                                        <GraduationCap className="w-6 h-6" />
-                                    </div>
-                                    <span className={`font-bold ${role === 'teacher' ? 'text-indigo-700' : 'text-slate-600'}`}>
-                                        Giáo viên
-                                    </span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setRole('parent')}
-                                    className={`btn-bounce p-5 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${role === 'parent'
-                                            ? 'border-emerald-500 bg-emerald-50 shadow-soft'
-                                            : 'border-slate-200 bg-white/50 hover:border-emerald-300 hover:bg-white'
-                                        }`}
-                                >
-                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${role === 'parent' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
-                                        <Users className="w-6 h-6" />
-                                    </div>
-                                    <span className={`font-bold ${role === 'parent' ? 'text-emerald-700' : 'text-slate-600'}`}>
-                                        Phụ huynh
-                                    </span>
-                                </button>
+                        {/* Teacher role indicator */}
+                        <div className="flex items-center gap-3 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                <GraduationCap className="w-5 h-5" />
                             </div>
+                            <span className="font-semibold text-indigo-700">Giáo viên</span>
                         </div>
 
                         <div className="space-y-2 mt-2">

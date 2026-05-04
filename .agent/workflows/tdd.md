@@ -9,7 +9,7 @@ Thực hiện TDD workflow nghiêm ngặt:
    - Viết test case cụ thể (pytest backend / vitest frontend)
    - Đảm bảo bao gồm domain rule tests:
      - Grade boundary (1-3)
-     - Role-based access (Teacher vs Parent)
+     - Teacher authentication required for all routes
      - AI draft enforcement (không auto-publish)
 
 2. **Chạy test — phải FAIL**
@@ -33,8 +33,8 @@ Thực hiện TDD workflow nghiêm ngặt:
 
 Ưu tiên test các Smart-MathAI business rules:
 - `test_grade_must_be_1_2_or_3`
-- `test_parent_cannot_create_worksheet`
-- `test_parent_cannot_see_draft_worksheet`
+- `test_unauthenticated_cannot_create_worksheet`
+- `test_draft_worksheet_requires_teacher_auth`
 - `test_ai_output_is_always_draft`
 - `test_qwen_generates_vietnamese_content`
 - `test_ocr_confidence_threshold_enforced`

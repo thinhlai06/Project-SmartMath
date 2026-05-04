@@ -19,8 +19,3 @@ export type {
     WeakTopic, StudentPerformance, MistakePattern,
     AnalyticsResponse, AIStatusResponse, GradingReport
 } from './ai';
-
-export type {
-    ParentClassInfo, TopicProgress, TodayAssignment,
-    ParentDashboardData, WorksheetForParent
-} from './parent';

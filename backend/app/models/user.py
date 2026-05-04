@@ -9,11 +9,10 @@ from app.database import Base
 class UserRole(str, enum.Enum):
     """User roles in the system."""
     TEACHER = "teacher"
-    PARENT = "parent"
 
 
 class User(Base):
-    """User model for teachers and parents."""
+    """User model."""
     
     __tablename__ = "users"
 
@@ -26,7 +25,5 @@ class User(Base):
 
     # Relationships
     classes = relationship("MathClass", back_populates="teacher")
-    parent_links = relationship("ParentClassLink", back_populates="parent")
-
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}', role='{self.role}')>"

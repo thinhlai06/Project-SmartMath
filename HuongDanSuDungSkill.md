@@ -21,7 +21,7 @@ Trong khung chat của Antigravity, bạn chỉ cần gõ ký tự đầu tiên 
 ## 🔍 2. Chi Tiết Từng Công cụ & Trường hợp sử dụng
 
 ### 📋 `/plan` — Khi bắt đầu tính năng mới
-*   **Dùng khi**: Bạn có một yêu cầu mới (VD: "Thêm trang Dashboard cho Phụ huynh").
+*   **Dùng khi**: Bạn có một yêu cầu mới (VD: "Thêm trang Dashboard thống kê cho Giáo viên").
 *   **Cách hoạt động**: AI sẽ đọc file `agents/planner.md`, kiểm tra xem tính năng có vi phạm quy tắc Lớp 1-3 không, sau đó liệt kê các file cần sửa.
 
 ### 🧪 `/tdd` — Khi bắt đầu viết code thực tế
@@ -34,7 +34,7 @@ Trong khung chat của Antigravity, bạn chỉ cần gõ ký tự đầu tiên 
 
 ### ⚛️ `/code-review` — Trước khi hoàn thành Frontend
 *   **Dùng khi**: Bạn vừa xong một Component hoặc Page trong `frontend/`.
-*   **Cách hoạt động**: Kiểm tra xem giao diện có nút bấm cho đúng Role (Teacher/Parent) chưa, và tiếng Việt có chuẩn xác không.
+*   **Cách hoạt động**: Kiểm tra xem giao diện có đúng luồng Teacher không, và tiếng Việt có chuẩn xác không.
 
 ---
 
@@ -52,8 +52,8 @@ Bạn không cần gõ lệnh cho các file này, AI sẽ tự động đọc ch
 
 Hệ thống AI này đã được "khóa" các quy tắc sau, nếu bạn yêu cầu làm sai, AI sẽ cảnh báo:
 1.  **Chỉ Toán Lớp 1, 2, 3**: Tuyệt đối không làm lớp 4 trở lên.
-2.  **Quyền hạn (Role)**: Chỉ Giáo viên mới được tạo nội dung. Phụ huynh chỉ được xem và tải.
-3.  **Duyệt nội dung**: Mọi thứ AI tạo ra phải ở trạng thái `Chờ duyệt`, Giáo viên phải bấm "Duyệt" thì Phụ huynh mới thấy.
+2.  **Quyền hạn (Role)**: Chỉ Giáo viên mới được đăng nhập và sử dụng hệ thống.
+3.  **Duyệt nội dung**: Mọi thứ AI tạo ra phải ở trạng thái `Chờ duyệt`, Giáo viên phải bấm "Duyệt" trước khi phát hành.
 
 ---
 

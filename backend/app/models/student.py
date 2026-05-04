@@ -22,8 +22,6 @@ class Student(Base):
     # Relationships
     math_class = relationship("MathClass", back_populates="students")
     progress = relationship("StudentProgress", back_populates="student", cascade="all, delete-orphan")
-    parent_links = relationship("ParentClassLink", back_populates="student", cascade="all, delete-orphan")
-
     def __repr__(self):
         return f"<Student(id={self.id}, name='{self.full_name}')>"
 

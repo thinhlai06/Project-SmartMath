@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 interface RoleGuardProps {
     children: ReactNode;
-    allowedRole: 'teacher' | 'parent';
+    allowedRole: 'teacher';
     redirectTo?: string;
 }
 
@@ -21,8 +21,7 @@ export default function RoleGuard({ children, allowedRole, redirectTo }: RoleGua
 
     if (user.role !== allowedRole) {
         // Redirect to role-appropriate page
-        const defaultRedirect = user.role === 'teacher' ? '/' : '/parent/dashboard';
-        return <Navigate to={redirectTo || defaultRedirect} replace />;
+        return <Navigate to={redirectTo || '/'} replace />;
     }
 
     return <>{children}</>;

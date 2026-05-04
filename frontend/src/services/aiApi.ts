@@ -9,7 +9,6 @@ import type {
     GradingResponse,
     AnalyticsResponse,
     AIStatusResponse,
-    GradingReport,
     ExerciseExplanationResponse,
     StudentErrorListResponse,
     UpdateErrorRecordPayload,
@@ -99,12 +98,6 @@ export const aiApi = {
         raw_text: string;
     }): Promise<{ report_id: number; file_url: string }> => {
         const { data } = await api.post('/ai/grading-report/export', gradingData);
-        return data;
-    },
-
-    /** Get reports for a class (parent view) */
-    getReports: async (classId: number): Promise<GradingReport[]> => {
-        const { data } = await api.get(`/parent/reports/${classId}`);
         return data;
     },
 

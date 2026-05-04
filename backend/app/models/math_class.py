@@ -30,7 +30,5 @@ class MathClass(Base):
     students = relationship("Student", back_populates="math_class", cascade="all, delete-orphan")
     worksheets = relationship("Worksheet", back_populates="math_class", cascade="all, delete-orphan")
     announcements = relationship("Announcement", back_populates="math_class", cascade="all, delete-orphan")
-    parent_links = relationship("ParentClassLink", back_populates="math_class", cascade="all, delete-orphan")
-
     def __repr__(self):
         return f"<MathClass(id={self.id}, name='{self.class_name}', grade={self.grade})>"

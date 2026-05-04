@@ -22,7 +22,7 @@ grep -r "password\|secret\|api_key\|token" --include="*.py" --include="*.ts" \
 ### 2. Authentication & Authorization (CRITICAL)
 - [ ] Mọi protected route có `Depends(get_current_user)`
 - [ ] Teacher-only routes có `Depends(require_teacher)`
-- [ ] Parent chỉ access data của class họ đã join
+- [ ] Tất cả routes đều có `Depends(require_teacher)`
 - [ ] Token expiry được handle đúng
 
 ### 3. Input Validation
@@ -34,7 +34,7 @@ grep -r "password\|secret\|api_key\|token" --include="*.py" --include="*.ts" \
 ### 4. Educational Data Safety (CRITICAL)
 - [ ] Không expose thông tin học sinh cho bên thứ ba
 - [ ] Images OCR không được log có PII
-- [ ] AI không giải bài trực tiếp cho Parent
+- [ ] AI không giải bài trực tiếp (chỉ teacher mới được gọi AI endpoints)
 - [ ] Teacher review mandatory trước khi publish AI content
 
 ### 5. API Security

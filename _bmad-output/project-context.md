@@ -35,10 +35,10 @@ MỌI AI AGENTS (TỪ PM ĐẾN DEVELOPER) KHI LÀM VIỆC TRÊN DỰ ÁN NÀY L
 
 ### 2. No Autonomous AI (Triết lý AI làm trợ lý)
 - **Luôn là Bản Nháp:** Tất cả mọi luồng `Generate` sử dụng LLM đều bắt buộc sinh ra dữ liệu ở trạng thái `Draft` hoặc `Pending`.
-- **Human-in-the-loop:** Tuyệt đối phải có chốt chặn phê duyệt bởi Giáo viên (Teacher) thông qua Endpoint như `PublishWorksheetUseCase` (hoặc tương đương) trước khi bản ghi đó được chính thức hóa xuống DB hiển thị cho Học sinh/Phụ huynh.
+- **Human-in-the-loop:** Tuyệt đối phải có chốt chặn phê duyệt bởi Giáo viên (Teacher) thông qua Endpoint như `PublishWorksheetUseCase` (hoặc tương đương) trước khi bản ghi đó được chính thức hóa xuống DB.
 
 ### 3. Role-based Constraints (Phân quyền bảo mật)
-- **Teacher vs Parent:** Giao diện và API phải kiểm tra kỹ Role. Phụ huynh (Parent) nghiêm cấm không được gọi các API liên quan đến thao tác AI Sinh đề hay AI Chấm ảnh.
+- **Teacher-only:** Hệ thống chỉ có 1 role duy nhất là Teacher. Mọi route và API đều yêu cầu `get_current_teacher` dependency. Không có Parent role.
 - **Cookie-session:** Tất cả request Frontend gọi về Backend phải được truyền session thông qua HTTP-only cookie (`withCredentials: true`), tuyệt đối KHÔNG code thêm logic dựa vào AccessToken giấu trong LocalStorage.
 
 ### 4. Hexagonal Architecture (Kiến trúc phân lớp)

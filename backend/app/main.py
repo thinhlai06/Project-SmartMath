@@ -7,7 +7,7 @@ from app.models.student_progress import StudentProgress
 from app.models.student_analytics import StudentAnalytics
 from app.models.grading_report import GradingReport
 from app.models.cpa_bundle import CPABundleRecord
-from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, parent, announcements, dashboard, activities, upload, gradebook
+from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, announcements, dashboard, activities, upload, gradebook
 from app.core.exceptions import SmartMathException, smartmath_exception_handler
 from fastapi.staticfiles import StaticFiles
 import os
@@ -27,7 +27,7 @@ app = FastAPI(
     
     ## Tính năng
     
-    * **Authentication** - Đăng ký và đăng nhập cho Giáo viên/Phụ huynh
+    * **Authentication** - Đăng ký và đăng nhập cho Giáo viên
     * **Topics** - Danh sách chủ đề toán theo SGK
     * **Classes** - Quản lý lớp học
     * **Students** - Quản lý học sinh
@@ -38,8 +38,7 @@ app = FastAPI(
     
     ## Vai trò người dùng
     
-    * **Teacher (Giáo viên)** - Tạo lớp, tạo bài tập, chấm bài
-    * **Parent (Phụ huynh)** - Xem bài tập, theo dõi tiến độ con
+    * **Teacher (Giáo viên)** - Tạo lớp, tạo bài tập, chấm bài, phân tích kết quả
     """,
     version="1.0.0",
     docs_url="/docs",
@@ -71,7 +70,6 @@ app.include_router(worksheets.router, prefix="/api", tags=["Worksheets"])
 app.include_router(worksheets.class_router, prefix="/api", tags=["Worksheets"])
 app.include_router(exercises.router, prefix="/api", tags=["Exercises"])
 app.include_router(pdf.router, prefix="/api", tags=["PDF Export"])
-app.include_router(parent.router, prefix="/api/parent", tags=["Parent"])
 app.include_router(announcements.router, prefix="/api", tags=["Announcements"])
 app.include_router(dashboard.router, prefix="/api", tags=["Dashboard"])
 app.include_router(activities.router, prefix="/api", tags=["Activities"])

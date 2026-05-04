@@ -7,7 +7,6 @@ from enum import Enum
 class UserRole(str, Enum):
     """User roles."""
     TEACHER = "teacher"
-    PARENT = "parent"
 
 
 class UserBase(BaseModel):

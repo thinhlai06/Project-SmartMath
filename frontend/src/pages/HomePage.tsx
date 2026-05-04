@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { classApi } from '../services/classApi';
 import type { MathClass } from '../services/classApi';
-import { GraduationCap, BookOpen, BarChart3, FileDown, Camera, Users, ChevronRight, Settings } from 'lucide-react';
+import { GraduationCap, BookOpen, BarChart3, FileDown, Camera, Settings } from 'lucide-react';
 import { QuickActionCard } from '../components/dashboard/QuickActionCard';
 import { RecentActivityList } from '../components/dashboard/RecentActivityList';
 import aiApi from '../services/aiApi';
@@ -12,13 +12,9 @@ export function HomePage() {
     const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
 
-    // If authenticated, show role-based content
+    // If authenticated, show teacher content
     if (isAuthenticated && user) {
-        if (user.role === 'teacher') {
-            return <TeacherHome />;
-        } else {
-            return <ParentHome />;
-        }
+        return <TeacherHome />;
     }
 
     // Landing page for non-authenticated users
@@ -89,30 +85,30 @@ export function HomePage() {
 
                     <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
                         <div className="flex items-center gap-4 mb-6">
-                            <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center">
-                                <Users className="w-7 h-7 text-green-600" />
+                            <div className="w-14 h-14 bg-violet-100 rounded-xl flex items-center justify-center">
+                                <BarChart3 className="w-7 h-7 text-violet-600" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-gray-900">Dành cho Phụ huynh</h2>
-                                <p className="text-gray-600">Đồng hành cùng con học toán</p>
+                                <h2 className="text-xl font-bold text-gray-900">Phân tích & Báo cáo AI</h2>
+                                <p className="text-gray-600">Hiểu sâu tiến trình từng học sinh</p>
                             </div>
                         </div>
                         <ul className="space-y-3 text-gray-700">
                             <li className="flex items-center gap-2">
-                                <span className="text-green-500">✓</span>
-                                Hướng dẫn giải bài theo phương pháp mới
+                                <Camera className="w-5 h-5 text-violet-500" />
+                                Chấm bài tự động từ ảnh chụp
                             </li>
                             <li className="flex items-center gap-2">
-                                <span className="text-green-500">✓</span>
-                                Theo dõi tiến độ học tập của con
+                                <BarChart3 className="w-5 h-5 text-violet-500" />
+                                Thống kê lỗi sai theo từng dạng bài
                             </li>
                             <li className="flex items-center gap-2">
-                                <span className="text-green-500">✓</span>
-                                Nhận bài tập bổ trợ phù hợp
+                                <BookOpen className="w-5 h-5 text-violet-500" />
+                                Gợi ý bài tập bổ trợ phù hợp năng lực
                             </li>
                             <li className="flex items-center gap-2">
-                                <span className="text-green-500">✓</span>
-                                Kết nối với giáo viên
+                                <Settings className="w-5 h-5 text-violet-500" />
+                                Quản lý sổ điểm kỹ thuật số
                             </li>
                         </ul>
                     </div>
@@ -506,279 +502,6 @@ function TeacherHome() {
                     </div>
                 </div>
             </div>
-        </div>
-    );
-}
-
-// Parent Home with real functionality
-function ParentHome() {
-    const { user, logout } = useAuth();
-    const navigate = useNavigate();
-    const [children, setChildren] = useState<Array<{
-        id: number;
-        class_id: number;
-        class_name: string;
-        grade: number;
-        student_name: string;
-        teacher_name: string;
-        joined_at: string;
-    }>>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [showJoinModal, setShowJoinModal] = useState(false);
-    const [joinForm, setJoinForm] = useState({ class_code: '', student_name: '' });
-    const [joinError, setJoinError] = useState<string | null>(null);
-    const [joinSuccess, setJoinSuccess] = useState<string | null>(null);
-    const [isJoining, setIsJoining] = useState(false);
-
-    // Fetch parent's children/classes
-    const fetchChildren = async () => {
-        try {
-            const response = await fetch('/api/parent/classes', {
-                credentials: 'include',
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setChildren(data);
-            }
-        } catch (error) {
-            console.error('Error fetching children:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchChildren();
-    }, []);
-
-    const handleJoinClass = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setJoinError(null);
-        setJoinSuccess(null);
-
-        if (!joinForm.class_code.trim() || !joinForm.student_name.trim()) {
-            setJoinError('Vui lòng nhập đầy đủ mã lớp và tên con');
-            return;
-        }
-
-        setIsJoining(true);
-
-        try {
-            const response = await fetch('/api/parent/join-class', {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    class_code: joinForm.class_code.toUpperCase(),
-                    student_name: joinForm.student_name
-                })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                setJoinSuccess(`Đã thêm ${joinForm.student_name} vào lớp ${data.class_name}!`);
-                setJoinForm({ class_code: '', student_name: '' });
-                fetchChildren(); // Refresh list
-                setTimeout(() => {
-                    setShowJoinModal(false);
-                    setJoinSuccess(null);
-                }, 1500);
-            } else {
-                setJoinError(data.detail || 'Không thể tham gia lớp');
-            }
-        } catch (_err) {
-            setJoinError('Lỗi kết nối. Vui lòng thử lại.');
-        } finally {
-            setIsJoining(false);
-        }
-    };
-
-    return (
-        <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans">
-            <div className="absolute top-[-10%] left-0 w-[40%] h-[40%] bg-emerald-200/40 rounded-full blur-[100px] -z-0 pointer-events-none" />
-            <div className="absolute bottom-[-10%] right-0 w-[60%] h-[40%] bg-orange-200/30 rounded-full blur-[100px] -z-0 pointer-events-none" />
-
-            <nav className="glass-panel sticky top-4 mx-4 md:mx-auto max-w-7xl rounded-2xl z-50 px-2 py-1 mb-8">
-                <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center shadow-soft transform rotate-2">
-                            <span className="text-xl drop-shadow-sm">👨‍👩‍👦</span>
-                        </div>
-                        <span className="font-extrabold text-xl tracking-tight text-slate-800">Smart-MathAI</span>
-                    </div>
-                    <div className="flex items-center gap-4 bg-white/50 px-4 py-2 rounded-xl border border-slate-100/50 shadow-sm">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold">
-                            {user?.full_name?.charAt(0) || 'PH'}
-                        </div>
-                        <span className="text-slate-700 font-medium font-sans">{user?.full_name}</span>
-                        <div className="w-px h-6 bg-slate-200 mx-2"></div>
-                        <button
-                            onClick={logout}
-                            className="text-sm font-semibold text-slate-500 hover:text-red-500 transition-colors"
-                        >
-                            Đăng xuất
-                        </button>
-                    </div>
-                </div>
-            </nav>
-
-            <div className="max-w-5xl mx-auto px-4 pb-12 relative z-10">
-                <div className="flex flex-col md:flex-row items-center justify-between mb-10 gap-4">
-                    <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
-                        Quản lý học tập
-                    </h1>
-                    <div className="flex flex-wrap gap-3">
-                        <button
-                            onClick={() => navigate('/ai-grading')}
-                            className="btn-bounce px-5 py-2.5 bg-white/80 backdrop-blur-md border border-slate-200/60 hover:bg-white text-slate-700 rounded-xl font-semibold transition-all shadow-sm hover:shadow-soft inline-flex items-center gap-2"
-                        >
-                            <Camera className="w-5 h-5 text-emerald-500" />
-                            Chấm điểm tự động
-                        </button>
-                        <button
-                            onClick={() => setShowJoinModal(true)}
-                            className="btn-bounce px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold transition-all shadow-soft hover:shadow-soft-lg inline-flex items-center gap-2"
-                        >
-                            <Users className="w-5 h-5" />
-                            Thêm con vào lớp
-                        </button>
-                    </div>
-                </div>
-
-                {isLoading ? (
-                    <div className="flex justify-center py-20">
-                        <div className="animate-spin w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full drop-shadow-sm"></div>
-                    </div>
-                ) : children.length === 0 ? (
-                    <div className="glass-panel rounded-3xl p-16 text-center shadow-sm relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/30 to-transparent -z-10" />
-                        <div className="w-24 h-24 bg-emerald-100/50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm transform group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-500">
-                            <Users className="w-12 h-12 text-emerald-600" />
-                        </div>
-                        <h2 className="text-2xl font-bold text-slate-800 mb-3">Chưa thêm học sinh</h2>
-                        <p className="text-slate-500 mb-8 max-w-md mx-auto font-medium leading-relaxed">
-                            Vui lòng xin Mã lớp học từ cô giáo chủ nhiệm để kết nối và đồng hành cùng tiến trình học tập của con bạn.
-                        </p>
-                        <button
-                            onClick={() => setShowJoinModal(true)}
-                            className="btn-bounce px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold transition-all shadow-soft hover:shadow-soft-lg"
-                        >
-                            Bắt đầu kết nối
-                        </button>
-                    </div>
-                ) : (
-                    <div className="grid sm:grid-cols-2 gap-6">
-                        {children.map((child) => (
-                            <div
-                                key={child.id}
-                                className="glass-panel card-hover rounded-3xl p-6 cursor-pointer group flex flex-col justify-between min-h-[160px] relative overflow-hidden shadow-sm hover:shadow-soft"
-                                onClick={() => navigate(`/parent/class/${child.class_id}`)}
-                            >
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50/50 rounded-bl-full -z-10 transition-transform duration-500 group-hover:scale-150" />
-                                <div className="flex items-start gap-4">
-                                    <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center text-white text-2xl font-extrabold shadow-soft transform -rotate-3 group-hover:rotate-0 transition-transform duration-300">
-                                        {child.student_name.charAt(0)}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="text-xl font-bold text-slate-800 truncate mb-1 group-hover:text-emerald-700 transition-colors">{child.student_name}</h3>
-                                        <div className="flex flex-wrap gap-2 text-sm text-slate-500 items-center">
-                                            <span className="bg-slate-100 px-2 py-0.5 rounded-md font-medium text-slate-600 truncate max-w-full block">Lớp {child.class_name}</span>
-                                        </div>
-                                        <p className="text-sm text-slate-400 font-medium mt-2 bg-white/50 w-fit px-2 py-1 rounded-lg border border-slate-100">Cố vấn: <span className="text-slate-600">{child.teacher_name}</span></p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100/50">
-                                    <span className="text-sm font-semibold text-emerald-600/80 group-hover:text-emerald-600 transition-colors">
-                                        Phân tích kết quả
-                                    </span>
-                                    <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
-                                        <ChevronRight className="w-5 h-5 text-emerald-500 transform group-hover:translate-x-1 transition-transform" />
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Join Class Modal */}
-            {showJoinModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                    <Users className="w-5 h-5 text-green-600" />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg font-bold">Thêm con vào lớp</h2>
-                                    <p className="text-sm text-gray-500">Nhập mã lớp từ giáo viên</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setShowJoinModal(false)} className="text-gray-400 hover:text-gray-600 p-2">
-                                ✕
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleJoinClass} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Mã lớp học</label>
-                                <input
-                                    type="text"
-                                    placeholder="Nhập mã lớp (VD: ABC123)"
-                                    value={joinForm.class_code}
-                                    onChange={(e) => setJoinForm({ ...joinForm, class_code: e.target.value.toUpperCase() })}
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent uppercase"
-                                    maxLength={10}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Tên con</label>
-                                <input
-                                    type="text"
-                                    placeholder="Nhập tên con (VD: Nguyễn Văn An)"
-                                    value={joinForm.student_name}
-                                    onChange={(e) => setJoinForm({ ...joinForm, student_name: e.target.value })}
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                />
-                            </div>
-
-                            {joinError && (
-                                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                                    <p className="text-sm text-red-600">{joinError}</p>
-                                </div>
-                            )}
-
-                            {joinSuccess && (
-                                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                                    <p className="text-sm text-green-600">{joinSuccess}</p>
-                                </div>
-                            )}
-
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowJoinModal(false)}
-                                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50"
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isJoining}
-                                    className="flex-1 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium disabled:opacity-50"
-                                >
-                                    {isJoining ? 'Đang xử lý...' : 'Thêm con'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

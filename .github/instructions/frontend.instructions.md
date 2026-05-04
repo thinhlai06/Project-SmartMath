@@ -28,22 +28,19 @@ interface ApiResponse<T> {
 ## Role-Based Component Pattern
 
 ```typescript
-// LUÔN kiểm tra role trước khi render actions
+// Teacher-only: tất cả actions đều hiển thị cho teacher
 interface WorksheetCardProps {
   worksheet: Worksheet
-  userRole: "teacher" | "parent"
 }
 
-export function WorksheetCard({ worksheet, userRole }: WorksheetCardProps) {
-  const isTeacher = userRole === "teacher"
+export function WorksheetCard({ worksheet }: WorksheetCardProps) {
   const isPublished = worksheet.status === "published"
 
   return (
     <div>
       <h3>{worksheet.title}</h3>
-      {/* Parent chỉ thấy published worksheets */}
-      {isTeacher && <EditButton worksheetId={worksheet.id} />}
-      {(isPublished || isTeacher) && <DownloadPdfButton id={worksheet.id} />}
+      <EditButton worksheetId={worksheet.id} />
+      {isPublished && <DownloadPdfButton id={worksheet.id} />}
     </div>
   )
 }
@@ -133,8 +130,8 @@ const handlePublish = () => {
 - Profile card học sinh cần hiển thị tối thiểu:
   - Họ tên
   - Ngày sinh
-  - Họ tên phụ huynh
-  - SĐT phụ huynh
+  - Họ tên bố hoặc mẹ (do giáo viên nhập)
+  - SĐT bố hoặc mẹ (do giáo viên nhập)
   - Điểm trung bình
   - Tier hiện tại
 - Điểm trung bình nên có màu điều kiện để giáo viên nhận diện nhanh nhóm học sinh.

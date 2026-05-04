@@ -17,8 +17,7 @@ Review Python backend code theo checklist Smart-MathAI:
 
 3. **Domain Rules (CRITICAL)**
    - Grade validation: `grade: Literal[1, 2, 3]`
-   - Parent không được tạo/sửa worksheets
-   - Parent chỉ thấy worksheets published của class mình
+   - Tất cả thao tác tạo/sửa worksheets phải có `require_teacher` dependency
    - AI output (gemma3:12b / qwen2.5:3b / gemma4:31b) luôn là Draft
    - AI logic nằm trong `app/services/ai/` (isolated)
 

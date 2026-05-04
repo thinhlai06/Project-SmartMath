@@ -6,7 +6,7 @@
 ## Dự án là gì?
 
 **Smart-MathAI** — Nền tảng giáo dục toán học tiểu học Việt Nam (Lớp 1–3).  
-Đây là educational SaaS dành cho **giáo viên** (tạo bài tập) và **phụ huynh** (tải bài tập về).
+Đây là educational SaaS dành cho **giáo viên** (tạo bài tập, chấm bài, phân tích kết quả học sinh).
 
 ## Tech Stack
 
@@ -19,7 +19,7 @@ AI:        Ollama Local (qwen2.5:3b — grading/explanation) / Ollama Cloud (gem
 ## Domain Constraints (BẮT BUỘC tuân thủ)
 
 1. **Chỉ Toán học Lớp 1–3** — Không implement content ngoài phạm vi này
-2. **2 Roles duy nhất**: Teacher và Parent
+2. **1 Role duy nhất**: Teacher
 3. **AI output = Draft** — Teacher review bắt buộc, không auto-publish
 4. **AI models được duyệt**: `gemma3:12b` (sinh câu hỏi CPA/Differentiation, Ollama Cloud), `qwen2.5:3b` (chấm bài + giải thích, local), `gemma4:31b` (OCR ảnh, Ollama Cloud), `vietnamese-sbert` (RAG) — không thêm model khác
 5. **Tiếng Việt** — UI và AI output bằng tiếng Việt
@@ -39,7 +39,7 @@ pytest tests/ -v --cov=app
 ## Khi làm việc với Frontend (`frontend/`)
 
 - TypeScript strict mode
-- Role-based rendering: ẩn Teacher features với Parent
+- Teacher-only UI: tất cả routes đều yêu cầu role teacher
 - Error messages bằng tiếng Việt
 - Immutable state updates
 

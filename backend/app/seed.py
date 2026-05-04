@@ -81,19 +81,9 @@ def seed_demo_users(db):
     )
     db.add(teacher)
     
-    # Create demo parent
-    parent = User(
-        email="parent@demo.com",
-        password_hash=get_password_hash("123456"),
-        full_name="Phụ huynh An (Demo)",
-        role=UserRole.PARENT
-    )
-    db.add(parent)
-    
     db.commit()
     print("  → Created demo users:")
     print("    - teacher@demo.com / 123456")
-    print("    - parent@demo.com / 123456")
 
 
 def main():
