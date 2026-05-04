@@ -43,32 +43,32 @@ describe('authApi service', () => {
     mockApiInstance.post.mockResolvedValueOnce({
       data: {
         id: 1,
-        email: 'parent@example.com',
-        full_name: 'Parent One',
-        role: 'parent',
+        email: 'teacher@example.com',
+        full_name: 'Teacher One',
+        role: 'teacher',
         created_at: '2026-01-01T00:00:00Z',
       },
     });
     mockApiInstance.get.mockResolvedValueOnce({
       data: {
         id: 1,
-        email: 'parent@example.com',
-        full_name: 'Parent One',
-        role: 'parent',
+        email: 'teacher@example.com',
+        full_name: 'Teacher One',
+        role: 'teacher',
         created_at: '2026-01-01T00:00:00Z',
       },
     });
 
     const user = await authApi.register({
-      email: 'parent@example.com',
+      email: 'teacher@example.com',
       password: 'secret123',
-      full_name: 'Parent One',
-      role: 'parent',
+      full_name: 'Teacher One',
+      role: 'teacher',
     });
     const me = await authApi.getMe();
 
-    expect(user.email).toBe('parent@example.com');
-    expect(me.role).toBe('parent');
+    expect(user.email).toBe('teacher@example.com');
+    expect(me.role).toBe('teacher');
     expect(mockApiInstance.post).toHaveBeenCalledWith('/auth/register', expect.any(Object));
     expect(mockApiInstance.get).toHaveBeenCalledWith('/auth/me');
   });

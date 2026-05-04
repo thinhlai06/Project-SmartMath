@@ -9,10 +9,9 @@ Review TypeScript/React code theo checklist Smart-MathAI:
    - Props interfaces rõ ràng
    - Null/undefined handling đúng
 
-2. **Role-Based UI (CRITICAL)**
-   - Teacher-only features ẩn với Parent
-   - Parent chỉ thấy published worksheets
-   - Không render AI generation controls cho Parent
+2. **Teacher-Only UI (CRITICAL)**
+   - Tất cả routes yêu cầu xác thực giáo viên
+   - AI generation controls chỉ hiển thị khi đã authenticated
    - Grade selector chỉ cho phép 1, 2, 3
 
 3. **State Management**

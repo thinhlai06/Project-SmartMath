@@ -8,7 +8,7 @@
 Loại tests (tất cả đều bắt buộc):
 1. **Unit Tests** — Từng function, utility, component riêng lẻ
 2. **Integration Tests** — API endpoints, database operations
-3. **E2E Tests** — Critical user flows (teacher workflow, parent workflow)
+3. **E2E Tests** — Critical user flows (teacher workflow)
 
 ## Test-Driven Development
 
@@ -37,13 +37,13 @@ def test_worksheet_cannot_have_grade_above_3():
     with pytest.raises(ValidationError):
         WorksheetCreateRequest(grade=4, topic="Phép cộng", ...)
 
-def test_published_worksheet_visible_to_parent():
+def test_published_worksheet_is_downloadable():
     worksheet = create_test_worksheet(status="published")
-    assert parent_can_view(worksheet) is True
+    assert worksheet.status == "published"
 
-def test_draft_worksheet_hidden_from_parent():
+def test_draft_worksheet_not_published():
     worksheet = create_test_worksheet(status="draft")
-    assert parent_can_view(worksheet) is False
+    assert worksheet.status == "draft"
 ```
 
 ## Frontend Test Setup (TypeScript/Vitest)
@@ -65,9 +65,9 @@ describe("WorksheetCard", () => {
     expect(queryByText("Tải xuống PDF")).not.toBeInTheDocument()
   })
 
-  it("hides edit button for parent role", () => {
-    const { queryByText } = render(<WorksheetCard role="parent" />)
-    expect(queryByText("Chỉnh sửa")).not.toBeInTheDocument()
+  it("shows edit button for authenticated teacher", () => {
+    const { getByText } = render(<WorksheetCard role="teacher" />)
+    expect(getByText("Điều chỉnh")).toBeInTheDocument()
   })
 })
 ```
@@ -76,11 +76,10 @@ describe("WorksheetCard", () => {
 
 Luôn phải test các trường hợp sau:
 - [ ] Grade validation (chỉ 1-3)
-- [ ] Role-based access (teacher vs parent)
+- [ ] Teacher authentication required for all routes
 - [ ] Draft vs published worksheet visibility
 - [ ] AI output không auto-publish
 - [ ] OCR confidence threshold enforcement
-- [ ] Class code join flow (parent)
 - [ ] PDF export generation
 
 ## Troubleshooting Test Failures

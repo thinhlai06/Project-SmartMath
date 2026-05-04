@@ -4,7 +4,6 @@ from typing import List, Optional
 from app.models.math_class import MathClass, generate_class_code
 from app.models.student import Student
 from app.models.announcement import Announcement
-from app.models.parent_class_link import ParentClassLink
 from app.models.student_progress import StudentProgress
 from app.models.student_analytics import StudentAnalytics
 from app.models.grading_report import GradingReport
@@ -98,11 +97,9 @@ def delete_class(db: Session, db_class: MathClass) -> None:
 
     db.query(GradeEntry).filter(GradeEntry.student_id.in_(student_ids_query)).delete(synchronize_session=False)
     db.query(StudentProgress).filter(StudentProgress.student_id.in_(student_ids_query)).delete(synchronize_session=False)
-    db.query(ParentClassLink).filter(ParentClassLink.student_id.in_(student_ids_query)).delete(synchronize_session=False)
     db.query(StudentAnalytics).filter(StudentAnalytics.student_id.in_(student_ids_query)).delete(synchronize_session=False)
 
     db.query(Announcement).filter(Announcement.class_id == class_id).delete(synchronize_session=False)
-    db.query(ParentClassLink).filter(ParentClassLink.class_id == class_id).delete(synchronize_session=False)
     db.query(StudentAnalytics).filter(StudentAnalytics.class_id == class_id).delete(synchronize_session=False)
     db.query(GradingReport).filter(GradingReport.class_id == class_id).delete(synchronize_session=False)
 

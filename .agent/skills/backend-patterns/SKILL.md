@@ -9,7 +9,7 @@ description: >
 ## Smart-MathAI Guardrails (MANDATORY)
 
 - Scope: only Vietnamese primary Math for grades 1-3.
-- Roles: only Teacher and Parent are allowed.
+- Roles: Teacher only. No Parent role exists.
 - AI output must remain draft; Teacher review is required before publish.
 - Approved AI models only: qwen2.5:3b (generation + grading text, local), gemma4:31b via Ollama Cloud (OCR image), vietnamese-sbert (RAG).
 - Do not introduce other AI models or auto-publish flows.
@@ -42,7 +42,7 @@ class WorksheetRepository:
         return self.db.query(Worksheet).filter(Worksheet.id == id).first()
     
     def find_published_by_class(self, class_id: int) -> list[Worksheet]:
-        """DÃ¹ng cho Parent â€” chá»‰ published worksheets"""
+        """Only published worksheets (for PDF export / preview)"""
         return (
             self.db.query(Worksheet)
             .filter(
@@ -89,12 +89,9 @@ class WorksheetService:
         )
         return self._repo.save(worksheet)
     
-    def get_worksheets_for_parent(
-        self, class_id: int, parent_id: int
+    def get_published_worksheets(
+        self, class_id: int
     ) -> list[Worksheet]:
-        # Verify parent belongs to this class
-        if not self._class_repo.parent_belongs_to_class(parent_id, class_id):
-            raise ForbiddenError("Báº¡n khÃ´ng thuá»™c lá»›p há»c nÃ y")
         return self._repo.find_published_by_class(class_id)
 ```
 
@@ -113,11 +110,6 @@ def get_db() -> Generator:
 def require_teacher(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != "teacher":
         raise HTTPException(403, detail="Chá»‰ giÃ¡o viÃªn má»›i cÃ³ quyá»n nÃ y")
-    return current_user
-
-def require_parent(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role != "parent":
-        raise HTTPException(403, detail="TÃ­nh nÄƒng nÃ y dÃ nh cho phá»¥ huynh")
     return current_user
 
 def get_worksheet_service(db: Session = Depends(get_db)) -> WorksheetService:
@@ -140,13 +132,13 @@ async def create_worksheet(
     return service.create_worksheet(request, current_user.id)
 
 
-@router.get("/class/{class_id}", response_model=list[WorksheetResponse])
-async def get_worksheets_for_parent(
+@router.get("/class/{class_id}/published", response_model=list[WorksheetResponse])
+async def get_published_worksheets(
     class_id: int,
     service: WorksheetService = Depends(get_worksheet_service),
-    current_user: User = Depends(require_parent),  # Chá»‰ Parent
+    current_user: User = Depends(require_teacher),  # Teacher only
 ):
-    return service.get_worksheets_for_parent(class_id, current_user.id)
+    return service.get_published_worksheets(class_id)
 ```
 
 ## Pydantic Schema vá»›i Domain Constraints

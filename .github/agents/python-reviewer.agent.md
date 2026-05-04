@@ -21,12 +21,11 @@ Bạn là Python Code Reviewer chuyên về **Smart-MathAI** backend (FastAPI + 
 - [ ] SQL injection prevention (dùng ORM)
 - [ ] Input validation với Pydantic
 - [ ] Authentication check (`current_user`)
-- [ ] Authorization check (role: teacher/parent)
+- [ ] Authorization check (role: teacher — `require_teacher` dependency)
 
 ### 3. Smart-MathAI Domain Rules (CRITICAL)
 - [ ] Grade validation: `1 <= grade <= 3`
-- [ ] Chỉ Teacher mới có thể tạo/sửa worksheets
-- [ ] Parent chỉ thấy worksheets published từ class của họ
+- [ ] Tất cả routes đều dùng `require_teacher` dependency
 - [ ] AI output không bao giờ auto-publish
 - [ ] AI logic được cô lập trong `services/ai/`
 

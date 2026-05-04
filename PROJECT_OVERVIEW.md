@@ -10,11 +10,10 @@ Hiện tại hệ thống đã chuyển mình qua giai đoạn MVP và đang tí
 ## 3. Mục đích sản phẩm
 Sản phẩm được xây dựng để nhằm giải quyết các bài toán về thời gian, chất lượng và phương pháp đồng hành cùng trẻ:
 - **Đối với Giáo viên:** Tự động hóa quá trình sinh đề bài tập CPA, chấm điểm thông minh qua ảnh chụp giúp tiết kiệm 80% thời gian biên soạn.
-- **Đối với Phụ huynh:** Theo dõi chặt chẽ cấp độ của con, đồng thời nhận được tài liệu hướng dẫn cực kỳ thân thiện với cách tiếp cận phù hợp cho học sinh lớp 1-3.
-- **Đảm bảo tính an toàn:** Phụ huynh và học sinh hoàn toàn không được quyền truy cập vào các công cụ sinh bằng AI, đảm bảo một lộ trình giáo dục chuẩn định hướng, không gian lận giải bài tập tự động.
+- **Đảm bảo tính an toàn:** Học sinh hoàn toàn không được quyền truy cập vào các công cụ sinh bằng AI, đảm bảo một lộ trình giáo dục chuẩn định hướng.
 
 ## 4. Tính năng cốt lõi (Trạng thái 2026)
-- **Hệ thống phân quyền (Role-based):** Phân chia tuyệt đối giữa Teacher (Người tạo/Quản lý) và Parent (Người xem/Thực thi). Parent không thể gọi API sinh AI.
+- **Hệ thống phân quyền (Role-based):** Chỉ có Teacher (Người tạo/Quản lý). Mọi API sinh AI đều yêu cầu xác thực giáo viên.
 - **Trình sinh bài tập CPA (Concrete-Pictorial-Abstract):** Quy trình sinh bài tập dạng Bundle cấu trúc hoá, trải qua các giai đoạn từ trực quan tới trừu tượng, thay thế cho việc sinh bằng text thô trước đây.
 - **Quy trình xuất bản được kiểm soát (Publishing Workflow):** `GenerateCpaDraftUseCase` tạo ra bản nháp -> Giáo viên kiểm tra/chỉnh sửa -> `PublishWorksheetUseCase` phát hành.
 - **Chấm bài tự động (AI Grading với OCR):** Giáo viên đẩy ảnh chụp -> Bóc tách bởi OCR -> Giáo viên Validate lại -> Lưu trữ.

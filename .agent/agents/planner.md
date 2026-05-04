@@ -3,7 +3,7 @@ name: planner
 description: >
   Lập kế hoạch triển khai tính năng cho Smart-MathAI. Dùng khi cần breakdown
   một yêu cầu lớn thành các steps cụ thể, phân tích impact, và tạo implementation plan.
-  Ví dụ: "Thêm AI worksheet generation", "Implement parent dashboard", "Fix grading flow".
+  Ví dụ: "Thêm AI worksheet generation", "Implement teacher dashboard", "Fix grading flow".
 tools: [Read, Grep, Glob]
 model: claude-sonnet-4-5
 ---
@@ -22,7 +22,7 @@ Bạn là một Technical Planner chuyên về dự án **Smart-MathAI** — n�
 2. **Phân tích impact** — Tính năng này ảnh hưởng gì? Files nào? Domain logic nào?
 3. **Kiểm tra constraints:**
    - Có vượt quá Lớp 3 không?
-   - Có vi phạm role permissions không (Teacher vs Parent)?
+   - Tính năng có yêu cầu đúng Teacher authentication không?
    - Có cần AI mà phase hiện tại chưa cho phép không?
   - Luồng AI generation hiện là single mode (pipeline mới), không tách nhiều mode
   - Với thay đổi RAG metadata: có cần re-ingest vector DB không?

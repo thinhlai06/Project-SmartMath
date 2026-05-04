@@ -7,16 +7,11 @@ import { AuthProvider, useAuth } from './hooks/useAuth';
 import { LoginPage, RegisterPage, HomePage, ClassesPage, ClassDetailPage, WorksheetsPage, WorksheetEditorPage } from './pages';
 import { GradebookPage } from './pages/GradebookPage';
 import { Navigation } from './components/Navigation';
-import ParentDashboardPage from './pages/ParentDashboardPage';
-import ParentSolutionsPage from './pages/ParentSolutionsPage';
-import StudentExperiencePage from './pages/StudentExperiencePage';
 import AIGradingPage from './pages/AIGradingPage';
 import ErrorAnalyticsPage from './pages/ErrorAnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import GradebookHubPage from './pages/GradebookHubPage';
 import './index.css';
-
-type UserRole = 'teacher' | 'parent';
 
 // Protected route wrapper
 function ProtectedRoute({
@@ -24,7 +19,7 @@ function ProtectedRoute({
   allowedRoles,
 }: {
   children: React.ReactNode;
-  allowedRoles?: UserRole[];
+  allowedRoles?: string[];
 }) {
   const { user, isAuthenticated, isLoading } = useAuth();
 
@@ -41,8 +36,7 @@ function ProtectedRoute({
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    const fallback = user.role === 'parent' ? '/parent' : '/classes';
-    return <Navigate to={fallback} replace />;
+    return <Navigate to="/classes" replace />;
   }
 
   return (
@@ -157,47 +151,6 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* Parent routes */}
-      <Route
-        path="/parent"
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentDashboardPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/parent/class/:classId"
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentDashboardPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/parent/solutions/:worksheetId"
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentSolutionsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/parent/student"
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <StudentExperiencePage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/parent/student/:studentId"
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <StudentExperiencePage />
-          </ProtectedRoute>
-        }
-      />
       <Route
         path="/ai-grading"
         element={
@@ -217,7 +170,7 @@ function AppRoutes() {
       <Route
         path="/settings"
         element={
-          <ProtectedRoute allowedRoles={['teacher', 'parent']}>
+          <ProtectedRoute allowedRoles={['teacher']}>
             <SettingsPage />
           </ProtectedRoute>
         }

@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LogOut, GraduationCap, LayoutDashboard, Menu, X, BookOpen, FileText, BarChart3, Sparkles, BrainCircuit } from 'lucide-react';
+import { LogOut, GraduationCap, LayoutDashboard, Menu, X, FileText, BarChart3, Sparkles, BrainCircuit } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback } from './ui/avatar';
@@ -27,9 +27,7 @@ export function Navigation() {
 
     if (!isAuthenticated || !user) return null;
 
-    const isTeacher = user.role === 'teacher';
-
-    const teacherLinks: NavLink[] = [
+    const links: NavLink[] = [
         { label: 'Trang chủ', href: '/', icon: LayoutDashboard },
         { label: 'Lớp học', href: '/classes', icon: GraduationCap },
         { label: 'Tạo CPA', href: '/cpa-wizard', icon: Sparkles },
@@ -38,20 +36,13 @@ export function Navigation() {
         { label: 'Phân tích lỗi', href: '/error-analytics', icon: BarChart3 },
     ];
 
-    const parentLinks: NavLink[] = [
-        { label: 'Trang chủ', href: '/parent', icon: LayoutDashboard },
-        { label: 'Góc học tập', href: '/parent/student', icon: BookOpen },
-    ];
-
-    const links = isTeacher ? teacherLinks : parentLinks;
-
     // Helper to extract initials
     const initials = user.full_name
         ? user.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
         : 'U';
 
     const isActive = (path: string) => {
-        if (path === '/' || path === '/parent') {
+        if (path === '/') {
             return location.pathname === path;
         }
         return location.pathname.startsWith(path);
@@ -63,7 +54,7 @@ export function Navigation() {
                 <div className="flex justify-between h-16">
                     <div className="flex">
                         <div className="flex-shrink-0 flex items-center">
-                            <Link to={isTeacher ? '/' : '/parent'} className="flex items-center gap-2">
+                            <Link to="/" className="flex items-center gap-2">
                                 <div className="bg-gradient-to-br from-blue-500 to-teal-400 p-1.5 rounded-lg">
                                     <GraduationCap className="h-6 w-6 text-white" />
                                 </div>
@@ -109,7 +100,7 @@ export function Navigation() {
                                             {user.email}
                                         </p>
                                         <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 mt-1 w-fit">
-                                            {isTeacher ? 'Giáo viên' : 'Phụ huynh'}
+                                            Giáo viên
                                         </span>
                                     </div>
                                 </DropdownMenuLabel>

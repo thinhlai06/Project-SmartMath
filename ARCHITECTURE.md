@@ -7,7 +7,7 @@ Smart-MathAI is a controlled educational platform for Vietnamese primary Math Gr
 Hard boundaries:
 - Domain: Math only.
 - Grade scope: Grades 1-3 only.
-- Roles: Teacher and Parent only.
+- Roles: Teacher only.
 - AI authority: AI is assistive, never autonomous.
 - Publication control: AI output must start as Draft/Pending and requires Teacher approval before publish.
 
@@ -145,7 +145,7 @@ Current enforced rules:
 - Role checks remain active in auth dependencies and role-specific endpoints.
 
 Rules to enforce consistently across all modules during full migration:
-- Parent cannot generate AI worksheets.
+- All routes and APIs require Teacher authentication.
 - All AI outputs remain Draft/Pending until teacher approval.
 - Grade/domain validation for all generated and published content.
 
@@ -197,7 +197,7 @@ Backend DoD:
 
 Frontend DoD:
 - No localStorage token auth flow in runtime paths.
-- Server state managed by query layer in core teacher/parent workflows.
+- Server state managed by query layer in core teacher workflows.
 - Role routes and auth guards centralized in app routing composition.
 - Features/widgets/processes split replaces large page-local orchestration.
 

@@ -1,6 +1,6 @@
 # Smart-MathAI 🧮🤖
 
-> Hệ thống hỗ trợ dạy và học Toán tiểu học (Lớp 1-3) theo chương trình GDPT mới của Việt Nam, tích hợp AI hỗ trợ giáo viên và phụ huynh.
+> Hệ thống hỗ trợ dạy và học Toán tiểu học (Lớp 1-3) theo chương trình GDPT mới của Việt Nam, tích hợp AI hỗ trợ giáo viên.
 
 ![Smart-MathAI Banner](https://placehold.co/1200x400?text=Smart-MathAI)
 
@@ -8,7 +8,6 @@
 
 **Smart-MathAI** là nền tảng giáo dục số giúp:
 - **Giáo viên:** Tạo bài tập tự động, chấm điểm nhanh chóng qua OCR, và phân tích lỗi sai của học sinh.
-- **Phụ huynh:** Theo dõi tiến độ học tập và tải tài liệu ôn tập cho con em.
 - **Học sinh:** Tiếp cận phương pháp học CPA (Concrete-Pictorial-Abstract) và bài tập phân hóa năng lực.
 
 Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Giáo dục & Đào tạo Việt Nam.
@@ -20,7 +19,7 @@ Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Gi�
 ### 1. Core Features (Cốt lõi)
 - **Quản lý lớp học:** Tạo lớp, thêm học sinh, quản lý danh sách.
 - **Quản lý bài tập (Worksheets):** Tạo, chỉnh sửa, nhân bản và xuất PDF.
-- **Phân quyền:** Hệ thống tài khoản riêng biệt cho Giáo viên và Phụ huynh.
+- **Phân quyền:** Hệ thống tài khoản dành cho Giáo viên.
 
 ### 2. AI Features (Trí tuệ nhân tạo)
 - **RAG Pipeline (Curriculum Grounding):** Sử dụng `vietnamese-sbert` để tra cứu kiến thức chuẩn từ SGK, đảm bảo nội dung sinh ra chính xác.
@@ -146,7 +145,6 @@ c:\project smartstudy\
 ## 🔑 Tài khoản Demo
 
 - **Giáo viên:** `teacher@demo.com` / `123456`
-- **Phụ huynh:** `parent@demo.com` / `123456`
 
 ---
 

@@ -54,7 +54,7 @@ def require_teacher(current_user: User = Depends(get_current_user)):
 
 - Không bao giờ expose thông tin cá nhân học sinh cho bên thứ ba
 - Không log raw images của học sinh
-- AI `gemma3:12b`/`qwen2.5:3b` không giải bài tập trực tiếp cho phụ huynh
+- AI `gemma3:12b`/`qwen2.5:3b` không giải bài tập trực tiếp (chỉ teacher mới được dùng AI endpoints)
 - Teacher luôn phải review AI output trước khi publish
 
 ## AI Safety Rules

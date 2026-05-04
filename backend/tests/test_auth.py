@@ -56,7 +56,7 @@ def test_register_duplicate_email_returns_400(client: TestClient):
         client,
         email="duplicate@example.com",
         password="secret123",
-        role="parent",
+        role="teacher",
     )
     assert first.status_code == 201
 
@@ -64,25 +64,17 @@ def test_register_duplicate_email_returns_400(client: TestClient):
         client,
         email="duplicate@example.com",
         password="secret123",
-        role="parent",
+        role="teacher",
     )
     assert second.status_code == 400
     assert second.json()["detail"] == "Email đã được sử dụng"
 
 
-def test_role_verification_parent_cannot_access_teacher_route(client: TestClient):
-    register_parent = _register(
+def test_invalid_role_returns_422(client: TestClient):
+    response = _register(
         client,
-        email="parent1@example.com",
+        email="invalid@example.com",
         password="secret123",
         role="parent",
-        full_name="Parent One",
     )
-    assert register_parent.status_code == 201
-
-    login_parent = _login(client, email="parent1@example.com", password="secret123")
-    parent_token = login_parent.json()["access_token"]
-
-    classes_response = client.get("/api/classes", headers=_auth_headers(parent_token))
-    assert classes_response.status_code == 403
-    assert classes_response.json()["detail"] == "Chỉ giáo viên mới có quyền truy cập"
+    assert response.status_code == 422

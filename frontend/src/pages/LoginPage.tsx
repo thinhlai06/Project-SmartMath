@@ -116,7 +116,6 @@ export function LoginPage() {
                         <p className="text-xs font-bold text-indigo-900 mb-3 uppercase tracking-wider opacity-80">Tài khoản demo:</p>
                         <div className="text-sm font-medium text-indigo-700 space-y-2">
                             <p className="flex items-center gap-3 bg-white/40 p-2 rounded-xl"><span className="text-xl">👨‍🏫</span> <span className="tabular-nums">teacher@demo.com / 123456</span></p>
-                            <p className="flex items-center gap-3 bg-white/40 p-2 rounded-xl"><span className="text-xl">👪</span> <span className="tabular-nums">parent@demo.com / 123456</span></p>
                         </div>
                     </div>
                 </div>

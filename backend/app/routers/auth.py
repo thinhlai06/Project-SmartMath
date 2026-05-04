@@ -33,7 +33,7 @@ async def register(
     - **email**: Email đăng nhập (duy nhất)
     - **password**: Mật khẩu (tối thiểu 6 ký tự)
     - **full_name**: Họ và tên
-    - **role**: Vai trò (teacher hoặc parent)
+    - **role**: Vai trò (teacher)
     """
     # Check if email already exists
     existing_user = get_user_by_email(db, request.email)
