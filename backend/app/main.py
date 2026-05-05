@@ -7,6 +7,7 @@ from app.models.student_progress import StudentProgress
 from app.models.student_analytics import StudentAnalytics
 from app.models.grading_report import GradingReport
 from app.models.cpa_bundle import CPABundleRecord
+from app.models.chat_message import ChatMessage
 from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, announcements, dashboard, activities, upload, gradebook
 from app.core.exceptions import SmartMathException, smartmath_exception_handler
 from fastapi.staticfiles import StaticFiles
@@ -85,6 +86,13 @@ try:
     app.include_router(ai.router, prefix="/api", tags=["AI"])
 except ModuleNotFoundError as exc:
     logger.warning("Skipping legacy AI router due to missing dependency: %s", exc)
+
+# Chat router is optional — runs without google-generativeai
+try:
+    from app.routers import chat
+    app.include_router(chat.router, prefix="/api", tags=["Chatbot"])
+except ModuleNotFoundError as exc:
+    logger.warning("Skipping chat router due to missing dependency: %s", exc)
 
 # Clean architecture rollout endpoints (v1)
 try:

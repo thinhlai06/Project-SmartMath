@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     OLLAMA_CLOUD_TEXT_MODEL: str = "gemma3:12b"
     OLLAMA_CLOUD_TEXT_TIMEOUT: int = 600
 
+    # Gemini (Chatbot)
+    GEMINI_API_KEY: str = "AIzaSyCpE8NUNNodkximHWFvuW9cuZAiJvwrJSI"
+    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_TIMEOUT: int = 120
+    GEMINI_MAX_OUTPUT_TOKENS: int = 8192
+
     # AI generation controls (single mode: new pipeline only)
     AI_GEN_ENABLE_TEMPLATE_FILTER: bool = True
     AI_GEN_ENABLE_DIFFICULTY_VALIDATOR: bool = True

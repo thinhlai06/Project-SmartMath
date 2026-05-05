@@ -11,6 +11,7 @@ import AIGradingPage from './pages/AIGradingPage';
 import ErrorAnalyticsPage from './pages/ErrorAnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import GradebookHubPage from './pages/GradebookHubPage';
+import { ChatFloatingButton } from './components/chat';
 import './index.css';
 
 // Protected route wrapper
@@ -43,6 +44,7 @@ function ProtectedRoute({
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       <div className="pt-4 print:pt-0">{children}</div>
+      <ChatFloatingButton />
     </div>
   );
 }
