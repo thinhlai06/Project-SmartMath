@@ -39,3 +39,6 @@ langchain-community>=0.0.19
 langchain-huggingface>=0.0.2
 sentence-transformers>=2.6.0
 chromadb==0.4.22
+
+# AI / Gemini Chatbot
+google-generativeai>=0.8.0

@@ -189,6 +189,122 @@ class AnalyticsService:
             "common_mistakes": mistakes_list[:5] # Top 5
         }
 
+    def get_student_spotlight(
+        self,
+        class_id: int,
+        student_id: int,
+    ) -> Dict[str, Any]:
+        """Get comprehensive student data for Student Spotlight feature.
+
+        Returns a dict with student info, score trends, error distribution,
+        and recent errors for chart rendering and AI context.
+        """
+        student = (
+            self.db.query(Student)
+            .filter(Student.id == student_id, Student.class_id == class_id)
+            .first()
+        )
+        if not student:
+            return {"error": "Không tìm thấy học sinh trong lớp này"}
+
+        # Score trend from StudentProgress
+        progress_list = (
+            self.db.query(StudentProgress)
+            .filter(StudentProgress.student_id == student_id)
+            .order_by(StudentProgress.created_at.asc())
+            .all()
+        )
+
+        score_trend = []
+        total_score_sum = 0
+        total_max_sum = 0
+        for p in progress_list:
+            detail_items = self._extract_detail_items(p.details)
+            if detail_items:
+                p_score = sum(max(self._to_int(q.get("score", 0)), 0) for q in detail_items)
+                p_max = sum(self._to_int(q.get("max_score", 10), 10) for q in detail_items)
+                p_max = p_max if p_max > 0 else 10
+            else:
+                p_score = max(self._to_int(p.correct_count), 0)
+                p_max = max(self._to_int(p.total_count), 1)
+
+            total_score_sum += p_score
+            total_max_sum += p_max
+            score_trend.append({
+                "date": (p.created_at or p.completed_at or "").isoformat() if hasattr(p.created_at, "isoformat") else str(p.created_at or ""),
+                "score": p_score,
+                "max_score": p_max,
+                "worksheet_id": p.worksheet_id,
+            })
+
+        average_score = round((total_score_sum / total_max_sum * 10), 1) if total_max_sum > 0 else 0.0
+
+        # Class average for comparison
+        class_analytics = self.analyze_class_errors(class_id)
+        perf_list = class_analytics.get("student_performance", [])
+        if perf_list:
+            class_avg = round(sum(p["average_score"] for p in perf_list) / len(perf_list), 1)
+        else:
+            class_avg = 0.0
+
+        # Error distribution from StudentAnalytics
+        error_rows = (
+            self.db.query(StudentAnalytics)
+            .filter(
+                StudentAnalytics.student_id == student_id,
+                StudentAnalytics.class_id == class_id,
+            )
+            .all()
+        )
+
+        error_counts: Dict[str, int] = {}
+        for row in error_rows:
+            count = row.count if row.count and row.count > 0 else 1
+            error_counts[row.error_type] = error_counts.get(row.error_type, 0) + count
+
+        error_distribution = sorted(
+            [{"error_type": k, "count": v} for k, v in error_counts.items()],
+            key=lambda x: x["count"],
+            reverse=True,
+        )
+
+        # Recent errors (top 10)
+        recent_rows = (
+            self.db.query(StudentAnalytics)
+            .filter(
+                StudentAnalytics.student_id == student_id,
+                StudentAnalytics.class_id == class_id,
+            )
+            .order_by(StudentAnalytics.created_at.desc())
+            .limit(10)
+            .all()
+        )
+
+        recent_errors = []
+        for row in recent_rows:
+            payload = row.payload if isinstance(row.payload, dict) else {}
+            recent_errors.append({
+                "error_type": row.error_type,
+                "error_detail": payload.get("error_detail"),
+                "question_text": payload.get("question_text"),
+                "student_answer": payload.get("student_answer"),
+                "correct_answer": payload.get("correct_answer"),
+                "created_at": row.created_at.isoformat() if row.created_at else "",
+            })
+
+        return {
+            "student_name": student.full_name,
+            "student_id": student.id,
+            "tier": getattr(student, "tier", None),
+            "total_worksheets": len(progress_list),
+            "average_score": average_score,
+            "class_average_score": class_avg,
+            "score_trend": score_trend,
+            "error_distribution": error_distribution,
+            "recent_errors": recent_errors,
+            "total_error_records": len(error_rows),
+        }
+
     def record_error_tags(
         self,
         *,

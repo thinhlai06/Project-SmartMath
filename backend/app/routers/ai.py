@@ -457,3 +457,27 @@ async def list_class_reports(
         }
         for r in reports
     ]
+
+
+@router.get("/ai/analytics/{class_id}/student-spotlight/{student_id}")
+async def get_student_spotlight(
+    class_id: int,
+    student_id: int,
+    db: Session = Depends(get_db),
+    teacher: User = Depends(get_current_teacher),
+):
+    """Get comprehensive student data for Student Spotlight (Teacher only)."""
+    owned_class = db.query(MathClass).filter(
+        MathClass.id == class_id,
+        MathClass.teacher_id == teacher.id,
+    ).first()
+    if not owned_class:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền xem lớp này")
+
+    service = AnalyticsService(db)
+    result = service.get_student_spotlight(class_id, student_id)
+
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+
+    return result
