@@ -66,7 +66,7 @@ export function HomePage() {
                         <ul className="space-y-3 text-gray-700">
                             <li className="flex items-center gap-2">
                                 <BookOpen className="w-5 h-5 text-blue-500" />
-                                Tạo học liệu theo phương pháp CPA
+                                Tạo bài tập phân hóa theo năng lực
                             </li>
                             <li className="flex items-center gap-2">
                                 <BarChart3 className="w-5 h-5 text-blue-500" />
@@ -78,7 +78,7 @@ export function HomePage() {
                             </li>
                             <li className="flex items-center gap-2">
                                 <Camera className="w-5 h-5 text-blue-500" />
-                                Chấm bài bằng AI (Coming soon)
+                                Chấm bài bằng AI 
                             </li>
                         </ul>
                     </div>
@@ -121,8 +121,8 @@ export function HomePage() {
                         <p className="text-sm text-gray-600">Tiết kiệm thời gian</p>
                     </div>
                     <div className="text-center">
-                        <p className="text-3xl font-bold text-teal-500">CPA</p>
-                        <p className="text-sm text-gray-600">Phương pháp Singapore</p>
+                        <p className="text-3xl font-bold text-teal-500">AI</p>
+                        <p className="text-sm text-gray-600">Sinh câu hỏi phân hóa thông minh</p>
                     </div>
                     <div className="text-center">
                         <p className="text-3xl font-bold text-green-500">1-3</p>
@@ -402,13 +402,7 @@ function TeacherHome() {
                 {/* Quick Actions */}
                 <div className="glass-panel rounded-3xl p-8 mb-10">
                     <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><div className="w-2 h-6 bg-indigo-500 rounded-full" />Thao tác nhanh</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-5">
-                        <QuickActionCard
-                            title="Tạo CPA"
-                            icon="📖"
-                            color="blue"
-                            onClick={() => navigate('/cpa-wizard')}
-                        />
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                         <QuickActionCard
                             title="Phân hóa"
                             icon="🎯"

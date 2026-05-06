@@ -37,32 +37,6 @@ Flags sử dụng:
 - `AI_GEN_ENABLE_DIFFICULTY_VALIDATOR`
 - `AI_GEN_MAX_REPAIR_ROUNDS`
 
-## CPA Bundle Runtime Mode (new)
-
-CPA generation now has a structured bundle endpoint for pedagogy-correct output:
-
-- Endpoint: `POST /api/ai/generate-cpa-bundle`
-- Persistence: `POST /api/ai/worksheets/{worksheet_id}/cpa-bundles`
-- Retrieval: `GET /api/ai/worksheets/{worksheet_id}/cpa-bundles`
-
-Bundle structure is `math_core + concrete + pictorial + abstract` and must pass validator checks before teacher review.
-Backward compatibility is preserved with `POST /api/ai/generate-cpa`.
-
-Current family support (runtime):
-
-- `bundle-v2` supports `arithmetic`, `geometry`, and `measurement` topics.
-- Categories outside supported families (e.g. `word_problem`, `data_handling`) return `422` with a clear message.
-- Arithmetic topics that do not map to a deterministic operation family still return `422`.
-
-Rules for CPA bundle implementation:
-
-- Route by topic family metadata first, then use family-specific generation strategy.
-- Arithmetic `math_core` numbers are deterministic by grade/topic rules (AI does not choose final operands).
-- Non-arithmetic families use `content_family + family_payload` as core envelope.
-- RAG is style guidance only (language/pedagogical phrasing), never arithmetic source of truth.
-- All bundle outputs remain `draft` until teacher review/approval.
-- Keep AI logic under `backend/app/services/ai/` and use approved model `qwen3:1.7b`.
-
 ## Current Generation Strategy (đã triển khai)
 
 1. **Template-first RAG**: retrieve bằng metadata filter theo `topic_slug`, `representation`, `difficulty_band` trước, sau đó mới similarity search.

@@ -8,7 +8,7 @@ export type {
     Worksheet, WorksheetDetail, Exercise,
     WorksheetCreate, WorksheetUpdate,
     ExerciseCreate, ExerciseUpdate,
-    WorksheetStatus, WorksheetType, ExerciseType, DifficultyTier
+    WorksheetStatus, WorksheetType, DifficultyTier
 } from './worksheet';
 
 export type { MathClass, Student, MathTopic } from './class';

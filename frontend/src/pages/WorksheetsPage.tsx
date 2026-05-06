@@ -32,7 +32,7 @@ export function WorksheetsPage() {
     const [newWorksheet, setNewWorksheet] = useState<WorksheetCreate>({
         title: '',
         grade: 1,
-        worksheet_type: 'cpa',
+        worksheet_type: 'differentiation',
         objective: '',
     });
     const [isCreating, setIsCreating] = useState(false);
@@ -197,7 +197,7 @@ export function WorksheetsPage() {
                     )}
                     className="mb-3"
                 />
-                <p className="mb-6 text-sm text-slate-600">Quản lý bài tập CPA và phân hóa</p>
+                <p className="mb-6 text-sm text-slate-600">Quản lý bài tập phân hóa</p>
 
                 {/* Filters */}
                 <div className="flex gap-2 mb-6">
@@ -207,13 +207,6 @@ export function WorksheetsPage() {
                         onClick={() => setFilterType('')}
                     >
                         Tất cả
-                    </Button>
-                    <Button
-                        variant={filterType === 'cpa' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setFilterType('cpa')}
-                    >
-                        CPA
                     </Button>
                     <Button
                         variant={filterType === 'differentiation' ? 'default' : 'outline'}
@@ -292,18 +285,7 @@ export function WorksheetsPage() {
                                     </div>
                                     <div>
                                         <Label className="text-slate-700 font-semibold mb-2 block">Loại bài tập</Label>
-                                        <div className="grid grid-cols-2 gap-3 mt-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => setNewWorksheet({ ...newWorksheet, worksheet_type: 'cpa' })}
-                                                className={`py-3 px-4 rounded-xl border-2 transition-all duration-300 ${newWorksheet.worksheet_type === 'cpa'
-                                                    ? 'border-indigo-500 bg-indigo-50 shadow-sm'
-                                                    : 'border-slate-100 bg-white hover:border-indigo-200 hover:bg-indigo-50/30'
-                                                    }`}
-                                            >
-                                                <div className={`font-bold mb-1 ${newWorksheet.worksheet_type === 'cpa' ? 'text-indigo-700' : 'text-slate-700'}`}>CPA</div>
-                                                <div className="text-xs text-slate-500 font-medium">Concrete → Pictorial → Abstract</div>
-                                            </button>
+                                        <div className="grid grid-cols-1 gap-3 mt-1">
                                             <button
                                                 type="button"
                                                 onClick={() => setNewWorksheet({ ...newWorksheet, worksheet_type: 'differentiation' })}

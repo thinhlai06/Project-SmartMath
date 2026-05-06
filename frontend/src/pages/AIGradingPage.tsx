@@ -64,7 +64,7 @@ export default function AIGradingPage() {
     };
 
     const extractFirstNumber = (value: string): number | null => {
-        const matches = value.match(/-?\d+(?:[\.,]\d+)?/);
+        const matches = value.match(/-?\d+(?:[.,]\d+)?/);
         if (!matches || matches.length === 0) {
             return null;
         }

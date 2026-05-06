@@ -19,7 +19,7 @@ export const mockAnnouncements: Announcement[] = [
     {
         id: 2,
         class_id: 1,
-        title: "Nhắc nhở hoàn thành bài tập CPA",
+        title: "Nhắc nhở hoàn thành bài tập phân hóa",
         content: "Các em nhớ hoàn thành bài tập 'Phép chia có dư' trước thứ Hai tuần sau nhé. Bài tập đã được xuất bản trên hệ thống.",
         created_at: "2026-01-14T14:30:00",
         author_name: "Cô Nguyễn Thị Lan"

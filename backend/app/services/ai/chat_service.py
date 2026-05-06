@@ -13,14 +13,14 @@ from app.services.ai.gemini_service import GeminiService
 logger = logging.getLogger(__name__)
 
 SYSTEM_INSTRUCTION = """Bạn là trợ lý AI cho giáo viên Toán tiểu học Việt Nam (Lớp 1-3).
-Hệ thống: Smart-MathAI — nền tảng giáo dục Toán theo phương pháp CPA.
+Hệ thống: Smart-MathAI — nền tảng giáo dục Toán tích hợp AI.
 Chương trình: GDPT 2018 Bộ GD&ĐT Việt Nam.
 
 Rules:
 - Always respond in Vietnamese
 - Only elementary math (Grade 1-3), NO algebra/equations
 - Friendly, professional language for teachers
-- CPA methodology: Concrete → Pictorial → Abstract
+- Hỗ trợ giáo viên trong dạy Toán tiểu học
 - When class data provided, analyze specifically (don't generalize)
 - If uncertain, say so — never fabricate data
 - Format with Markdown when appropriate"""
@@ -30,7 +30,7 @@ Hãy phân tích ảnh bài làm của học sinh và:
 1. Nhận diện các lỗi sai (nếu có) và phân loại lỗi
 2. Đánh giá mức độ hoàn thành
 3. Gợi ý phản hồi sư phạm cho giáo viên
-4. Đề xuất cách sửa lỗi theo phương pháp CPA (Concrete → Pictorial → Abstract)
+4. Đề xuất cách sửa lỗi phù hợp trình độ tiểu học
 
 Hãy trả lời bằng tiếng Việt, rõ ràng và chi tiết."""
 
@@ -39,7 +39,7 @@ Hãy kiểm tra ảnh bảng viết/giải bài trên bảng và:
 1. Kiểm tra phương pháp giải có phù hợp với trình độ tiểu học không
 2. Phát hiện nếu có sử dụng ký hiệu đại số/phương trình (không phù hợp)
 3. Đánh giá độ rõ ràng, trình bày
-4. Gợi ý cách trình bày tốt hơn theo CPA
+4. Gợi ý cách trình bày tốt hơn
 
 Hãy trả lời bằng tiếng Việt, rõ ràng và chi tiết."""
 
@@ -159,10 +159,6 @@ class ChatService:
             "lớp", "thống kê", "analytics", "sai nhiều",
             "lỗi phổ biến", "kết quả lớp", "phân tích lớp",
         ],
-        "cpa_advisor": [
-            "phương pháp", "cpa", "concrete", "pictorial", "abstract",
-            "cách dạy", "strategy", "chiến lược",
-        ],
     }
 
     def _detect_intent(self, message: str) -> str:
@@ -174,7 +170,6 @@ class ChatService:
             "exercise_request",
             "student_spotlight",
             "class_insights",
-            "cpa_advisor",
         ]:
             for kw in self.INTENT_KEYWORDS[intent]:
                 if kw in lower:
@@ -213,10 +208,6 @@ class ChatService:
             elif intent == "student_spotlight" and class_id:
                 context_text = self._get_class_context(class_id)
                 context_text += "\n\n💡 Gợi ý: Hãy chọn một học sinh cụ thể để xem chi tiết."
-            elif intent == "cpa_advisor" and class_id:
-                context_text = self._get_rag_context(message, class_id)
-            elif intent == "cpa_advisor":
-                context_text = self._get_rag_context(message, None)
             elif intent == "lesson_plan":
                 context_text = self._get_lesson_plan_context(message, class_id)
             elif intent == "exercise_request":
@@ -388,7 +379,6 @@ class ChatService:
 {grade_info}
 
 Các loại bài tập có thể sinh:
-- Bài tập CPA (Concrete → Pictorial → Abstract)
 - Bài tập phân hóa (Foundation / Standard / Extension / Advanced)
 
 Thông tin cần để sinh bài tập:

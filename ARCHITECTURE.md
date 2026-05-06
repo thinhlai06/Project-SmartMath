@@ -34,13 +34,11 @@ Current backend structure follows an incremental Clean Architecture rollout:
 
 Implemented clean slices:
 - AI draft generation:
-  - `GenerateCpaDraftUseCase`
   - `GenerateDifferentiationDraftUseCase`
 - Worksheet publication:
   - `PublishWorksheetUseCase`
 
 Implemented v1 rollout endpoints:
-- `POST /api/v1/ai/generate-cpa`
 - `POST /api/v1/ai/generate-differentiation`
 - `POST /api/v1/worksheets/{worksheet_id}/publish`
 
@@ -208,7 +206,7 @@ Quality DoD:
 ## 8) Recommended implementation order from now
 
 1. Continue migrating high-traffic legacy routers into `interfaces/api/v1` with use cases first.
-2. Finish frontend module split for CPA and Differentiation workflows.
+2. Finish frontend module split for Differentiation workflows.
 3. Introduce shared typed API client generation from OpenAPI for v1 endpoints.
 4. Add integration test suite for auth + publish + AI draft approval boundaries.
 5. Final deprecation window planning for legacy `/api/*` routes after parity.

@@ -73,7 +73,7 @@ def _create_worksheet(client: TestClient, *, token: str, class_id: int, grade: i
         json={
             "title": "Worksheet analytics",
             "grade": grade,
-            "worksheet_type": "cpa",
+            "worksheet_type": "differentiation",
             "objective": "Luyen tap",
         },
     )

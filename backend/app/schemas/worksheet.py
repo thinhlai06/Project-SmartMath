@@ -13,7 +13,6 @@ class WorksheetStatus(str, Enum):
 
 class WorksheetType(str, Enum):
     """Type of worksheet."""
-    CPA = "cpa"
     DIFFERENTIATION = "differentiation"
 
 
@@ -91,12 +90,6 @@ class WorksheetDetailResponse(BaseModel):
 
 # --- Exercise Schemas ---
 
-class ExerciseType(str, Enum):
-    """CPA exercise types."""
-    CONCRETE = "concrete"
-    PICTORIAL = "pictorial"
-    ABSTRACT = "abstract"
-
 
 class DifficultyTier(str, Enum):
     """Differentiation difficulty tiers."""
@@ -112,7 +105,6 @@ class ExerciseCreate(BaseModel):
     answer: Optional[str] = None
     hint: Optional[str] = None
     image_url: Optional[str] = None
-    exercise_type: Optional[ExerciseType] = None  # For CPA worksheets
     difficulty_tier: Optional[DifficultyTier] = None  # For differentiation
     order_index: int = 0
 
@@ -123,7 +115,6 @@ class ExerciseUpdate(BaseModel):
     answer: Optional[str] = None
     hint: Optional[str] = None
     image_url: Optional[str] = None
-    exercise_type: Optional[ExerciseType] = None
     difficulty_tier: Optional[DifficultyTier] = None
     order_index: Optional[int] = None
 
@@ -136,7 +127,6 @@ class ExerciseResponse(BaseModel):
     answer: Optional[str]
     hint: Optional[str]
     image_url: Optional[str]
-    exercise_type: Optional[ExerciseType]
     difficulty_tier: Optional[DifficultyTier]
     order_index: int
 

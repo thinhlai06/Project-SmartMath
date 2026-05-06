@@ -16,7 +16,6 @@ const QUICK_ACTIONS = [
     { label: '📊 Phân tích lớp', message: 'Phân tích kết quả lớp tôi tuần này' },
     { label: '📝 Sinh bài tập', message: 'Tôi muốn sinh bài tập mới' },
     { label: '📖 Gợi ý giáo án', message: 'Gợi ý giáo án cho tiết dạy sắp tới' },
-    { label: '💡 Tư vấn CPA', message: 'Cách dạy theo phương pháp CPA' },
 ];
 
 export function ChatPanel({ isOpen, onClose, classId, studentId }: ChatPanelProps) {
@@ -29,7 +28,6 @@ export function ChatPanel({ isOpen, onClose, classId, studentId }: ChatPanelProp
         sendImage,
         stopStreaming,
         clearChat,
-        fetchSpotlight,
     } = useChatbot({ classId, studentId });
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -95,7 +93,7 @@ export function ChatPanel({ isOpen, onClose, classId, studentId }: ChatPanelProp
                             </p>
                             <p className="text-xs text-gray-500 mb-6 leading-relaxed">
                                 Tôi có thể giúp bạn phân tích kết quả lớp học, tìm hiểu tiến bộ
-                                từng học sinh, gợi ý bài tập, phân tích bài làm, tư vấn CPA, và
+                                từng học sinh, gợi ý bài tập, sinh bài tập minh họa, và
                                 lên kế hoạch bài dạy.
                             </p>
 

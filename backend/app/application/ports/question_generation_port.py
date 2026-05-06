@@ -8,16 +8,6 @@ class QuestionGenerationPort(ABC):
     """Port for AI question generation engine (LLM + RAG)."""
 
     @abstractmethod
-    def generate_cpa_questions(
-        self,
-        topic: str,
-        grade: int,
-        objective: str,
-        counts: Dict[str, int] | None = None,
-    ) -> Dict:
-        raise NotImplementedError
-
-    @abstractmethod
     def generate_differentiation_questions(
         self,
         topic: str,

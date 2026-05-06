@@ -507,7 +507,7 @@ export function ClassDetailPage() {
                                                 <div>
                                                     <p className="font-bold text-slate-800 group-hover:text-emerald-700 transition-colors cursor-pointer">{ws.title}</p>
                                                     <p className="text-sm font-medium text-slate-500 mt-0.5">
-                                                        {ws.exercise_count} câu hỏi • <span className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{ws.worksheet_type === 'cpa' ? 'CPA' : 'Phân hóa'}</span>
+                                                        {ws.exercise_count} câu hỏi • <span className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">Phân hóa</span>
                                                     </p>
                                                 </div>
                                             </div>

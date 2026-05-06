@@ -84,7 +84,6 @@ async def create_exercise(
         answer=data.answer,
         hint=data.hint,
         image_url=data.image_url,
-        exercise_type=data.exercise_type.value if hasattr(data.exercise_type, 'value') else data.exercise_type,
         difficulty_tier=data.difficulty_tier.value if hasattr(data.difficulty_tier, 'value') else data.difficulty_tier,
         order_index=data.order_index
     )
@@ -124,8 +123,6 @@ async def update_exercise(
     
     update_data = data.model_dump(exclude_unset=True)
     # Ensure nested enums are converted
-    if "exercise_type" in update_data and hasattr(update_data["exercise_type"], "value"):
-        update_data["exercise_type"] = update_data["exercise_type"].value
     if "difficulty_tier" in update_data and hasattr(update_data["difficulty_tier"], "value"):
         update_data["difficulty_tier"] = update_data["difficulty_tier"].value
         

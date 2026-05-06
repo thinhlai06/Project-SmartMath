@@ -5,21 +5,9 @@ from unittest.mock import Mock, patch
 import pytest
 from fastapi import HTTPException
 
-from app.application.use_cases.ai.generate_cpa_draft import GenerateCPADraftUseCase
 from app.application.use_cases.ai.generate_differentiation_draft import (
     GenerateDifferentiationDraftUseCase,
 )
-
-
-def test_generate_cpa_usecase_requires_ollama_runtime() -> None:
-    use_case = GenerateCPADraftUseCase(topic_repository=Mock(), question_generation_port=Mock())
-
-    with patch("app.application.use_cases.ai.generate_cpa_draft.OllamaService.is_running", return_value=False):
-        with pytest.raises(HTTPException) as exc:
-            use_case.execute(topic_id=1, grade=1, objective="test", counts=None)
-
-    assert exc.value.status_code == 503
-    assert "Ollama" in str(exc.value.detail)
 
 
 def test_generate_differentiation_usecase_requires_ollama_runtime() -> None:

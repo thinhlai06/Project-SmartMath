@@ -3,8 +3,7 @@ import api from './api';
 // === Types ===
 
 export type WorksheetStatus = 'draft' | 'published';
-export type WorksheetType = 'cpa' | 'differentiation';
-export type ExerciseType = 'concrete' | 'pictorial' | 'abstract';
+export type WorksheetType = 'differentiation';
 export type DifficultyTier = 'foundation' | 'standard' | 'extension' | 'advanced';
 
 export interface Worksheet {
@@ -49,7 +48,6 @@ export interface Exercise {
     answer: string | null;
     hint: string | null;
     image_url: string | null;
-    exercise_type: ExerciseType | null;
     difficulty_tier: DifficultyTier | null;
     order_index: number;
 }
@@ -59,7 +57,6 @@ export interface ExerciseCreate {
     answer?: string;
     hint?: string;
     image_url?: string;
-    exercise_type?: ExerciseType;
     difficulty_tier?: DifficultyTier;
     order_index?: number;
 }
@@ -69,7 +66,6 @@ export interface ExerciseUpdate {
     answer?: string;
     hint?: string;
     image_url?: string;
-    exercise_type?: ExerciseType;
     difficulty_tier?: DifficultyTier;
     order_index?: number;
 }

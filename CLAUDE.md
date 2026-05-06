@@ -21,7 +21,7 @@ AI:        Ollama Local (qwen2.5:3b — grading/explanation) / Ollama Cloud (gem
 1. **Chỉ Toán học Lớp 1–3** — Không implement content ngoài phạm vi này
 2. **1 Role duy nhất**: Teacher
 3. **AI output = Draft** — Teacher review bắt buộc, không auto-publish
-4. **AI models được duyệt**: `gemma3:12b` (sinh câu hỏi CPA/Differentiation, Ollama Cloud), `qwen2.5:3b` (chấm bài + giải thích, local), `gemma4:31b` (OCR ảnh, Ollama Cloud), `vietnamese-sbert` (RAG) — không thêm model khác
+4. **AI models được duyệt**: `gemma3:12b` (sinh câu hỏi phân hóa, Ollama Cloud), `qwen2.5:3b` (chấm bài + giải thích, local), `gemma4:31b` (OCR ảnh, Ollama Cloud), `vietnamese-sbert` (RAG) — không thêm model khác
 5. **Tiếng Việt** — UI và AI output bằng tiếng Việt
 
 ## Khi làm việc với Backend (`backend/`)

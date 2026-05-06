@@ -8,7 +8,6 @@ from app.models.worksheet import Worksheet, WorksheetStatus, WorksheetType
 from app.models.worksheet_exercise import WorksheetExercise
 from app.models.student_progress import StudentProgress
 from app.models.student_analytics import StudentAnalytics
-from app.models.cpa_bundle import CPABundleRecord
 from app.models.grade_entry import GradeEntry
 from app.schemas.worksheet import WorksheetCreate, WorksheetUpdate
 
@@ -87,7 +86,6 @@ def delete_worksheet(db: Session, worksheet: Worksheet) -> None:
     db.query(GradeEntry).filter(GradeEntry.worksheet_id == worksheet_id).delete(synchronize_session=False)
     db.query(StudentProgress).filter(StudentProgress.worksheet_id == worksheet_id).delete(synchronize_session=False)
     db.query(StudentAnalytics).filter(StudentAnalytics.worksheet_id == worksheet_id).delete(synchronize_session=False)
-    db.query(CPABundleRecord).filter(CPABundleRecord.worksheet_id == worksheet_id).delete(synchronize_session=False)
     db.query(WorksheetExercise).filter(WorksheetExercise.worksheet_id == worksheet_id).delete(synchronize_session=False)
 
     db.delete(worksheet)
@@ -132,7 +130,6 @@ def duplicate_worksheet(db: Session, worksheet: Worksheet, new_title: Optional[s
     for exercise in worksheet.exercises:
         new_exercise = WorksheetExercise(
             worksheet_id=new_worksheet.id,
-            exercise_type=exercise.exercise_type,
             difficulty_tier=exercise.difficulty_tier,
             question=exercise.question,
             answer=exercise.answer,

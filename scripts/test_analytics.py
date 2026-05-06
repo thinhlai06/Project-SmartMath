@@ -53,7 +53,7 @@ def test_analytics():
             class_id=math_class.id, 
             topic_id=topic.id, 
             grade=1, 
-            worksheet_type=WorksheetType.CPA,
+            worksheet_type=WorksheetType.DIFFERENTIATION,
             status=WorksheetStatus.PUBLISHED
         )
         db.add(worksheet)

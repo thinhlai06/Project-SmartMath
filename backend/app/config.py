@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     OLLAMA_CLOUD_TEXT_TIMEOUT: int = 600
 
     # Gemini (Chatbot)
-    GEMINI_API_KEY: str = "AIzaSyCpE8NUNNodkximHWFvuW9cuZAiJvwrJSI"
+    GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash"
     GEMINI_TIMEOUT: int = 120
     GEMINI_MAX_OUTPUT_TOKENS: int = 8192

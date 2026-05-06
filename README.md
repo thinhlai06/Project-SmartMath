@@ -7,8 +7,8 @@
 ## 📖 Giới thiệu
 
 **Smart-MathAI** là nền tảng giáo dục số giúp:
-- **Giáo viên:** Tạo bài tập tự động, chấm điểm nhanh chóng qua OCR, và phân tích lỗi sai của học sinh.
-- **Học sinh:** Tiếp cận phương pháp học CPA (Concrete-Pictorial-Abstract) và bài tập phân hóa năng lực.
+- **Giáo viên:** Tạo bài tập phân hóa tự động, chấm điểm nhanh chóng qua OCR, và phân tích lỗi sai của học sinh.
+- **Học sinh:** Tiếp cận bài toán trực quan theo ngữ cảnh thực tế và bài tập phân hóa năng lực.
 
 Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Giáo dục & Đào tạo Việt Nam.
 
@@ -24,7 +24,6 @@ Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Gi�
 ### 2. AI Features (Trí tuệ nhân tạo)
 - **RAG Pipeline (Curriculum Grounding):** Sử dụng `vietnamese-sbert` để tra cứu kiến thức chuẩn từ SGK, đảm bảo nội dung sinh ra chính xác.
 - **Tạo câu hỏi thông minh:**
-    - **CPA Wizard:** Sinh câu hỏi theo quy trình Cụ thể - Hình ảnh - Trừu tượng.
     - **Differentiation:** Sinh bài tập phân hóa 4 cấp độ (Cơ bản -> Nâng cao).
 - **Chấm điểm tự động (AI Grading):**
     - **OCR:** Nhận diện chữ viết tay tiếng Việt qua Cloud OCR model `gemma4:31b`.
@@ -60,9 +59,12 @@ Sử dụng **Ollama** để chạy các model AI cục bộ:
 2. Pull model local (dùng cho grading/explanation):
     - `ollama pull qwen2.5:3b`
 3. Cấu hình `OLLAMA_CLOUD_API_KEY` trong `backend/.env` để dùng Cloud:
-    - `gemma3:12b` — sinh câu hỏi CPA/Differentiation
+    - `gemma3:12b` — sinh câu hỏi phân hóa
     - `gemma4:31b` — OCR ảnh bài làm
-4. Khởi chạy daemon:
+4. Cấu hình Gemini trong `backend/.env`:
+    - `GEMINI_API_KEY` — API key Gemini
+    - `GEMINI_MODEL=gemini-2.5-flash` — chatbot
+5. Khởi chạy daemon:
     - `ollama serve`
 
 ### 3. Setup Backend

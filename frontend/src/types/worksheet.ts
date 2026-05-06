@@ -1,9 +1,7 @@
 // Worksheet-related types (centralized from worksheetApi.ts)
 
 export type WorksheetStatus = "draft" | "published";
-export type WorksheetType = "cpa" | "differentiation";
-
-export type ExerciseType = "concrete" | "pictorial" | "abstract";
+export type WorksheetType = "differentiation";
 export type DifficultyTier = "foundation" | "standard" | "extension" | "advanced";
 
 export interface Worksheet {
@@ -31,7 +29,7 @@ export interface Exercise {
     question: string;
     answer: string | null;
     hint: string | null;
-    exercise_type: ExerciseType | null;
+    image_url: string | null;
     difficulty_tier: DifficultyTier | null;
     order_index: number;
 }
@@ -56,7 +54,6 @@ export interface ExerciseCreate {
     question: string;
     answer?: string;
     hint?: string;
-    exercise_type?: ExerciseType;
     difficulty_tier?: DifficultyTier;
     order_index?: number;
 }
@@ -65,7 +62,6 @@ export interface ExerciseUpdate {
     question?: string;
     answer?: string;
     hint?: string;
-    exercise_type?: ExerciseType;
     difficulty_tier?: DifficultyTier;
     order_index?: number;
 }

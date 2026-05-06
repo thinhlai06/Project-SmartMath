@@ -6,7 +6,6 @@ from app.database import engine, Base
 from app.models.student_progress import StudentProgress
 from app.models.student_analytics import StudentAnalytics
 from app.models.grading_report import GradingReport
-from app.models.cpa_bundle import CPABundleRecord
 from app.models.chat_message import ChatMessage
 from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, announcements, dashboard, activities, upload, gradebook
 from app.core.exceptions import SmartMathException, smartmath_exception_handler
@@ -32,7 +31,7 @@ app = FastAPI(
     * **Topics** - Danh sách chủ đề toán theo SGK
     * **Classes** - Quản lý lớp học
     * **Students** - Quản lý học sinh
-    * **Worksheets** - Tạo và quản lý bài tập CPA/Differentiation
+    * **Worksheets** - Tạo và quản lý bài tập Differentiation
     * **Exercises** - Quản lý câu hỏi trong bài tập
     * **PDF Export** - Xuất bài tập dưới dạng PDF
     * **AI** - Sinh câu hỏi tự động với AI
