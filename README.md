@@ -7,7 +7,7 @@
 ## 📖 Giới thiệu
 
 **Smart-MathAI** là nền tảng giáo dục số giúp:
-- **Giáo viên:** Tạo bài tập phân hóa tự động, chấm điểm nhanh chóng qua OCR, và phân tích lỗi sai của học sinh.
+- **Giáo viên:** Tạo bài tập phân hóa tự động, chấm điểm nhanh chóng qua OCR, phân tích lỗi sai của học sinh, và trao đổi trực tiếp với AI Chatbot về lớp học.
 - **Học sinh:** Tiếp cận bài toán trực quan theo ngữ cảnh thực tế và bài tập phân hóa năng lực.
 
 Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Giáo dục & Đào tạo Việt Nam.
@@ -29,6 +29,12 @@ Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Gi�
     - **OCR:** Nhận diện chữ viết tay tiếng Việt qua Cloud OCR model `gemma4:31b`.
     - **Auto-Grade:** Chấm điểm, nhận xét chi tiết và giải thích lỗi sai.
 - **Phân tích lỗi (Analytics):** Thống kê các chủ đề yếu và lỗi sai phổ biến của cả lớp.
+- **AI Chatbot (Trợ lý giáo viên):** Hỏi đáp tự nhiên bằng tiếng Việt với trợ lý AI được cung cấp bởi Gemini (`gemini-2.5-flash`). Các khả năng:
+    - **Class Insights:** Phân tích lỗi sai và xu hướng của cả lớp qua hội thoại.
+    - **Student Spotlight:** Phân tích sâu từng học sinh kèm biểu đồ.
+    - **Homework Photo Analysis:** Phân tích ảnh bài làm qua Gemini Vision.
+    - **Whiteboard Verification:** Xác minh bài giải trên bảng qua ảnh.
+    - **Lesson Plan Chat:** Gợi ý kế hoạch bài dạy theo chủ đề và lớp.
 
 ---
 
@@ -38,8 +44,9 @@ Dự án tuân thủ nghiêm ngặt khung chương trình SGK/SGV của Bộ Gi�
 - **Frontend:** React (Vite), Tailwind CSS, Shadcn/UI, Recharts.
 - **AI/ML:**
     - Question Gen (Cloud): `gemma3:12b` qua Ollama Cloud.
-    - Grading/Explanation (Local): `qwen2.5:3b` qua Ollama local.
+    - Grading/Explanation (Local fallback → Cloud): `qwen2.5:3b` / `gemma3:12b`.
     - OCR: `gemma4:31b` qua Ollama Cloud.
+    - Chatbot: `gemini-2.5-flash` qua Gemini API.
     - Embeddings: `keepitreal/vietnamese-sbert`.
     - Vector DB: ChromaDB.
 
@@ -129,7 +136,7 @@ c:\project smartstudy\
 │   │   ├── models/         # Database Models
 │   │   ├── routers/        # API Endpoints
 │   │   ├── services/       # Business Logic & AI Services
-│   │   │   └── ai/         # (Ollama, OCR, RAG, Analytics)
+│   │   │   └── ai/         # (Ollama, OCR, RAG, Analytics, Gemini Chatbot)
 │   │   └── main.py         # App Entry Point
 │   └── data_raw/           # PDF Textbooks for RAG
 ├── frontend/               # React Application
@@ -153,8 +160,10 @@ c:\project smartstudy\
 ## 📝 Ghi chú quan trọng
 
 1. **OCR Data:** Hệ thống OCR dùng Cloud model `gemma4:31b`, cần cấu hình `OLLAMA_CLOUD_API_KEY` hợp lệ.
-2. **Performance:** Tốc độ sinh câu hỏi và chấm điểm phụ thuộc vào cấu hình máy (RAM/GPU) và chính sách `OLLAMA_KEEP_ALIVE`.
-3. **Restart:** Nếu gặp lỗi "Internal Server Error" sau khi cập nhật code, hãy thử khởi động lại Backend server.
+2. **AI Grading:** Khi `OLLAMA_CLOUD_API_KEY` được cấu hình, chấm bài tự động sẽ ưu tiên dùng Cloud `gemma3:12b` (nhanh hơn); nếu không có key hoặc cloud lỗi, sẽ tự fallback về local `qwen2.5:3b`.
+3. **Chatbot:** Cần cấu hình `GEMINI_API_KEY` trong `backend/.env`. Không có key, chatbot sẽ không hoạt động.
+4. **Performance:** Tốc độ sinh câu hỏi và chấm điểm phụ thuộc vào cấu hình máy (RAM/GPU) và chính sách `OLLAMA_KEEP_ALIVE`.
+5. **Restart:** Nếu gặp lỗi "Internal Server Error" sau khi cập nhật code, hãy thử khởi động lại Backend server.
 
 ---
 
