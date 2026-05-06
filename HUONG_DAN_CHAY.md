@@ -108,7 +108,7 @@ Du an ket noi truc tiep voi **Ollama** de load model khi can va giai phong tai n
    ollama pull qwen2.5:3b
    ```
 3. Thiết lập `OLLAMA_CLOUD_API_KEY` để gọi Ollama Cloud:
-   - `gemma3:12b` — sinh câu hỏi CPA/Differentiation
+   - `gemma3:12b` — sinh câu hỏi phân hóa
    - `gemma4:31b` — OCR ảnh bài làm
 4. Khởi chạy daemon Ollama (nếu chưa tự chạy nền):
    ```bash

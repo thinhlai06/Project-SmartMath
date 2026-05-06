@@ -45,9 +45,9 @@ def test_teacher_class_and_worksheet_ownership(client: TestClient):
         f"/api/classes/{class_id}/worksheets",
         headers=teacher_1_headers,
         json={
-            "title": "Bai tap CPA",
+            "title": "Bai tap phan hoa",
             "grade": 3,
-            "worksheet_type": "cpa",
+            "worksheet_type": "differentiation",
             "objective": "Luyen phep chia",
         },
     )
@@ -62,7 +62,7 @@ def test_teacher_class_and_worksheet_ownership(client: TestClient):
     update_response = client.put(
         f"/api/worksheets/{worksheet_id}",
         headers=teacher_1_headers,
-        json={"title": "Bai tap CPA cap nhat"},
+        json={"title": "Bai tap phan hoa cap nhat"},
     )
     assert update_response.status_code == 200
-    assert update_response.json()["title"] == "Bai tap CPA cap nhat"
+    assert update_response.json()["title"] == "Bai tap phan hoa cap nhat"

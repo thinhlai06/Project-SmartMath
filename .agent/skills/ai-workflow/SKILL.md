@@ -23,7 +23,7 @@ description: >
 
 | Model | Tool | Mục đích | Khi nào dùng |
 |-------|------|----------|--------------|
-| `gemma3:12b` | Ollama Cloud | Sinh cau hoi CPA/Differentiation | AI question generation |
+| `gemma3:12b` | Ollama Cloud | Sinh câu hỏi phân hóa | AI question generation |
 | `keepitreal/vietnamese-sbert` | HuggingFace | RAG embeddings | Tìm context từ SGK trong ChromaDB |
 | `gemma4:31b` | Ollama Cloud | OCR ảnh bài làm học sinh | Auto-grading từ ảnh |
 
@@ -49,32 +49,6 @@ Flags sử dụng:
 - `AI_GEN_ENABLE_TEMPLATE_FILTER`
 - `AI_GEN_ENABLE_DIFFICULTY_VALIDATOR`
 - `AI_GEN_MAX_REPAIR_ROUNDS`
-
-## CPA Bundle Runtime Mode (new)
-
-CPA generation now supports a structured bundle workflow:
-
-- Endpoint: `POST /api/ai/generate-cpa-bundle`
-- Save approved bundles: `POST /api/ai/worksheets/{worksheet_id}/cpa-bundles`
-- Retrieve saved bundles: `GET /api/ai/worksheets/{worksheet_id}/cpa-bundles`
-
-Bundle format is `math_core + concrete + pictorial + abstract` and is validated before teacher review.
-Legacy compatibility is preserved through `POST /api/ai/generate-cpa`.
-
-Current family support (runtime):
-
-- `bundle-v2` supports `arithmetic`, `geometry`, and `measurement` topics.
-- Categories outside supported families (e.g. `word_problem`, `data_handling`) return `422` with a clear message.
-- Arithmetic topics that do not map to a deterministic operation family still return `422`.
-
-Bundle-specific implementation rules:
-
-- Route by topic family metadata first, then use family-specific generation strategy.
-- Arithmetic `math_core` values must be deterministic from grade/topic rules.
-- Non-arithmetic families use `content_family + family_payload` as core envelope.
-- RAG only supplies pedagogy/language seeds and must not decide arithmetic operands.
-- Output remains `draft` until teacher review.
-- AI orchestration stays inside `backend/app/services/ai/` and uses `gemma3:12b` (Cloud) for generation, `qwen2.5:3b` (local) for grading.
 
 ## Current Generation Strategy (đã triển khai)
 

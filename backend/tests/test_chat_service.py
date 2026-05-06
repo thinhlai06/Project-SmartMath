@@ -39,20 +39,14 @@ class TestIntentDetection:
         assert svc._detect_intent("Viết giáo án cho tiết dạy ngày mai") == "lesson_plan"
         assert svc._detect_intent("Kế hoạch bài dạy 45 phút") == "lesson_plan"
 
-    def test_detect_cpa_advisor(self):
-        svc = self._make_service()
-        assert svc._detect_intent("Phương pháp CPA dạy phép trừ") == "cpa_advisor"
-        assert svc._detect_intent("Cách dạy concrete pictorial abstract") == "cpa_advisor"
-
     def test_detect_general(self):
         svc = self._make_service()
         assert svc._detect_intent("Xin chào!") == "general"
         assert svc._detect_intent("Cảm ơn nhiều") == "general"
 
-    def test_priority_lesson_plan_over_cpa(self):
+    def test_priority_lesson_plan_over_exercise_request(self):
         svc = self._make_service()
-        # "giáo án" should win even if "phương pháp" appears
-        assert svc._detect_intent("Giáo án phương pháp CPA") == "lesson_plan"
+        assert svc._detect_intent("Giáo án tạo bài tập phân hóa") == "lesson_plan"
 
 
 class TestBuildPrompt:

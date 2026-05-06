@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryProvider } from './app/providers/query-provider';
 import { ToastProvider } from './components/ui/toast';
-import { CPAStepWizard } from './components/cpa/CPAStepWizard';
 import { DifferentiationWizard } from './components/differentiation/DifferentiationWizard';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { LoginPage, RegisterPage, HomePage, ClassesPage, ClassDetailPage, WorksheetsPage, WorksheetEditorPage } from './pages';
@@ -142,14 +141,6 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['teacher']}>
             <DifferentiationWizard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/cpa-wizard"
-        element={
-          <ProtectedRoute allowedRoles={['teacher']}>
-            <CPAStepWizard />
           </ProtectedRoute>
         }
       />

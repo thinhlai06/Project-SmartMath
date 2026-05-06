@@ -18,7 +18,7 @@ existing_patterns_found: 5
 - **State Management & UI:** TanStack Query v5 (Server state), Shadcn UI (Radix), Recharts
 - **Backend:** Python 3.10+, FastAPI, SQLAlchemy (ORM)
 - **Local AI:** qwen2.5:3b (grading text reasoning + explanation local)
-- **Cloud AI:** gemma3:12b qua Ollama Cloud (sinh câu hỏi CPA/Differentiation), gemma4:31b qua Ollama Cloud (Vision/OCR ảnh)
+- **Cloud AI:** gemma3:12b qua Ollama Cloud (sinh câu hỏi phân hóa), gemma4:31b qua Ollama Cloud (Vision/OCR ảnh)
 - **Embeddings:** vietnamese-sbert
 - **Vector DB:** ChromaDB
 
@@ -30,7 +30,7 @@ MỌI AI AGENTS (TỪ PM ĐẾN DEVELOPER) KHI LÀM VIỆC TRÊN DỰ ÁN NÀY L
 
 ### 1. Educational Domain Boundaries (Ranh giới nghiệp vụ giáo dục)
 - **Giới hạn phạm vi:** Chỉ được phép thiết kế logic và sinh bài tập cho môn **Toán Tiểu học khối Lớp 1 đến Lớp 3** thuộc chương trình Việt Nam.
-- **Phương pháp CPA:** Nghiêm cấm giải toán bằng phương pháp Đại Số (x, y). Các bài tập phải tuân thủ luồng phân tích nhận thức CPA (Concrete - Thực tiễn -> Pictorial - Hình ảnh vẽ -> Abstract - Dấu tính).
+- **Ràng buộc sư phạm tiểu học:** Nghiêm cấm giải toán bằng phương pháp Đại Số (x, y); nội dung phải phù hợp tư duy trực quan theo lứa tuổi.
 - **RAG Data Isolation:** Tuyệt đối không query chéo dữ liệu ChromaDB giữa các khối lớp để tránh rủi ro "học vượt".
 
 ### 2. No Autonomous AI (Triết lý AI làm trợ lý)

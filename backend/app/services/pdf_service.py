@@ -5,7 +5,7 @@ from typing import Optional, List
 from dataclasses import dataclass
 from enum import Enum
 
-from app.models.worksheet import Worksheet, WorksheetType
+from app.models.worksheet import Worksheet
 from app.models.worksheet_exercise import WorksheetExercise
 
 
@@ -58,13 +58,6 @@ SPACING_MAP = {
     Spacing.COMPACT: {"section": 6, "exercise": 4, "line": 5},
     Spacing.NORMAL: {"section": 10, "exercise": 6, "line": 7},
     Spacing.SPACIOUS: {"section": 14, "exercise": 10, "line": 10},
-}
-
-# CPA Section names
-CPA_SECTIONS = {
-    "concrete": {"name": "CỤ THỂ (CONCRETE)", "desc": "Sử dụng vật thật"},
-    "pictorial": {"name": "HÌNH ẢNH (PICTORIAL)", "desc": "Sử dụng hình vẽ"},
-    "abstract": {"name": "TRỪU TƯỢNG (ABSTRACT)", "desc": "Sử dụng ký hiệu"},
 }
 
 # Differentiation tier names
@@ -193,11 +186,7 @@ def generate_worksheet_pdf(
         pdf.multi_cell(0, pdf.spacing["line"], f"Mục tiêu: {worksheet.objective}")
         pdf.ln(pdf.spacing["section"])
     
-    # Generate content based on worksheet type
-    if worksheet.worksheet_type == WorksheetType.CPA:
-        _add_cpa_content(pdf, exercises)
-    else:
-        _add_differentiation_content(pdf, exercises)
+    _add_differentiation_content(pdf, exercises)
         
     # Output to buffer
     buffer = BytesIO()
@@ -205,31 +194,6 @@ def generate_worksheet_pdf(
     buffer.seek(0)
     
     return buffer
-
-
-def _add_cpa_content(pdf: WorksheetPDF, exercises: List[WorksheetExercise]):
-    """Add CPA-structured content to PDF."""
-    exercise_num = 1
-    
-    for section_type, section_info in CPA_SECTIONS.items():
-        section_exercises = [e for e in exercises if e.exercise_type and e.exercise_type.value == section_type]
-        
-        if section_exercises:
-            pdf.add_section_header(
-                f"PHẦN: {section_info['name']}",
-                section_info['desc']
-            )
-            
-            for ex in sorted(section_exercises, key=lambda x: x.order_index):
-                pdf.add_exercise(
-                    exercise_num,
-                    ex.question,
-                    ex.answer,
-                    ex.hint
-                )
-                exercise_num += 1
-
-
 def _add_differentiation_content(pdf: WorksheetPDF, exercises: List[WorksheetExercise]):
     """Add differentiation-tiered content to PDF."""
     exercise_num = 1

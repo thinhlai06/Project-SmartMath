@@ -9,13 +9,13 @@ Hiện tại hệ thống đã chuyển mình qua giai đoạn MVP và đang tí
 
 ## 3. Mục đích sản phẩm
 Sản phẩm được xây dựng để nhằm giải quyết các bài toán về thời gian, chất lượng và phương pháp đồng hành cùng trẻ:
-- **Đối với Giáo viên:** Tự động hóa quá trình sinh đề bài tập CPA, chấm điểm thông minh qua ảnh chụp giúp tiết kiệm 80% thời gian biên soạn.
+- **Đối với Giáo viên:** Tự động hóa quá trình sinh đề bài tập phân hóa, chấm điểm thông minh qua ảnh chụp giúp tiết kiệm 80% thời gian biên soạn.
 - **Đảm bảo tính an toàn:** Học sinh hoàn toàn không được quyền truy cập vào các công cụ sinh bằng AI, đảm bảo một lộ trình giáo dục chuẩn định hướng.
 
 ## 4. Tính năng cốt lõi (Trạng thái 2026)
 - **Hệ thống phân quyền (Role-based):** Chỉ có Teacher (Người tạo/Quản lý). Mọi API sinh AI đều yêu cầu xác thực giáo viên.
-- **Trình sinh bài tập CPA (Concrete-Pictorial-Abstract):** Quy trình sinh bài tập dạng Bundle cấu trúc hoá, trải qua các giai đoạn từ trực quan tới trừu tượng, thay thế cho việc sinh bằng text thô trước đây.
-- **Quy trình xuất bản được kiểm soát (Publishing Workflow):** `GenerateCpaDraftUseCase` tạo ra bản nháp -> Giáo viên kiểm tra/chỉnh sửa -> `PublishWorksheetUseCase` phát hành.
+- **Trình sinh bài tập phân hóa:** Quy trình sinh bài tập theo 4 cấp độ năng lực, thay thế cho việc sinh câu hỏi text rời rạc.
+- **Quy trình xuất bản được kiểm soát (Publishing Workflow):** `GenerateDifferentiationDraftUseCase` tạo ra bản nháp -> Giáo viên kiểm tra/chỉnh sửa -> `PublishWorksheetUseCase` phát hành.
 - **Chấm bài tự động (AI Grading với OCR):** Giáo viên đẩy ảnh chụp -> Bóc tách bởi OCR -> Giáo viên Validate lại -> Lưu trữ.
 - **Bảo mật phiên làm việc (Auth Session):** Chuyển dịch hoàn toàn sang xác thực bằng HTTP-Only Cookie thay cho LocalStorage để tăng cường bảo mật XSS.
 
@@ -32,13 +32,12 @@ Cả Frontend và Backend đều đang trong quá trình chuyển đổi toàn d
 
 ## 7. AI Module & RAG Pipeline
 Kiến trúc AI hiện tại kết hợp local grading + cloud generation + cloud OCR:
-- **`gemma3:12b` (Cloud Question Gen):** Mô hình sinh câu hỏi CPA và Differentiation Ladder qua Ollama Cloud API.
+- **`gemma3:12b` (Cloud Question Gen):** Mô hình sinh câu hỏi phân hóa theo năng lực qua Ollama Cloud API.
 - **`qwen2.5:3b` (Local):** Mô hình text local qua Ollama, đảm nhận chấm bài text reasoning và giải thích bài.
 - **`gemma4:31b` (Cloud OCR):** Mô hình OCR trên Ollama Cloud để bóc tách điểm số và nội dung từ ảnh chụp bài làm.
 - **`vietnamese-sbert`:** Xử lý nhúng độc lập.
 - **RAG System:** Tuân thủ phân lập dữ liệu nghiêm ngặt theo Grades (Lớp 1 không được lẫn RAG của Lớp 3) để tránh tình trạng sinh logic quá tầm hiểu biết của lứa tuổi.
 
 ## 8. Phương pháp giáo dục áp dụng
-- **Phương pháp CPA (Concrete - Pictorial - Abstract):** Tư duy hệ thống Toán học từ "Cụ thể" (đời sống) -> "Hình ảnh" -> "Trừu tượng".
 - **Differentiation 4 cấp độ:** Foundation (Nền tảng), Standard (Chuẩn), Extension (Mở rộng) và Advanced (Nâng cao).
 - **Sư phạm tiểu học nhi đồng:** Nghiêm cấm giải toán bằng đại số, quy trình sinh phải mô phỏng đồ vật thủ công.

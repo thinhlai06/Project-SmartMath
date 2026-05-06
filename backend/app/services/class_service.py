@@ -9,7 +9,6 @@ from app.models.student_analytics import StudentAnalytics
 from app.models.grading_report import GradingReport
 from app.models.worksheet import Worksheet
 from app.models.worksheet_exercise import WorksheetExercise
-from app.models.cpa_bundle import CPABundleRecord
 from app.models.grade_entry import GradeEntry
 
 
@@ -92,7 +91,6 @@ def delete_class(db: Session, db_class: MathClass) -> None:
     db.query(GradeEntry).filter(GradeEntry.worksheet_id.in_(worksheet_ids_query)).delete(synchronize_session=False)
     db.query(StudentProgress).filter(StudentProgress.worksheet_id.in_(worksheet_ids_query)).delete(synchronize_session=False)
     db.query(WorksheetExercise).filter(WorksheetExercise.worksheet_id.in_(worksheet_ids_query)).delete(synchronize_session=False)
-    db.query(CPABundleRecord).filter(CPABundleRecord.worksheet_id.in_(worksheet_ids_query)).delete(synchronize_session=False)
     db.query(StudentAnalytics).filter(StudentAnalytics.worksheet_id.in_(worksheet_ids_query)).delete(synchronize_session=False)
 
     db.query(GradeEntry).filter(GradeEntry.student_id.in_(student_ids_query)).delete(synchronize_session=False)

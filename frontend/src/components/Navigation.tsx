@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LogOut, GraduationCap, LayoutDashboard, Menu, X, FileText, BarChart3, Sparkles, BrainCircuit } from 'lucide-react';
+import { LogOut, GraduationCap, LayoutDashboard, Menu, X, FileText, BarChart3, BrainCircuit } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback } from './ui/avatar';
@@ -30,7 +30,6 @@ export function Navigation() {
     const links: NavLink[] = [
         { label: 'Trang chủ', href: '/', icon: LayoutDashboard },
         { label: 'Lớp học', href: '/classes', icon: GraduationCap },
-        { label: 'Tạo CPA', href: '/cpa-wizard', icon: Sparkles },
         { label: 'Phân hóa AI', href: '/differentiation-wizard', icon: BrainCircuit },
         { label: 'Chấm điểm AI', href: '/ai-grading', icon: FileText },
         { label: 'Phân tích lỗi', href: '/error-analytics', icon: BarChart3 },

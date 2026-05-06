@@ -55,7 +55,7 @@ def verify_worksheet_ownership(db: Session, worksheet_id: int, teacher: User) ->
 async def list_worksheets(
     class_id: int,
     status: Optional[str] = Query(None, description="Lọc theo trạng thái (draft/published)"),
-    worksheet_type: Optional[str] = Query(None, description="Lọc theo loại (cpa/differentiation)"),
+    worksheet_type: Optional[str] = Query(None, description="Lọc theo loại (differentiation)"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -65,7 +65,7 @@ async def list_worksheets(
     Lấy danh sách bài tập của một lớp.
     
     - **status**: Lọc theo trạng thái (draft, published)
-    - **worksheet_type**: Lọc theo loại (cpa, differentiation)
+    - **worksheet_type**: Lọc theo loại (differentiation)
     """
     verify_class_ownership(db, class_id, teacher)
     worksheets = worksheet_service.get_worksheets_by_class(

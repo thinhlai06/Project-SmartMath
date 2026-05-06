@@ -12,21 +12,6 @@ class QuestionGeneratorAdapter(QuestionGenerationPort):
     def __init__(self):
         self.generator = QuestionGenerator()
 
-    def generate_cpa_questions(
-        self,
-        topic: str,
-        grade: int,
-        objective: str,
-        counts: Dict[str, int] | None = None,
-    ) -> Dict:
-        normalized_counts = counts if counts is not None else {"concrete": 3, "pictorial": 3, "abstract": 3}
-        return self.generator.generate_cpa_questions_new(
-            topic=topic,
-            grade=grade,
-            objective=objective,
-            counts=normalized_counts,
-        )
-
     def generate_differentiation_questions(
         self,
         topic: str,

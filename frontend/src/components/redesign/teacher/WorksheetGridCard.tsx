@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 interface WorksheetGridCardProps {
   title: string;
   status: 'draft' | 'published';
-  type: 'cpa' | 'differentiation' | string;
+  type: 'differentiation' | string;
   exerciseCount: number;
   editHref: string;
   onPublish: () => void;
@@ -22,7 +22,8 @@ export function WorksheetGridCard({
   editHref, onPublish, onUnpublish, onDuplicate, onDelete, onPdfExport 
 }: WorksheetGridCardProps) {
   const statusLabel = status === 'published' ? 'Đã xuất bản' : 'Bản nháp';
-  const typeLabel = type === 'cpa' ? 'CPA' : type === 'differentiation' ? 'Phân hóa' : type;
+  const typeLabel = type === 'differentiation' ? 'Phân hóa' : 'Bài tập';
+  const typeBadgeClass = 'bg-purple-100 text-purple-700';
 
   return (
     <Card className="glass-panel card-hover border-slate-100 overflow-hidden group rounded-3xl relative z-10 h-full flex flex-col bg-white/80">
@@ -33,7 +34,7 @@ export function WorksheetGridCard({
             <Badge className={`rounded-full px-3 py-1 font-semibold ${status === 'published' ? 'bg-emerald-100 text-emerald-700 border-none hover:bg-emerald-200' : 'bg-slate-100 text-slate-600 border-none hover:bg-slate-200'}`}>
               {statusLabel}
             </Badge>
-            <Badge className={`rounded-full px-3 py-1 font-semibold border-none ${type === 'cpa' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+            <Badge className={`rounded-full px-3 py-1 font-semibold border-none ${typeBadgeClass}`}>
               {typeLabel}
             </Badge>
             <Badge className="rounded-full px-3 py-1 font-semibold bg-white text-slate-600 border border-slate-200">

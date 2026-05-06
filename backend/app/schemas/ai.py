@@ -4,38 +4,11 @@ AI Schemas - Pydantic models for AI API requests/responses.
 from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Literal, Optional
 
-from app.schemas.cpa_bundle import (
-    CPABundle,
-    CPABundleGenerationRequest,
-    CPABundleGenerationResponse,
-    SaveCPABundlesRequest,
-    SaveCPABundlesResponse,
-    ValidationIssue,
-    ValidationResult,
-)
-
 
 class QuestionItem(BaseModel):
     question: str
     answer: str
     hint: Optional[str] = None
-
-
-class CPAGenerationRequest(BaseModel):
-    topic_id: int
-    grade: Literal[1, 2, 3]
-    objective: str
-    counts: Optional[Dict[str, int]] = None
-
-
-class CPAGenerationResponse(BaseModel):
-    concrete: List[QuestionItem]
-    pictorial: List[QuestionItem]
-    abstract: List[QuestionItem]
-    rag_sources: Optional[List[str]] = None
-    generation_mode: Optional[str] = None
-    template_seed_count: Optional[Dict[str, int]] = None
-    retrieval_filter_applied: Optional[Dict[str, Any]] = None
 
 
 class AIStatusResponse(BaseModel):

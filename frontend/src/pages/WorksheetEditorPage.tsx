@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Plus, Trash2, Download, WandSparkles } from 'lucide-react';
 import { worksheetApi, exerciseApi } from '../services/worksheetApi';
-import type { WorksheetDetail, Exercise, ExerciseCreate, ExerciseType, DifficultyTier } from '../services/worksheetApi';
+import type { WorksheetDetail, Exercise, ExerciseCreate, DifficultyTier } from '../services/worksheetApi';
 import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -16,13 +16,6 @@ import {
     PageHeader,
 } from '@/components/redesign';
 import aiApi from '@/services/aiApi';
-
-// CPA section labels
-const CPA_SECTIONS: { type: ExerciseType; label: string; color: string; description: string }[] = [
-    { type: 'concrete', label: 'Cụ thể (Concrete)', color: 'bg-orange-100 text-orange-700 border-orange-300', description: 'Sử dụng vật thật, đồ dùng học tập' },
-    { type: 'pictorial', label: 'Hình ảnh (Pictorial)', color: 'bg-blue-100 text-blue-700 border-blue-300', description: 'Sử dụng hình vẽ, sơ đồ' },
-    { type: 'abstract', label: 'Trừu tượng (Abstract)', color: 'bg-purple-100 text-purple-700 border-purple-300', description: 'Sử dụng ký hiệu, phép tính' },
-];
 
 // Differentiation tier labels
 const DIFF_TIERS: { tier: DifficultyTier; label: string; color: string; icon: string }[] = [
@@ -49,7 +42,7 @@ export function WorksheetEditorPage() {
     const [uploadingImage, setUploadingImage] = useState(false);
     const [aiDraft, setAiDraft] = useState('');
     const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
-    const [activeSection, setActiveSection] = useState<ExerciseType | DifficultyTier | null>(null);
+    const [activeSection, setActiveSection] = useState<DifficultyTier | null>(null);
     const [exerciseExplanations, setExerciseExplanations] = useState<Record<number, string>>({});
     const [explanationLoading, setExplanationLoading] = useState<Record<number, boolean>>({});
 
@@ -74,7 +67,7 @@ export function WorksheetEditorPage() {
         }
     };
 
-    const handleAddExercise = async (type: ExerciseType | DifficultyTier) => {
+    const handleAddExercise = async (type: DifficultyTier) => {
         if (!newExercise.question.trim() || !worksheet) return;
 
         try {
@@ -84,14 +77,8 @@ export function WorksheetEditorPage() {
                 answer: newExercise.answer || undefined,
                 hint: newExercise.hint || undefined,
                 image_url: newExercise.image_url || undefined,
+                difficulty_tier: type,
             };
-
-            // Set type based on worksheet type
-            if (worksheet.worksheet_type === 'cpa') {
-                createData.exercise_type = type as ExerciseType;
-            } else {
-                createData.difficulty_tier = type as DifficultyTier;
-            }
 
             await exerciseApi.createExercise(id, createData);
             setNewExercise({ question: '', answer: '', hint: '', image_url: '' });
@@ -133,21 +120,16 @@ export function WorksheetEditorPage() {
             
             const data = await response.json();
             setNewExercise(prev => ({ ...prev, image_url: data.image_url }));
-        } catch (err: any) {
+        } catch (_err: any) {
             setError('Không thể tải ảnh lên');
         } finally {
             setUploadingImage(false);
         }
     };
 
-    const getExercisesForSection = (type: ExerciseType | DifficultyTier): Exercise[] => {
+    const getExercisesForSection = (type: DifficultyTier): Exercise[] => {
         if (!worksheet) return [];
-
-        if (worksheet.worksheet_type === 'cpa') {
-            return worksheet.exercises.filter(e => e.exercise_type === type);
-        } else {
-            return worksheet.exercises.filter(e => e.difficulty_tier === type);
-        }
+        return worksheet.exercises.filter(e => e.difficulty_tier === type);
     };
 
     const handleGenerateDraft = async (params: { topic: string; diffLevel: number }) => {
@@ -207,7 +189,7 @@ export function WorksheetEditorPage() {
         );
     }
 
-    const sections = worksheet.worksheet_type === 'cpa' ? CPA_SECTIONS : DIFF_TIERS;
+    const sections = DIFF_TIERS;
 
     return (
         <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans p-6 print:min-h-0 print:bg-white print:p-0">
@@ -240,8 +222,8 @@ export function WorksheetEditorPage() {
                     <p className="text-sm text-slate-700 mt-1">Lớp {worksheet.grade} • Smart-MathAI</p>
                 </div>
                 <div className="mb-8 flex flex-wrap gap-2">
-                    <Badge className={worksheet.worksheet_type === 'cpa' ? 'bg-indigo-100/80 text-indigo-700 hover:bg-indigo-200 px-3 py-1' : 'bg-purple-100/80 text-purple-700 hover:bg-purple-200 px-3 py-1'}>
-                        {worksheet.worksheet_type === 'cpa' ? 'CPA' : 'Phân hóa'}
+                    <Badge className="bg-purple-100/80 text-purple-700 hover:bg-purple-200 px-3 py-1">
+                        Phân hóa
                     </Badge>
                     <Badge className={worksheet.status === 'published' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-3 py-1' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 px-3 py-1'}>
                         {worksheet.status === 'published' ? 'Đã xuất bản' : 'Nháp'}
@@ -282,7 +264,7 @@ export function WorksheetEditorPage() {
                 {/* Sections */}
                 <div className="space-y-6">
                     {sections.map((section) => {
-                        const sectionType = 'type' in section ? section.type : section.tier;
+                        const sectionType = section.tier;
                         const exercises = getExercisesForSection(sectionType);
                         const isActive = activeSection === sectionType;
 
@@ -291,12 +273,10 @@ export function WorksheetEditorPage() {
                                 <CardHeader className={`border-b border-white/40 bg-white/40 p-5 print:bg-white print:border-slate-200 print:pb-3`}>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            {'icon' in section && <span className="text-2xl drop-shadow-sm">{section.icon}</span>}
+                                            <span className="text-2xl drop-shadow-sm">{section.icon}</span>
                                             <CardTitle className="text-xl font-bold text-slate-800">{section.label}</CardTitle>
                                             <span className="text-sm font-semibold text-slate-500 bg-white/50 px-2 py-0.5 rounded-md">({exercises.length} câu)</span>
-                                            {'tier' in section && (
-                                                <DiffLevelBadge level={section.tier === 'foundation' ? 1 : section.tier === 'standard' ? 2 : 3} />
-                                            )}
+                                            <DiffLevelBadge level={section.tier === 'foundation' ? 1 : section.tier === 'standard' ? 2 : 3} />
                                         </div>
                                         {worksheet.status !== 'published' && (
                                             <Button
@@ -310,9 +290,6 @@ export function WorksheetEditorPage() {
                                             </Button>
                                         )}
                                     </div>
-                                    {'description' in section && (
-                                        <p className="text-sm font-medium text-slate-500 mt-2">{section.description}</p>
-                                    )}
                                 </CardHeader>
                                 <CardContent className="p-5 bg-white/20 print:bg-white print:p-4">
                                     {/* Existing exercises */}

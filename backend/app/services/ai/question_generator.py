@@ -1,6 +1,4 @@
-"""
-Question Generator - Generates CPA-style math questions using RAG + Ollama.
-"""
+"""Question Generator service for differentiation drafts using RAG + Ollama."""
 import json
 import logging
 import re
@@ -203,17 +201,8 @@ class QuestionGenerator:
         self.rag = RAGService()
 
     # ------------------------------------------------------------------
-    # Backward-compatible entrypoints
+    # Entry points
     # ------------------------------------------------------------------
-
-    def generate_cpa_questions(
-        self,
-        topic: str,
-        grade: int,
-        objective: str,
-        counts: Optional[Dict[str, int]] = None,
-    ) -> Dict:
-        return self.generate_cpa_questions_new(topic=topic, grade=grade, objective=objective, counts=counts)
 
     def generate_differentiation_questions(
         self,
@@ -232,51 +221,6 @@ class QuestionGenerator:
     # ------------------------------------------------------------------
     # Legacy pipeline (kept for safe rollout)
     # ------------------------------------------------------------------
-
-    def generate_cpa_questions_legacy(
-        self,
-        topic: str,
-        grade: int,
-        objective: str,
-        counts: Optional[Dict[str, int]] = None
-    ) -> Dict:
-        """Generate CPA worksheet questions with RAG patterns from SGK."""
-        if counts is None:
-            counts = {"concrete": 3, "pictorial": 3, "abstract": 3}
-
-        # Retrieve SGK context
-        rag_results = self.rag.retrieve(f"{topic} {objective}", grade=grade, k=5)
-        
-        # Format RAG context as clear reference patterns (synchronized with differentiation)
-        rag_patterns = []
-        for i, doc in enumerate(rag_results, 1):
-            content = doc.page_content.strip()
-            source = doc.metadata.get('source_file', 'SGK')
-            rag_patterns.append(f"Mẫu {i} (Nguồn: {source}):\n{content}")
-        
-        rag_context = "\n\n".join(rag_patterns)
-        rag_sources = list(set([d.metadata.get('source_file', '') for d in rag_results]))
-
-        result = {"concrete": [], "pictorial": [], "abstract": [], "rag_sources": rag_sources}
-
-        for level in ["concrete", "pictorial", "abstract"]:
-            count = counts.get(level, 3)
-            if count == 0:
-                continue
-
-            prompt = self._build_prompt(level, topic, grade, objective, count, rag_context)
-            system = (
-                "Bạn là chuyên gia giáo dục Toán tiểu học Việt Nam. "
-                "Nhiệm vụ của bạn là dựa trên cấu trúc các MẪU BÀI TẬP SGK để sinh bài mới "
-                "đáp ứng đúng tiêu chuẩn CPA (Cụ thể - Hình ảnh - Trừu tượng). Chỉ trả về JSON array."
-            )
-
-            logger.info("[AI] Generating %d %s questions (CPA Sync)...", count, level)
-            response = OllamaService.generate_cloud(prompt, system=system, temperature=0.3, max_tokens=2048, format="json")
-            questions = self._parse_json(response)
-            result[level] = questions
-
-        return result
 
     def generate_differentiation_questions_legacy(
         self,
@@ -324,64 +268,6 @@ class QuestionGenerator:
     # ------------------------------------------------------------------
     # New pipeline: template-first retrieval + ladder generation
     # ------------------------------------------------------------------
-
-    def generate_cpa_questions_new(
-        self,
-        topic: str,
-        grade: int,
-        objective: str,
-        counts: Optional[Dict[str, int]] = None,
-    ) -> Dict:
-        if counts is None:
-            counts = {"concrete": 3, "pictorial": 3, "abstract": 3}
-
-        result: Dict[str, Any] = {
-            "concrete": [],
-            "pictorial": [],
-            "abstract": [],
-            "rag_sources": [],
-            "generation_mode": "new",
-            "template_seed_count": {},
-            "retrieval_filter_applied": {},
-        }
-
-        all_sources: set[str] = set()
-        for level in ["concrete", "pictorial", "abstract"]:
-            count = counts.get(level, 3)
-            if count <= 0:
-                result["template_seed_count"][level] = 0
-                continue
-
-            seeds, sources, filter_applied = self._retrieve_template_seeds(
-                topic=topic,
-                grade=grade,
-                objective=objective,
-                representation=level,
-                tier=None,
-                k=4,
-            )
-            all_sources.update(sources)
-
-            result["template_seed_count"][level] = len(seeds)
-            result["retrieval_filter_applied"][level] = filter_applied
-
-            prompt = self._build_cpa_seed_prompt(
-                level=level,
-                topic=topic,
-                grade=grade,
-                objective=objective,
-                count=count,
-                seeds=seeds,
-            )
-            system = (
-                "Ban la chuyen gia giao duc Toan tieu hoc Viet Nam. "
-                "Chi sinh bai moi trong bien topic duoc khoa. Tra ve DUY NHAT JSON array, KHONG DUNG MARKDOWN."
-            )
-            response = OllamaService.generate_cloud(prompt, system=system, temperature=0.2, max_tokens=2048, format="json")
-            result[level] = self._parse_json(response)
-
-        result["rag_sources"] = sorted(list(all_sources))
-        return result
 
     def generate_differentiation_questions_new(
         self,
@@ -577,55 +463,6 @@ class QuestionGenerator:
     # ------------------------------------------------------------------
     # Prompt builders for new pipeline
     # ------------------------------------------------------------------
-
-    def _build_cpa_seed_prompt(
-        self,
-        level: str,
-        topic: str,
-        grade: int,
-        objective: str,
-        count: int,
-        seeds: List[Dict[str, str]],
-    ) -> str:
-        seed_lines = []
-        for idx, seed in enumerate(seeds, 1):
-            seed_lines.append(
-                f"Seed {idx}: dang_bai={seed['dang_bai']}; kien_thuc_loi={seed['kien_thuc_loi']}; "
-                f"hanh_dong={seed['hanh_dong']}; gioi_han={seed['gioi_han']}; dieu_cam={seed['dieu_cam']}; "
-                f"mau_cau={seed['mau_cau']}"
-            )
-
-        _profile = self._topic_profile(topic)
-        _family = _OPERATION_TO_FAMILY.get(_profile.get("operation", ""), "arithmetic")
-        _abstract_hint = {
-            "geometry": "Bieu dien bang ky hieu/cong thuc (S = dai x rong, C = ...). KHONG mo ta bang loi.",
-            "measurement": "Bieu dien bang bieu thuc co don vi do ro rang (VD: 3m + 50cm = ? cm).",
-        }.get(_family, "Bieu dien bang so va phep tinh ro rang.")
-        level_hint = {
-            "concrete": "Dung ngu canh vat that gan gui, tranh phep tinh tran trai neu khong can.",
-            "pictorial": "Mo ta bang hinh anh/so do/hinh ve don gian, co chu thich.",
-            "abstract": _abstract_hint,
-        }.get(level, "Bam sat dang bai da khoa.")
-
-        return f"""NHIEM VU: Sinh {count} cau hoi CPA cho lop {grade}.
-CHU DE: {topic}
-MUC TIEU: {objective}
-CAP DO CPA: {level}
-
-TEMPLATE SEEDS (KHONG VUOT RA NGOAI):
-{chr(10).join(seed_lines)}
-
-RANG BUOC:
-- Chi sinh trong topic da khoa.
-- {level_hint}
-- Neu seed co dieu_cam thi bat buoc tuan thu.
-- Cau hoi day du nghia, khong cat cụt.
-
-DINH DANG DAU RA:
-- JSON array duy nhat: [{{"question":"...","answer":"...","hint":"..."}}]
-- Khong tra ve van ban ngoai JSON.
-- TRA VE DUY NHAT JSON ARRAY. KHONG GIAI THICH, KHONG DUNG MARKDOWN.
-"""
 
     def _build_ladder_prompt(
         self,
@@ -1048,95 +885,6 @@ HƯỚNG DẪN SINH BÀI:
 Hãy chọn một cấu trúc bài trong phần "DANH SÁCH MẪU" rồi thực hiện "Cách biến đổi" để tạo ra bài mới cho mức độ {tier_label}. Đảm bảo bài sinh ra tự nhiên, đa dạng bối cảnh và KHÔNG lặp lại nếu sinh nhiều bài.
 
 {VOCABULARY_SUGGESTIONS}
-"""
-
-    def _build_prompt(self, level: str, topic: str, grade: int, objective: str, count: int, context: str) -> str:
-        level_desc = {
-            "concrete": "CỤ THỂ (Concrete): Bắt buộc là bài toán đố thực tế. Dùng đồ vật gần gũi như: quả táo, viên bi, cái kẹo, cái bút, chiếc lá. KHÔNG được chỉ đưa ra phép tính trần trụi.",
-            "pictorial": "HÌNH ẢNH (Pictorial): Dùng sơ đồ, hình vẽ. Ví dụ: 'Nhìn vào sơ đồ đoạn thẳng sau...' hoặc 'Biểu diễn bằng hình vẽ...'",
-            "abstract": "TRỪU TƯỢNG (Abstract): Chỉ ra phép tính trần trụi bằng số và dấu. Ví dụ: 'Tính: 45 + 37'.",
-            "foundation": "NHẬN BIẾT - Bài tập cơ bản, dễ nhất, nhận diện và áp dụng trực tiếp SGK.",
-            "standard": "THÔNG HIỂU - Bài tập trung bình, đòi hỏi 1 bước suy luận đơn giản.",
-            "extension": "VẬN DỤNG - Bài tập khó hơn, cần 2 bước tính toán hoặc đòi hỏi tư duy phân tích.",
-            "advanced": "VẬN DỤNG CAO - Bài tập cực khó, tư duy nâng cao, dành cho học sinh giỏi."
-        }
-        desc = level_desc.get(level, level.upper())
-
-        # Extract math operator constraints from the topic
-        topic_lower = topic.lower()
-        operator_rule = "Sinh phép tính phù hợp với chủ đề."
-        if any(word in topic_lower for word in ["hình", "đo ", "dài", "rộng", "đoạn", "thời gian", "đồng hồ", "cm", "kg", "lít", "chu vi", "diện tích"]):
-            operator_rule = "Chủ đề Hình học / Đo lường: KHÔNG bắt buộc phải có phép toán cộng trừ nhân chia. Tập trung vào nhận biết hình, đo lường."
-        elif "cộng" in topic_lower or "tổng" in topic_lower or "thêm" in topic_lower:
-            operator_rule = "TUYỆT ĐỐI CHỈ DÙNG PHÉP CỘNG. KHÔNG được sử dụng phép trừ, nhân, chia."
-        elif "trừ" in topic_lower or "hiệu" in topic_lower or "bớt" in topic_lower:
-            operator_rule = "TUYỆT ĐỐI CHỈ DÙNG PHÉP TRỪ. KHÔNG được sử dụng phép cộng, nhân, chia."
-        elif "nhân" in topic_lower or "tích" in topic_lower or "gấp" in topic_lower:
-            operator_rule = "TUYỆT ĐỐI CHỈ DÙNG PHÉP NHÂN."
-        elif "chia" in topic_lower or "thương" in topic_lower or "giảm" in topic_lower:
-            operator_rule = "TUYỆT ĐỐI CHỈ DÙNG PHÉP CHIA."
-
-        grade_rules = {
-            1: (
-                "Giới hạn: Ưu tiên cộng/trừ trong phạm vi 10, 20 hoặc 100 tùy theo Chủ đề. Số tối đa là 100.",
-                "CẤM NGẶT: TUYỆT ĐỐI CẤM SỬ DỤNG phân số, phần trăm (%), số thập phân. Cấm phép nhân/chia, cấm bài toán nhiều hơn 1 bước tính. Câu văn cực kỳ ngắn gọn."
-            ),
-            2: (
-                "Giới hạn: Cộng/trừ có nhớ hoặc không nhớ trong phạm vi 1000. Phép nhân/chia cơ bản (bảng 2-5).",
-                "CẤM NGẶT: TUYỆT ĐỐI CẤM SỬ DỤNG phân số, phần trăm (%), số thập phân. Cấm các phép tính phức tạp ngoài SGK Lớp 2."
-            ),
-            3: (
-                "Giới hạn: Cộng/trừ trong phạm vi 10.000, 100.000. Nhân số có 1-2 chữ số. Chia số có 1 chữ số.",
-                "CẤM NGẶT: TUYỆT ĐỐI CẤM SỬ DỤNG phân số, phần trăm (%), số thập phân. Cấm hình học cấp 2."
-            ),
-        }
-        positive_rule, negative_rule = grade_rules.get(
-            grade,
-            (
-                "Chỉ tạo bài toán khối Tiểu học phù hợp độ tuổi.",
-                "CẤM NGẶT: TUYỆT ĐỐI CẤM SỬ DỤNG phân số, phần trăm (%), số thập phân. KHÔNG sử dụng nội dung THCS.",
-            ),
-        )
-
-        rag_context = (context or "").strip()
-        if not rag_context or "Không tìm thấy" in rag_context:
-            rag_context = "Dùng kiến thức chuẩn SGK lớp %s. Tự động sinh dựa trên kiến thức chuẩn Tiểu học Bộ GDĐT." % grade
-            
-        topic_rule = TOPIC_RULES.get(topic, f"Bám sát nội dung Mẫu SGK được cung cấp. Phải phù hợp tuyệt đối với trình độ nhận thức Lớp {grade}.")
-
-        example = '[{"question": "<Nội dung câu hỏi phù hợp với Chủ đề và RAG...>", "answer": "<Đáp án và phép tính (nếu có)...>", "hint": "<Gợi ý cách làm...>"}]'
-
-        return f"""NHIỆM VỤ: Sinh {count} bài toán dạng {desc} cho Lớp {grade}.
-
-CHỦ ĐỀ: {topic}
-MỤC TIÊU: {objective}
-
-DANH SÁCH MẪU BÀI TẬP TỪ SGK (DÙNG ĐỂ HỌC TẬP CẤU TRÚC):
-{rag_context}
-
-TIÊU CHUẨN CPA RIÊNG CHO BÀI NÀY:
-- {desc}
-
-QUY TẮC BẮT BUỘC:
-- Ràng buộc Toán tử: {operator_rule}
-- Ràng buộc Trình độ & Chủ đề: {topic_rule}
-- {positive_rule}
-- {negative_rule}
-- Văn phong: Ngắn gọn, trong sáng, đúng kiểu SGK Việt Nam. Không giải thích bên ngoài JSON.
-
-MẪU VÍ DỤ PHẢI HỌC THEO VỀ MẶT CẤU TRÚC JSON:
-```json
-{example}
-```
-
-HƯỚNG DẪN SINH:
-Dựa trên phong cách ngôn ngữ và bối cảnh (context) từ DANH SÁCH MẪU SGK bên trên, hãy tạo ra {count} bài mới phù hợp với mục tiêu {objective} và tiêu chuẩn {desc}. 
-Đảm bảo bài toán tự nhiên, gần gũi như trong sách giáo khoa Lớp {grade}, đa dạng bối cảnh và KHÔNG lặp lại nếu sinh nhiều bài.
-
-{VOCABULARY_SUGGESTIONS}
-
-ĐỊNH DẠNG ĐẦU RA:
-JSON array duy nhất: [{{"question": "...", "answer": "...", "hint": "..."}}]
 """
 
     def _parse_json(self, text: str) -> List[Dict]:

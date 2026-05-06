@@ -33,7 +33,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('CPA wizard can generate AI draft content', async ({ page }) => {
+test('Differentiation wizard page loads for teacher', async ({ page }) => {
   await page.route('**/api/topics**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -48,40 +48,22 @@ test('CPA wizard can generate AI draft content', async ({ page }) => {
     });
   });
 
-  await page.route('**/api/ai/generate-cpa-bundle', async (route) => {
-    await route.fulfill({
-      status: 422,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        detail: {
-          error_code: 'unsupported_bundle_family',
-          message: 'Unsupported operation family for bundle-v1',
-        },
-      }),
-    });
-  });
-
-  await page.route('**/api/ai/generate-cpa', async (route) => {
+  await page.route('**/api/ai/generate-differentiation', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        concrete: [{ question: '2 + 3 = ?', answer: '5', hint: 'Dem them' }],
-        pictorial: [{ question: 'Hinh anh 1 + 2', answer: '3', hint: 'Dem hinh' }],
-        abstract: [{ question: '5 + 4 = ?', answer: '9', hint: 'Tinh nhanh' }],
+        foundation: [{ question: '2 + 3 = ?', answer: '5', hint: 'Dem them' }],
+        standard: [{ question: '5 + 4 = ?', answer: '9', hint: 'Tinh nhanh' }],
+        extension: [],
+        advanced: [],
         rag_sources: ['Lop1-SGK.pdf'],
       }),
     });
   });
 
-  await page.goto('/cpa-wizard');
-
-  await expect(page.getByText('Thiết kế bài tập CPA')).toBeVisible();
-  await page.getByRole('button', { name: 'Tạo nội dung nháp' }).click();
-
-  await expect(page.getByText('Bundle Review Panel')).toBeVisible();
-  await expect(page.getByText('Chu de chua ho tro bundle-v2', { exact: false }).first()).toBeVisible();
-  await expect(page.getByText('2 + 3 = ?').first()).toBeVisible();
+  await page.goto('/differentiation-wizard');
+  await expect(page.getByText('Thiết kế Bài tập Phân hóa')).toBeVisible();
 });
 
 test('AI grading page can upload and show grading results', async ({ page }) => {

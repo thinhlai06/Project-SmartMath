@@ -22,17 +22,6 @@ export const aiApi = {
         return data;
     },
 
-    /** Generate CPA questions */
-    generateCPA: async (params: {
-        topic_id: number;
-        grade: number;
-        objective: string;
-        counts?: Record<string, number>;
-    }) => {
-        const { data } = await api.post('/ai/generate-cpa', params);
-        return data;
-    },
-
     /** Generate differentiation questions */
     generateDifferentiation: async (params: {
         topic_id: number;

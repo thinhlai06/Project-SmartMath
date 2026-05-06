@@ -6,18 +6,11 @@ from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, Q
 from sqlalchemy.orm import Session
 from typing import Dict, Optional, List, Any, cast
 
-from app.application.use_cases.ai.generate_cpa_draft import GenerateCPADraftUseCase
-from app.application.use_cases.ai.generate_cpa_bundle import GenerateCPABundleUseCase
 from app.application.use_cases.ai.generate_differentiation_draft import (
     GenerateDifferentiationDraftUseCase,
 )
-from app.application.use_cases.ai.save_cpa_bundles import SaveCPABundlesUseCase
 from app.bootstrap.container import (
-    get_cpa_bundle_repository,
-    get_generate_cpa_bundle_use_case,
-    get_generate_cpa_draft_use_case,
     get_generate_differentiation_draft_use_case,
-    get_save_cpa_bundles_use_case,
 )
 from app.database import get_db
 from app.core.dependencies import get_current_teacher
@@ -25,7 +18,6 @@ from app.models.user import User
 from app.services.ai.ollama_service import OllamaService
 from app.schemas.ai import (
     AIStatusResponse,
-    CPAGenerationRequest,
     DifferentiationRequest,
     DifferentiationResponse,
     GradingReportExportRequest,
@@ -33,16 +25,8 @@ from app.schemas.ai import (
     ClassAnalyticsResponse,
     ExerciseExplanationRequest,
     ExerciseExplanationResponse,
-    CPABundle,
-    CPABundleGenerationRequest,
-    CPABundleGenerationResponse,
-    SaveCPABundlesRequest,
-    SaveCPABundlesResponse,
     StudentErrorListResponse,
     UpdateErrorRequest,
-)
-from app.infrastructure.db.sqlalchemy.repositories.cpa_bundle_repository import (
-    SqlAlchemyCPABundleRepository,
 )
 from app.services.ai.analytics_service import AnalyticsService
 import json
@@ -78,84 +62,6 @@ async def get_ai_status(teacher: User = Depends(get_current_teacher)):
         "model": ", ".join(loaded_models) if loaded_models else "no models loaded",
         "vector_db": db_status
     }
-
-
-@router.post("/generate-cpa")
-async def generate_cpa_worksheet(
-    request: CPAGenerationRequest,
-    use_case: GenerateCPADraftUseCase = Depends(get_generate_cpa_draft_use_case),
-    teacher: User = Depends(get_current_teacher)
-) -> Dict:
-    """Generate CPA worksheet questions using AI (Teacher only)."""
-
-    return use_case.execute(
-        topic_id=request.topic_id,
-        grade=request.grade,
-        objective=request.objective,
-        counts=request.counts,
-    )
-
-
-@router.post("/generate-cpa-bundle", response_model=CPABundleGenerationResponse)
-async def generate_cpa_bundle(
-    request: CPABundleGenerationRequest,
-    use_case: GenerateCPABundleUseCase = Depends(get_generate_cpa_bundle_use_case),
-    teacher: User = Depends(get_current_teacher),
-) -> CPABundleGenerationResponse:
-    """Generate structured CPA bundles for teacher review."""
-
-    return use_case.execute(
-        topic_id=request.topic_id,
-        grade=request.grade,
-        objective=request.objective,
-        bundle_count=request.bundle_count,
-    )
-
-
-@router.post("/worksheets/{worksheet_id}/cpa-bundles", response_model=SaveCPABundlesResponse)
-async def save_cpa_bundles(
-    worksheet_id: int,
-    request: SaveCPABundlesRequest,
-    db: Session = Depends(get_db),
-    use_case: SaveCPABundlesUseCase = Depends(get_save_cpa_bundles_use_case),
-    teacher: User = Depends(get_current_teacher),
-) -> SaveCPABundlesResponse:
-    """Save teacher-reviewed CPA bundles for a worksheet."""
-
-    worksheet = db.query(Worksheet).filter(Worksheet.id == worksheet_id).first()
-    if not worksheet:
-        raise HTTPException(status_code=404, detail="Khong tim thay bai tap")
-
-    owned_class = db.query(MathClass).filter(
-        MathClass.id == worksheet.class_id,
-        MathClass.teacher_id == teacher.id,
-    ).first()
-    if not owned_class:
-        raise HTTPException(status_code=403, detail="Ban khong co quyen luu bundle cho bai tap nay")
-
-    result = use_case.execute(worksheet_id=worksheet_id, bundles=request.bundles)
-    return SaveCPABundlesResponse(**result)
-
-
-@router.get("/worksheets/{worksheet_id}/cpa-bundles", response_model=List[CPABundle])
-async def get_cpa_bundles(
-    worksheet_id: int,
-    db: Session = Depends(get_db),
-    repository: SqlAlchemyCPABundleRepository = Depends(get_cpa_bundle_repository),
-    teacher: User = Depends(get_current_teacher),
-) -> List[CPABundle]:
-    worksheet = db.query(Worksheet).filter(Worksheet.id == worksheet_id).first()
-    if not worksheet:
-        raise HTTPException(status_code=404, detail="Khong tim thay bai tap")
-
-    owned_class = db.query(MathClass).filter(
-        MathClass.id == worksheet.class_id,
-        MathClass.teacher_id == teacher.id,
-    ).first()
-    if not owned_class:
-        raise HTTPException(status_code=403, detail="Ban khong co quyen xem bundle cua bai tap nay")
-
-    return repository.get_by_worksheet_id(worksheet_id)
 
 
 @router.post("/generate-differentiation", response_model=DifferentiationResponse)
@@ -459,7 +365,7 @@ async def list_class_reports(
     ]
 
 
-@router.get("/ai/analytics/{class_id}/student-spotlight/{student_id}")
+@router.get("/analytics/{class_id}/student-spotlight/{student_id}")
 async def get_student_spotlight(
     class_id: int,
     student_id: int,

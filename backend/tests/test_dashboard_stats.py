@@ -90,7 +90,7 @@ def test_dashboard_stats_are_teacher_scoped(client: TestClient, db_session):
         json={
             "title": "Worksheet T1",
             "grade": 1,
-            "worksheet_type": "cpa",
+            "worksheet_type": "differentiation",
             "objective": "Luyen tap",
         },
     )
@@ -103,7 +103,7 @@ def test_dashboard_stats_are_teacher_scoped(client: TestClient, db_session):
         json={
             "title": "Worksheet T2",
             "grade": 2,
-            "worksheet_type": "cpa",
+            "worksheet_type": "differentiation",
             "objective": "Luyen tap",
         },
     )

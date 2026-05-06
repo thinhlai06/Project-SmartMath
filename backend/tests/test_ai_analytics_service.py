@@ -37,7 +37,7 @@ def _seed_teacher_class_student_worksheet(db_session):
         class_id=math_class.id,
         topic_id=topic.id,
         grade=1,
-        worksheet_type=WorksheetType.CPA.value,
+        worksheet_type=WorksheetType.DIFFERENTIATION.value,
         objective="Luyen tap",
     )
     db_session.add(worksheet)
