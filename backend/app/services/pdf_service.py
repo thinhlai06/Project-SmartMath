@@ -76,16 +76,24 @@ class WorksheetPDF(FPDF):
         super().__init__(orientation=settings.orientation.value, format=settings.paper_size.value)
         self.settings = settings
         self.worksheet_title = worksheet_title
-        self.fonts = FONT_SIZE_MAP[settings.font_size]
-        self.spacing = SPACING_MAP[settings.spacing]
+        self.font_sizes = FONT_SIZE_MAP[settings.font_size]
+        self.line_spacing = SPACING_MAP[settings.spacing]
         
-        # Add Unicode font for Vietnamese
-        self.add_font("DejaVu", "", "DejaVuSans.ttf", uni=True)
-        self.add_font("DejaVu", "B", "DejaVuSans-Bold.ttf", uni=True)
+        # Add Unicode font for Vietnamese (use system Arial on Windows)
+        import os
+        win_fonts = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")
+        arial_regular = os.path.join(win_fonts, "arial.ttf")
+        arial_bold = os.path.join(win_fonts, "arialbd.ttf")
+        if os.path.isfile(arial_regular):
+            self.add_font("VNFont", "", arial_regular)
+            self.add_font("VNFont", "B", arial_bold if os.path.isfile(arial_bold) else arial_regular)
+        else:
+            self.add_font("VNFont", "", "Helvetica")
+            self.add_font("VNFont", "B", "Helvetica")
         
     def header(self):
         """Add header to each page."""
-        self.set_font("DejaVu", "B", 10)
+        self.set_font("VNFont", "B", 10)
         self.set_text_color(100, 100, 100)
         self.cell(0, 8, "Smart-MathAI", align="L")
         self.ln(10)
@@ -93,62 +101,62 @@ class WorksheetPDF(FPDF):
     def footer(self):
         """Add footer with page number."""
         self.set_y(-15)
-        self.set_font("DejaVu", "", 8)
+        self.set_font("VNFont", "", 8)
         self.set_text_color(150, 150, 150)
         self.cell(0, 10, f"Trang {self.page_no()}", align="C")
         
     def add_worksheet_title(self, title: str, class_name: str, grade: int):
         """Add worksheet title section."""
-        self.set_font("DejaVu", "B", self.fonts["title"])
+        self.set_font("VNFont", "B", self.font_sizes["title"])
         self.set_text_color(0, 0, 0)
         self.cell(0, 10, title.upper(), align="C", new_x="LMARGIN", new_y="NEXT")
         
-        self.set_font("DejaVu", "", self.fonts["body"])
+        self.set_font("VNFont", "", self.font_sizes["body"])
         self.set_text_color(80, 80, 80)
         self.cell(0, 6, f"Lớp: {class_name} | Khối: {grade}", align="C", new_x="LMARGIN", new_y="NEXT")
-        self.ln(self.spacing["section"])
+        self.ln(self.line_spacing["section"])
         
     def add_section_header(self, section_name: str, description: str = ""):
         """Add a section header."""
         self.set_fill_color(240, 240, 250)
-        self.set_font("DejaVu", "B", self.fonts["section"])
+        self.set_font("VNFont", "B", self.font_sizes["section"])
         self.set_text_color(50, 50, 100)
         self.cell(0, 8, f"  {section_name}", fill=True, new_x="LMARGIN", new_y="NEXT")
         
         if description:
-            self.set_font("DejaVu", "", self.fonts["hint"])
+            self.set_font("VNFont", "", self.font_sizes["hint"])
             self.set_text_color(100, 100, 100)
             self.cell(0, 5, f"  {description}", new_x="LMARGIN", new_y="NEXT")
             
-        self.ln(self.spacing["exercise"])
+        self.ln(self.line_spacing["exercise"])
         
     def add_exercise(self, number: int, question: str, answer: str = None, hint: str = None):
         """Add an exercise question."""
-        self.set_font("DejaVu", "B", self.fonts["body"])
+        self.set_font("VNFont", "B", self.font_sizes["body"])
         self.set_text_color(0, 0, 0)
         
         # Question number and text
-        self.cell(10, self.spacing["line"], f"{number}.", new_x="RIGHT")
-        self.set_font("DejaVu", "", self.fonts["body"])
+        self.cell(10, self.line_spacing["line"], f"{number}.", new_x="RIGHT")
+        self.set_font("VNFont", "", self.font_sizes["body"])
         
         # Handle multi-line question
-        self.multi_cell(0, self.spacing["line"], question, new_x="LMARGIN", new_y="NEXT")
+        self.multi_cell(0, self.line_spacing["line"], question, new_x="LMARGIN", new_y="NEXT")
         
         # Answer (if enabled)
         if self.settings.with_answers and answer:
-            self.set_font("DejaVu", "", self.fonts["hint"])
+            self.set_font("VNFont", "", self.font_sizes["hint"])
             self.set_text_color(0, 128, 0)
-            self.cell(10, self.spacing["line"], "", new_x="RIGHT")
-            self.cell(0, self.spacing["line"], f"Đáp án: {answer}", new_x="LMARGIN", new_y="NEXT")
+            self.cell(10, self.line_spacing["line"], "", new_x="RIGHT")
+            self.cell(0, self.line_spacing["line"], f"Đáp án: {answer}", new_x="LMARGIN", new_y="NEXT")
             
         # Hint (optional)
         if hint:
-            self.set_font("DejaVu", "", self.fonts["hint"])
+            self.set_font("VNFont", "", self.font_sizes["hint"])
             self.set_text_color(100, 100, 150)
-            self.cell(10, self.spacing["line"], "", new_x="RIGHT")
-            self.cell(0, self.spacing["line"], f"Gợi ý: {hint}", new_x="LMARGIN", new_y="NEXT")
+            self.cell(10, self.line_spacing["line"], "", new_x="RIGHT")
+            self.cell(0, self.line_spacing["line"], f"Gợi ý: {hint}", new_x="LMARGIN", new_y="NEXT")
             
-        self.ln(self.spacing["exercise"])
+        self.ln(self.line_spacing["exercise"])
 
 
 def generate_worksheet_pdf(
@@ -181,10 +189,10 @@ def generate_worksheet_pdf(
     
     # Add objective if present
     if worksheet.objective:
-        pdf.set_font("DejaVu", "", pdf.fonts["body"])
+        pdf.set_font("VNFont", "", pdf.font_sizes["body"])
         pdf.set_text_color(80, 80, 80)
-        pdf.multi_cell(0, pdf.spacing["line"], f"Mục tiêu: {worksheet.objective}")
-        pdf.ln(pdf.spacing["section"])
+        pdf.multi_cell(0, pdf.line_spacing["line"], f"Mục tiêu: {worksheet.objective}")
+        pdf.ln(pdf.line_spacing["section"])
     
     _add_differentiation_content(pdf, exercises)
         

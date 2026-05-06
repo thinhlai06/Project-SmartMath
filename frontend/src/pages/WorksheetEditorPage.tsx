@@ -192,10 +192,10 @@ export function WorksheetEditorPage() {
     const sections = DIFF_TIERS;
 
     return (
-        <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans p-6 print:min-h-0 print:bg-white print:p-0">
+        <div className="min-h-screen bg-slate-50 relative overflow-hidden print:overflow-visible font-sans p-6 print:min-h-0 print:bg-white print:p-0">
             <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-indigo-200/40 rounded-full blur-[100px] -z-0 pointer-events-none print:hidden" />
             <div className="absolute bottom-0 left-0 w-[40%] h-[40%] bg-emerald-200/40 rounded-full blur-[100px] -z-0 pointer-events-none print:hidden" />
-            <div className="max-w-5xl mx-auto relative z-10 print:relative print:z-0 print:w-[210mm] print:h-[297mm] print:max-w-none print:overflow-visible print:bg-white print:text-black print:p-8 print:mx-auto">
+            <div className="max-w-5xl mx-auto relative z-10 print:relative print:z-0 print:w-full print:h-auto print:max-w-none print:overflow-visible print:bg-white print:text-black print:p-8 print:mx-auto">
                 <div className="print:hidden">
                     <PageHeader
                         title={worksheet.title}
