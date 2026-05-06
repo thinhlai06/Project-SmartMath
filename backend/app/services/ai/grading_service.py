@@ -205,7 +205,7 @@ QUAN TRONG:
 - correct_answer PHAI la dap an dung do ban tu giai.
 - CHI tra ve JSON array, KHONG giai thich gi them."""
 
-        response = OllamaService.generate(prompt, temperature=0.1, max_tokens=4096)
+        response = OllamaService.generate_with_cloud_fallback(prompt, temperature=0.1, max_tokens=4096)
         raw_results = self._safe_parse_json_array(response)
 
         normalized: List[Dict[str, Any]] = []
@@ -288,7 +288,7 @@ Tra ve JSON array. Vi du:
 QUAN TRONG: student PHAI la dap an thuc te hoc sinh viet trong van ban OCR.
 CHI tra ve JSON array."""
 
-        response = OllamaService.generate(prompt, temperature=0.1, max_tokens=2048)
+        response = OllamaService.generate_with_cloud_fallback(prompt, temperature=0.1, max_tokens=2048)
         parsed = self._safe_parse_json_array(response)
 
         normalized: List[Dict[str, Any]] = []
@@ -328,7 +328,7 @@ Vi du cau sai:
 [{{"question_id":"1","question_text":"5+3=?","correct_answer":"8","student_answer":"7","is_correct":false,"score":0,"max_score":10,"reasoning":"5+3=8 khong phai 7","feedback":"Tinh sai","error_type":"tinh_sai","error_detail":"Hoc sinh tinh 5+3=7, dap an dung la 8"}}]
 CHI tra ve JSON array."""
 
-        response = OllamaService.generate(prompt, temperature=0.1, max_tokens=4096)
+        response = OllamaService.generate_with_cloud_fallback(prompt, temperature=0.1, max_tokens=4096)
         raw_results = self._safe_parse_json_array(response)
         normalized_results: List[Dict[str, Any]] = []
 
@@ -427,7 +427,7 @@ JSON: [{{"question_id":"1","error_detail":"mô tả lỗi cụ thể"}}]
 CHỈ JSON."""
 
         try:
-            response = OllamaService.generate(prompt, temperature=0.1)
+            response = OllamaService.generate_with_cloud_fallback(prompt, temperature=0.1)
             details = self._safe_parse_json_array(response)
             detail_map = {
                 str(item.get("question_id")): str(item.get("error_detail") or "").strip()
@@ -810,7 +810,7 @@ Ví dụ JSON:
 CHỈ TRẢ VỀ JSON."""
         
         try:
-            response = OllamaService.generate(prompt, temperature=0.1, max_tokens=2048)
+            response = OllamaService.generate_with_cloud_fallback(prompt, temperature=0.1, max_tokens=2048)
             clean = re.sub(r"<think>.*?</think>", "", response, flags=re.DOTALL | re.IGNORECASE)
             clean = re.sub(r"```json|```", "", clean).strip()
 
