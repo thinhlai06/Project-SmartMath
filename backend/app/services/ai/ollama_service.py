@@ -450,6 +450,40 @@ class OllamaService:
         return urlunsplit((parsed.scheme or "https", netloc, path, "", "")).rstrip("/")
 
     @staticmethod
+    def generate_with_cloud_fallback(
+        prompt: str,
+        system: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+    ) -> str:
+        """Generate text using cloud (gemma3:12b) when available, fall back to local (qwen2.5:3b).
+
+        Used by grading pipeline so cloud hardware speeds up chấm bài while keeping
+        local Ollama as a safe fallback if the API key is absent or cloud is unreachable.
+        """
+        api_key = (settings.OLLAMA_CLOUD_API_KEY or "").strip()
+        if api_key:
+            try:
+                return OllamaService.generate_cloud(
+                    prompt=prompt,
+                    system=system,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "[AI] Cloud grading failed (%s), falling back to local model. error=%s",
+                    settings.OLLAMA_CLOUD_TEXT_MODEL,
+                    exc,
+                )
+        return OllamaService.generate(
+            prompt=prompt,
+            system=system,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+    @staticmethod
     def unload_model(model: Optional[str] = None) -> None:
         """Request Ollama to unload a model immediately."""
         target_model = model or settings.OLLAMA_TEXT_MODEL
