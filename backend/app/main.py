@@ -106,6 +106,16 @@ try:
 except ModuleNotFoundError as exc:
     logger.warning("Skipping v1 AI router due to missing dependency: %s", exc)
 
+try:
+    from app.interfaces.api.v1.routers import student_portfolio_router as student_portfolio_router_v1
+    app.include_router(
+        student_portfolio_router_v1.router,
+        prefix="/api/v1",
+        tags=["Student Portfolios v1"],
+    )
+except ModuleNotFoundError as exc:
+    logger.warning("Skipping v1 student portfolio router due to missing dependency: %s", exc)
+
 
 @app.get("/", tags=["Root"])
 async def root():

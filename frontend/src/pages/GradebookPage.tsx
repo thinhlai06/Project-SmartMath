@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download } from 'lucide-react';
+import { ArrowLeft, Download, FolderOpen } from 'lucide-react';
 import api from '../services/api';
 import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
@@ -158,6 +158,7 @@ export function GradebookPage() {
                                         </th>
                                     ))}
                                     <th className="px-6 py-4 font-bold text-center border-l border-slate-200/50 bg-indigo-50/50 text-indigo-800 whitespace-nowrap">Điểm TB</th>
+                                    <th className="px-6 py-4 font-bold text-center border-l border-slate-200/50 whitespace-nowrap">Portfolio</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -203,12 +204,23 @@ export function GradebookPage() {
                                             <td className="px-6 py-4 text-center border-l border-slate-100 font-bold bg-indigo-50/20 text-indigo-700">
                                                 {avg !== null ? avg : '-'}
                                             </td>
+                                            <td className="px-6 py-4 text-center border-l border-slate-100">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="gap-2 rounded-xl"
+                                                    onClick={() => navigate(`/classes/${classId}/students/${student.student_id}/portfolio`)}
+                                                >
+                                                    <FolderOpen className="h-4 w-4" />
+                                                    Xem hồ sơ
+                                                </Button>
+                                            </td>
                                         </tr>
                                     );
                                 })}
                                 {data.student_records.length === 0 && (
                                     <tr>
-                                        <td colSpan={data.worksheets.length + 2} className="px-6 py-12 text-center text-slate-500 font-medium">
+                                        <td colSpan={data.worksheets.length + 3} className="px-6 py-12 text-center text-slate-500 font-medium">
                                             Chưa có học sinh nào trong lớp.
                                         </td>
                                     </tr>
