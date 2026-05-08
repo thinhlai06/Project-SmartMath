@@ -10,6 +10,8 @@ import AIGradingPage from './pages/AIGradingPage';
 import ErrorAnalyticsPage from './pages/ErrorAnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import GradebookHubPage from './pages/GradebookHubPage';
+import StudentPortfolioHubPage from './pages/StudentPortfolioHubPage';
+import StudentPortfolioDetailPage from './pages/StudentPortfolioDetailPage';
 import { ChatFloatingButton } from './components/chat';
 import './index.css';
 
@@ -157,6 +159,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['teacher']}>
             <ErrorAnalyticsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student-portfolios"
+        element={
+          <ProtectedRoute allowedRoles={['teacher']}>
+            <StudentPortfolioHubPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/classes/:classId/students/:studentId/portfolio"
+        element={
+          <ProtectedRoute allowedRoles={['teacher']}>
+            <StudentPortfolioDetailPage />
           </ProtectedRoute>
         }
       />
