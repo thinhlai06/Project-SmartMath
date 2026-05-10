@@ -9,6 +9,7 @@ from app.models.student_progress import StudentProgress
 from app.models.student_analytics import StudentAnalytics
 from app.models.grading_report import GradingReport
 from app.models.grade_entry import GradeEntry
+from app.models.intervention_plan import InterventionPlan, InterventionGroup
 
 __all__ = [
     "User",
@@ -22,5 +23,7 @@ __all__ = [
     "StudentAnalytics",
     "GradingReport",
     "GradeEntry",
+    "InterventionPlan",
+    "InterventionGroup",
 ]
 

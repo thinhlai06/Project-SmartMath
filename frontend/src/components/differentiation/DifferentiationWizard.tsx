@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { DiffStep1Config } from './DiffStep1Config';
 import { DiffStep2Assignment } from './DiffStep2Assignment';
 import { DiffStep3Content } from './DiffStep3Content';
@@ -7,6 +7,9 @@ import { Button } from '../ui/button';
 import { X } from 'lucide-react';
 import { classApi } from '../../services/classApi';
 import type { MathClass } from '../../services/classApi';
+import interventionApi from '../../services/interventionApi';
+import { exerciseApi, worksheetApi } from '../../services/worksheetApi';
+import { isInterventionWorksheetPrefillState } from '../../types/interventionPrefill';
 
 interface Topic {
     id: number;
@@ -14,8 +17,48 @@ interface Topic {
     grade: number;
 }
 
+interface WizardData {
+    topicId: string;
+    strategy: string;
+    grade: number;
+    objective: string;
+    suggestedExercises?: Record<string, number>;
+    assignments: Record<string, string[]> | null;
+}
+
+const EMPTY_ASSIGNMENTS: Record<string, string[]> = {
+    foundation: [],
+    standard: [],
+    extension: [],
+    advanced: [],
+};
+
+function buildInterventionAssignments(studentIds: number[]): Record<string, string[]> {
+    return {
+        foundation: studentIds.map(String),
+        standard: [],
+        extension: [],
+        advanced: [],
+    };
+}
+
+function formatSuggestedExercises(suggestedExercises: Record<string, number>): string {
+    const entries = Object.entries(suggestedExercises).filter(([, count]) => count > 0);
+    if (entries.length === 0) {
+        return '';
+    }
+
+    return entries.map(([tier, count]) => `${tier}: ${count}`).join(', ');
+}
+
 export function DifferentiationWizard() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const interventionPrefill = isInterventionWorksheetPrefillState(location.state) ? location.state : null;
+    const interventionTargetStudentIds = useMemo(
+        () => interventionPrefill?.studentIds.map(String),
+        [interventionPrefill],
+    );
     const [currentStep, setCurrentStep] = useState(1);
     const [classes, setClasses] = useState<MathClass[]>([]);
     const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
@@ -23,11 +66,15 @@ export function DifferentiationWizard() {
     const [saveError, setSaveError] = useState<string | null>(null);
     const [topics, setTopics] = useState<Topic[]>([]);
 
-    const [wizardData, setWizardData] = useState({
+    const [wizardData, setWizardData] = useState<WizardData>({
         topicId: '',
-        strategy: '',
-        grade: 1,
-        assignments: null as any
+        strategy: 'tiered',
+        grade: interventionPrefill?.grade ?? 1,
+        objective: interventionPrefill
+            ? `Kế hoạch can thiệp: ${interventionPrefill.suggestedActivity}${formatSuggestedExercises(interventionPrefill.suggestedExercises) ? ` | Số câu gợi ý: ${formatSuggestedExercises(interventionPrefill.suggestedExercises)}` : ''}`
+            : '',
+        suggestedExercises: interventionPrefill?.suggestedExercises,
+        assignments: null as Record<string, string[]> | null,
     });
 
     // Fetch classes on mount
@@ -36,7 +83,12 @@ export function DifferentiationWizard() {
             try {
                 const data = await classApi.getClasses();
                 setClasses(data);
-                if (data.length > 0) {
+                if (interventionPrefill) {
+                    const targetClass = data.find((item) => item.id === interventionPrefill.classId);
+                    if (targetClass) {
+                        setSelectedClassId(targetClass.id);
+                    }
+                } else if (data.length > 0) {
                     setSelectedClassId(data[0].id);
                 }
             } catch (error) {
@@ -44,7 +96,7 @@ export function DifferentiationWizard() {
             }
         };
         fetchClasses();
-    }, []);
+    }, [interventionPrefill]);
 
     const selectedClass = classes.find((item) => item.id === selectedClassId);
 
@@ -72,10 +124,22 @@ export function DifferentiationWizard() {
         setCurrentStep(2);
     };
 
-    const handleStep2Submit = (assignments: any) => {
+    const handleStep2Submit = (assignments: Record<string, string[]>) => {
         setWizardData({ ...wizardData, assignments });
         setCurrentStep(3);
     };
+
+    useEffect(() => {
+        if (!interventionPrefill || wizardData.assignments) {
+            return;
+        }
+
+        setWizardData((current) => ({
+            ...current,
+            grade: interventionPrefill.grade,
+            assignments: buildInterventionAssignments(interventionPrefill.studentIds),
+        }));
+    }, [interventionPrefill, wizardData.assignments]);
 
     const handleSave = async (generatedContent: Record<string, { question: string; answer: string; hint?: string }[]>) => {
         if (!selectedClassId) {
@@ -88,61 +152,38 @@ export function DifferentiationWizard() {
 
         try {
             const topic = topics.find(t => t.id.toString() === wizardData.topicId);
+            const worksheet = await worksheetApi.createWorksheet(selectedClassId, {
+                title: interventionPrefill
+                    ? `Can thiệp: ${interventionPrefill.groupName}`
+                    : `Phân hóa: ${topic?.topic_name || 'Bài tập mới'}`,
+                topic_id: parseInt(wizardData.topicId) || null,
+                grade: wizardData.grade,
+                worksheet_type: 'differentiation',
+                objective: interventionPrefill
+                    ? wizardData.objective
+                    : `Chiến lược: ${wizardData.strategy}`,
+            });
 
-            // Create worksheet
-            const worksheetResponse = await fetch(
-                `/api/classes/${selectedClassId}/worksheets`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        title: `Phân hóa: ${topic?.topic_name || 'Bài tập mới'}`,
-                        topic_id: parseInt(wizardData.topicId) || null,
-                        grade: wizardData.grade,
-                        worksheet_type: 'differentiation',
-                        objective: `Chiến lược: ${wizardData.strategy}`
-                    })
-                }
-            );
-
-            if (!worksheetResponse.ok) {
-                const error = await worksheetResponse.json();
-                throw new Error(error.detail || 'Không thể tạo bài tập');
-            }
-
-            const worksheet = await worksheetResponse.json();
-
-            // Add exercises from tier assignments
             const tierOrder = ['foundation', 'standard', 'extension', 'advanced'];
             let orderIndex = 0;
 
             for (const tier of tierOrder) {
                 const tierQuestions = generatedContent[tier] || [];
                 for (const q of tierQuestions) {
-                    await fetch(
-                        `/api/worksheets/${worksheet.id}/exercises`,
-                        {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            credentials: 'include',
-                            body: JSON.stringify({
-                                question: q.question,
-                                answer: q.answer || '',
-                                hint: q.hint || '',
-                                difficulty_tier: tier,
-                                order_index: orderIndex++
-                            })
-                        }
-                    );
+                    await exerciseApi.createExercise(worksheet.id, {
+                        question: q.question,
+                        answer: q.answer || '',
+                        hint: q.hint || '',
+                        difficulty_tier: tier as 'foundation' | 'standard' | 'extension' | 'advanced',
+                        order_index: orderIndex++,
+                    });
                 }
             }
 
-            // Success - navigate to worksheets editor
+            if (interventionPrefill) {
+                await interventionApi.linkWorksheet(interventionPrefill.groupId, worksheet.id);
+            }
+
             navigate(`/worksheets/${worksheet.id}/edit`);
         } catch (error: any) {
             setSaveError(error.message || 'Đã xảy ra lỗi khi lưu');
@@ -165,6 +206,13 @@ export function DifferentiationWizard() {
                             <X className="w-6 h-6" />
                         </Button>
                     </div>
+
+                    {interventionPrefill && (
+                        <div className="mb-6 rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-800">
+                            <p className="font-bold">Đang tạo worksheet từ kế hoạch can thiệp</p>
+                            <p>{interventionPrefill.groupName} · {interventionPrefill.studentNames.join(', ')}</p>
+                        </div>
+                    )}
 
                     {/* Class Selector */}
                     <div className="mb-8 flex items-center gap-4 glass-panel bg-white/60 border-white/50 rounded-2xl p-4 shadow-sm w-fit mx-auto md:mx-0">
@@ -233,12 +281,13 @@ export function DifferentiationWizard() {
                         onNext={handleStep2Submit}
                         onBack={() => setCurrentStep(1)}
                         currentClassId={selectedClassId}
-                        initialAssignments={wizardData.assignments}
+                        initialAssignments={wizardData.assignments ?? undefined}
+                        targetStudentIds={interventionTargetStudentIds}
                     />
                 )}
                 {currentStep === 3 && (
                     <DiffStep3Content
-                        assignments={wizardData.assignments}
+                        assignments={wizardData.assignments ?? EMPTY_ASSIGNMENTS}
                         data={wizardData}
                         onBack={() => setCurrentStep(2)}
                         onSave={handleSave}

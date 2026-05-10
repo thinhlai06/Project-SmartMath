@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { ArrowLeft, Save, RefreshCw, AlertCircle } from 'lucide-react';
@@ -18,6 +18,8 @@ interface DiffStep3ContentProps {
         topicId: string;
         strategy: string;
         grade: number;
+        objective?: string;
+        suggestedExercises?: Record<string, number>;
     };
     onBack: () => void;
     onSave: (content: Record<string, QuestionItem[]>) => void;
@@ -30,7 +32,14 @@ export function DiffStep3Content({ assignments, data, onBack, onSave, isSaving =
     const [error, setError] = useState<string | null>(null);
     const [hasGenerated, setHasGenerated] = useState(false);
 
-    const generateContent = async () => {
+    const activeTiers = useMemo(
+        () => DIFF_TIERS
+            .map((tier) => tier.id)
+            .filter((tierId) => (assignments[tierId]?.length || 0) > 0 || (data.suggestedExercises?.[tierId] || 0) > 0),
+        [assignments, data.suggestedExercises],
+    );
+
+    const generateContent = useCallback(async () => {
         setIsGenerating(true);
         setError(null);
         try {
@@ -41,8 +50,8 @@ export function DiffStep3Content({ assignments, data, onBack, onSave, isSaving =
                 body: JSON.stringify({
                     topic_id: parseInt(data.topicId),
                     grade: data.grade || 1,
-                    objective: `Chiến lược: ${data.strategy}`,
-                    tiers: DIFF_TIERS.map(t => t.id)
+                    objective: data.objective?.trim() || `Chiến lược: ${data.strategy}`,
+                    tiers: activeTiers.length > 0 ? activeTiers : DIFF_TIERS.map(t => t.id)
                 })
             });
 
@@ -58,14 +67,14 @@ export function DiffStep3Content({ assignments, data, onBack, onSave, isSaving =
         } finally {
             setIsGenerating(false);
         }
-    };
+    }, [activeTiers, data.grade, data.objective, data.strategy, data.topicId]);
 
     useEffect(() => {
         if (!hasGenerated) {
             generateContent();
             setHasGenerated(true);
         }
-    }, [hasGenerated]);
+    }, [generateContent, hasGenerated]);
 
     return (
         <Card className="max-w-4xl mx-auto glass-panel border-white/50 rounded-3xl overflow-hidden shadow-soft">

@@ -12,6 +12,7 @@ import SettingsPage from './pages/SettingsPage';
 import GradebookHubPage from './pages/GradebookHubPage';
 import StudentPortfolioHubPage from './pages/StudentPortfolioHubPage';
 import StudentPortfolioDetailPage from './pages/StudentPortfolioDetailPage';
+import InterventionPlannerPage from './pages/InterventionPlannerPage';
 import { ChatFloatingButton } from './components/chat';
 import './index.css';
 
@@ -167,6 +168,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['teacher']}>
             <StudentPortfolioHubPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/intervention-planner"
+        element={
+          <ProtectedRoute allowedRoles={['teacher']}>
+            <InterventionPlannerPage />
           </ProtectedRoute>
         }
       />

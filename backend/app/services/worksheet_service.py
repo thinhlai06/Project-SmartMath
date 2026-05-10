@@ -9,6 +9,7 @@ from app.models.worksheet_exercise import WorksheetExercise
 from app.models.student_progress import StudentProgress
 from app.models.student_analytics import StudentAnalytics
 from app.models.grade_entry import GradeEntry
+from app.models.intervention_plan import InterventionGroup
 from app.schemas.worksheet import WorksheetCreate, WorksheetUpdate
 
 
@@ -83,6 +84,10 @@ def delete_worksheet(db: Session, worksheet: Worksheet) -> None:
     """Delete a worksheet and its exercises (cascade)."""
     worksheet_id = worksheet.id
 
+    db.query(InterventionGroup).filter(InterventionGroup.worksheet_id == worksheet_id).update(
+        {InterventionGroup.worksheet_id: None},
+        synchronize_session=False,
+    )
     db.query(GradeEntry).filter(GradeEntry.worksheet_id == worksheet_id).delete(synchronize_session=False)
     db.query(StudentProgress).filter(StudentProgress.worksheet_id == worksheet_id).delete(synchronize_session=False)
     db.query(StudentAnalytics).filter(StudentAnalytics.worksheet_id == worksheet_id).delete(synchronize_session=False)

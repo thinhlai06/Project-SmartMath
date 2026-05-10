@@ -13,6 +13,7 @@ interface DiffStep2AssignmentProps {
     onBack: () => void;
     currentClassId: number | null;
     initialAssignments?: Record<string, string[]>;
+    targetStudentIds?: string[];
 }
 
 interface AssignmentStudent {
@@ -85,10 +86,13 @@ function mapStudent(apiStudent: ApiStudent): AssignmentStudent {
 
 function buildAssignmentsFromStudents(
     students: AssignmentStudent[],
-    initialAssignments?: Record<string, string[]>
+    initialAssignments?: Record<string, string[]>,
+    targetStudentIds?: string[],
 ): AssignmentState {
     const nextAssignments = normalizeAssignments(initialAssignments);
-    const validStudentIds = new Set(students.map((student) => student.id));
+    const validStudentIds = new Set(targetStudentIds && targetStudentIds.length > 0
+        ? targetStudentIds
+        : students.map((student) => student.id));
     const assignedIds = new Set<string>();
 
     for (const tier of DIFF_TIERS) {
@@ -102,6 +106,9 @@ function buildAssignmentsFromStudents(
     }
 
     for (const student of students) {
+        if (!validStudentIds.has(student.id)) {
+            continue;
+        }
         if (!assignedIds.has(student.id)) {
             nextAssignments[student.suggestedTier].push(student.id);
             assignedIds.add(student.id);
@@ -111,7 +118,7 @@ function buildAssignmentsFromStudents(
     return nextAssignments;
 }
 
-export function DiffStep2Assignment({ onNext, onBack, currentClassId, initialAssignments }: DiffStep2AssignmentProps) {
+export function DiffStep2Assignment({ onNext, onBack, currentClassId, initialAssignments, targetStudentIds }: DiffStep2AssignmentProps) {
     const [assignments, setAssignments] = useState<AssignmentState>(normalizeAssignments(initialAssignments));
     const [seededClassId, setSeededClassId] = useState<number | null>(null);
 
@@ -138,10 +145,10 @@ export function DiffStep2Assignment({ onNext, onBack, currentClassId, initialAss
             return;
         }
 
-        const nextAssignments = buildAssignmentsFromStudents(students, initialAssignments);
+        const nextAssignments = buildAssignmentsFromStudents(students, initialAssignments, targetStudentIds);
         setAssignments(nextAssignments);
         setSeededClassId(currentClassId);
-    }, [currentClassId, initialAssignments, seededClassId, students, studentsQuery.isFetched]);
+    }, [currentClassId, initialAssignments, seededClassId, students, studentsQuery.isFetched, targetStudentIds]);
 
     const handleMoveStudent = (studentId: string, targetTier: DiffTierId) => {
         const nextAssignments: AssignmentState = {
