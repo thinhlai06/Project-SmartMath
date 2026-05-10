@@ -7,7 +7,8 @@ from app.models.student_progress import StudentProgress
 from app.models.student_analytics import StudentAnalytics
 from app.models.grading_report import GradingReport
 from app.models.chat_message import ChatMessage
-from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, announcements, dashboard, activities, upload, gradebook
+from app.models.intervention_plan import InterventionPlan, InterventionGroup
+from app.routers import auth, topics, classes, students, worksheets, exercises, pdf, announcements, dashboard, activities, upload, gradebook, intervention
 from app.core.exceptions import SmartMathException, smartmath_exception_handler
 from fastapi.staticfiles import StaticFiles
 import os
@@ -75,6 +76,7 @@ app.include_router(dashboard.router, prefix="/api", tags=["Dashboard"])
 app.include_router(activities.router, prefix="/api", tags=["Activities"])
 app.include_router(upload.router, prefix="/api")
 app.include_router(gradebook.router, prefix="/api")
+app.include_router(intervention.router, prefix="/api")
 
 os.makedirs("uploads/images", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
